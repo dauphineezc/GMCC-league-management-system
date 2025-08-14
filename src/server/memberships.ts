@@ -1,0 +1,1 @@
+// Join/create checks, one-team rule, roster cap

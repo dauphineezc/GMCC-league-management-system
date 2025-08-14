@@ -1,0 +1,1 @@
+// Pretty schedule view (optional separate route)

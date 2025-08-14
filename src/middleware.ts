@@ -1,0 +1,1 @@
+// Mock auth: sets/reads x-user-id + cookie

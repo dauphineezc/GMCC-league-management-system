@@ -1,0 +1,26 @@
+{
+    "name": "your-league-app",
+    "private": true,
+    "type": "module",
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint"
+    },
+    "dependencies": {
+      "@vercel/kv": "^1.0.1",
+      "next": "14.2.5",
+      "react": "18.3.1",
+      "react-dom": "18.3.1",
+      "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+      "@types/node": "^20",
+      "@types/react": "^18",
+      "@types/uuid": "^9",
+      "typescript": "^5.5.4",
+      "eslint": "^8"
+    }
+  }
+  

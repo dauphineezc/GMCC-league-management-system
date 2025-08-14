@@ -1,0 +1,1 @@
+// Thin helpers (get/set + common queries + hashing)
