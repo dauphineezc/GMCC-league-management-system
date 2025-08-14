@@ -1,1 +1,0 @@
-// GET team schedule (member-only)
