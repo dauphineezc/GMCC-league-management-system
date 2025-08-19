@@ -93,7 +93,7 @@ flowchart LR
     AD2b[Update League Schedule: PDF]
     AD2c[Update Standings / Input Results]
     AD2d[Master Roster View]
-    AD2d1[Players + Team + Manager ⭐ + Payment]
+    AD2d1[Players + Team + Manager icon + Payment]
     AD2d2[Click Player → Profile: contact, teams, payment]
     AD3[Open Team Page: Admin View]
     AD3a[Toggle Team Approved/Unapproved]
