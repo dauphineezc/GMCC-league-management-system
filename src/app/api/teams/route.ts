@@ -1,5 +1,7 @@
 // POST create team
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { assertUserNotOnTeam, createTeamForUser } from '@/server/memberships';
 import { isDivisionId } from '@/lib/divisions';

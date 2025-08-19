@@ -1,5 +1,7 @@
 // POST create invite (link/code)
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureLead } from '@/server/invites';
 import { getTeamMembers } from '@/lib/kv';

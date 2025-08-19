@@ -1,5 +1,7 @@
 // POST join via invite link
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getMembership, kv, now } from '@/lib/kv';
 import { consumeLinkInvite } from '@/server/invites';

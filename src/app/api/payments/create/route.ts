@@ -1,5 +1,7 @@
 // POST create checkout session (redirect URL)
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@/lib/kv';
 import { createCheckoutFor } from '@/server/payments';

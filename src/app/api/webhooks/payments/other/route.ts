@@ -1,5 +1,7 @@
 // Provider webhook stub
 
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { markPaidByInvoice } from '@/server/payments';
 

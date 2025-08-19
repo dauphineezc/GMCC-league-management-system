@@ -1,5 +1,7 @@
 // GET team schedule (member-only)
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@/lib/kv';
 

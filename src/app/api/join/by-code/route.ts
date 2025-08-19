@@ -1,5 +1,7 @@
 // POST join via code
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getMembership } from '@/lib/kv';
 import { consumeCodeInvite } from '@/server/invites';

@@ -1,5 +1,7 @@
 // GET division schedule (public)
 
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getDivisionSchedule } from '@/server/schedules';
 import { isDivisionId } from '@/lib/divisions';
