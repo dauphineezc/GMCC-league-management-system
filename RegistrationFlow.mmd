@@ -1,0 +1,36 @@
+flowchart TD
+A[Player logs in (Firebase)] --> B{Has team in league?}
+B -- No --> C[Create Team or Join Team]
+
+C -- Create --> CT1[Select league]
+CT1 --> CT2[Enter name/description]
+CT2 --> CT3[Create team]
+CT3 --> CT4[Set managerUserId = current user]
+CT4 --> CT5[Add manager to roster]
+CT5 --> CT6[Show Invite Link/Code]
+CT6 --> D[Team Page (Manager view)]
+
+C -- Join --> J1[Enter invite/link]
+J1 --> J2{Validate invite}
+J2 -- Invalid --> JErr1[Error]
+J2 -- Valid --> J3{Already in team?}
+J3 -- Yes --> JErr2[Error]
+J3 -- No --> J4{Roster < 8?}
+J4 -- Full --> JErr3[Error]
+J4 -- OK --> J5[Add player to roster]
+J5 --> J6[Set payment=UNPAID]
+J6 --> D
+
+D --> D1[Team Info]
+D --> D2[Approval status (Admin)]
+D --> D3[Roster]
+D --> D4[Upcoming Schedule]
+D --> D5[Standings]
+
+AD[Admin Dashboard] --> AD1[Open League]
+AD1 --> AD2[Approve Teams]
+AD1 --> AD3[Upload Schedule]
+AD1 --> AD4[Input Results]
+AD2 -.toggles.-> D2
+AD3 -.updates.-> D4
+AD4 -.updates.-> D5
