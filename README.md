@@ -59,7 +59,7 @@ A basketball league management webapp supporting **team registration**, **league
 
 ---
 
-## 🛠Tech Stack
+## Tech Stack
 - **Frontend/Backend:** Next.js (App Router)  
 - **Auth:** Firebase Authentication  
 - **Database:** Vercel KV (NoSQL)  
