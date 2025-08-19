@@ -1,0 +1,74 @@
+flowchart LR
+
+%% Public Lane
+subgraph L1[Public (Not Logged In)]
+  direction TB
+  P1[Open App]
+  P2[View Leagues]
+  P3[View League → Teams]
+  P4[View League Schedule (PDFs)]
+  P5[View Standings/Bracket/Scores]
+  P6[Log In Prompt]
+  P7[Log In]
+  P1 --> P2 --> P3
+  P3 --> P4 --> P5
+  P5 --> P6 --> P7
+end
+
+%% Player Lane
+subgraph L2[Player (Logged In)]
+  direction TB
+  PL1[Dashboard: My Teams (manager distinct)]
+  PL2[Create Team]
+  PL3[Join Team]
+  PL4[Open Team Page]
+  PL4a[Team Name & Description]
+  PL4b[Approval Status (Admin)]
+  PL4c[Roster (Manager can invite)]
+  PL4d[Upcoming Schedule]
+  PL4e[Standings & Game History]
+  PL1 --> PL2
+  PL1 --> PL3
+  PL1 --> PL4
+  PL4 --> PL4a --> PL4b --> PL4c --> PL4d --> PL4e
+end
+
+%% Admin Lane
+subgraph L3[Admin (Logged In)]
+  direction TB
+  AD1[Dashboard: Leagues I Manage]
+  AD2[Open League Dashboard]
+  AD2a[View All Teams]
+  AD2b[Update League Schedule]
+  AD2c[Update Standings/Game Results]
+  AD2d[Master Roster]
+  AD2d1[Players + Team + Manager ⭐]
+  AD2d2[Click Player → Profile]
+  AD3[Open Team Page (Admin View)]
+  AD3a[Toggle Team Approval]
+  AD3b[Click Player → Profile]
+  AD1 --> AD2
+  AD2 --> AD2a
+  AD2 --> AD2b
+  AD2 --> AD2c
+  AD2 --> AD2d --> AD2d1 --> AD2d2
+  AD2 --> AD3 --> AD3a
+  AD3 --> AD3b
+end
+
+%% Super Admin Lane
+subgraph L4[Super Admin (Logged In)]
+  direction TB
+  SA1[Dashboard: All Leagues]
+  SA2[Open League → See Manager + Teams]
+  SA3[Open Team → See Players]
+  SA1 --> SA2 --> SA3
+end
+
+%% Cross-lane dependencies
+P7 -.auth success.-> PL1
+PL4b -.depends on.-> AD3a
+AD2b -.updates.-> PL4d
+AD2c -.updates.-> PL4e
+AD2d1 -.reads.-> PL4c
+AD3b -.views.-> PL4c
