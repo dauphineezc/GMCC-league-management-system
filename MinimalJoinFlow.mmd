@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant M as Manager
+  participant P as Player
+  participant APP as App (Next.js)
+  participant KV as Vercel KV
+  participant ADM as Admin
+
+  M->>APP: Create Team
+  APP->>KV: Write team & roster
+  APP-->>M: Invite link/code
+
+  P->>APP: Join via link/code
+  APP->>KV: Validate invite
+  APP->>KV: Check eligibility
+  APP->>KV: Add player (UNPAID)
+  APP-->>P: Success → Team Page
+
+  ADM->>APP: Approve Team
+  APP->>KV: Set team.approved=true
+  APP-->>ADM: OK
+  APP-->>P: Show Approved
