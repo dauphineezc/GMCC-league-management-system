@@ -1,36 +1,32 @@
 // POST create invite (link/code)
-
-export const runtime = 'edge';
-
-import { NextRequest, NextResponse } from 'next/server';
-import { ensureLead } from '@/server/invites';
-import { getTeamMembers } from '@/lib/kv';
-import { createLinkInvite, createCodeInvite } from '@/server/invites';
+import { NextRequest } from "next/server";
+import { kv } from "@vercel/kv";
+import { requireUser } from "@/lib/auth";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')!;
-  const { teamId, kind } = await req.json();
+  const userId = requireUser();
+  const { teamId } = await req.json();
 
-  if (!teamId || !['link', 'code'].includes(kind)) {
-    return NextResponse.json({ error: 'Invalid' }, { status: 400 });
+  const team = await kv.get<any>(`team:${teamId}`);
+  if (!team) return Response.json({ error: { code: "NOT_FOUND" }}, { status: 404 });
+  if (team.managerUserId !== userId) return Response.json({ error: { code: "NOT_MANAGER" }}, { status: 403 });
+
+  const roster = await kv.get<any[]>(`team:${teamId}:roster`) || [];
+  if (roster.length >= (team.rosterLimit ?? 8)) {
+    return Response.json({ error: { code: "TEAM_FULL", message: "Roster is full." }}, { status: 400 });
   }
 
-  try {
-    const team = await ensureLead(userId, teamId);
-    const members = await getTeamMembers(teamId);
-    if (members.length >= (team.rosterLimit ?? 8)) {
-      return NextResponse.json({ error: 'Roster full' }, { status: 409 });
-    }
+  // rate limit
+  const limKey = `ratelimit:invite-create:${userId}`;
+  const count = await kv.incr(limKey);
+  if (count === 1) await kv.expire(limKey, 60);
+  if (count > 5) return Response.json({ error: { code: "RATE_LIMIT" }}, { status: 429 });
 
-    if (kind === 'link') {
-      const { token } = await createLinkInvite(teamId);
-      const base = process.env.APP_BASE_URL || 'http://localhost:3000';
-      return NextResponse.json({ inviteUrl: `${base}/join?t=${token}` });
-    } else {
-      const { code } = await createCodeInvite(teamId);
-      return NextResponse.json({ code });
-    }
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
-  }
+  // token
+  const token = crypto.randomBytes(24).toString("base64url");
+  const hash = crypto.createHash("sha256").update(token).digest("base64url");
+  await kv.set(`invite:token:${hash}`, { teamId, createdBy: userId, uses: 0 }, { ex: 60 * 60 * 24 * 14 }); // 14d
+
+  return Response.json({ token }); // client constructs join URL /join?t=${token}
 }

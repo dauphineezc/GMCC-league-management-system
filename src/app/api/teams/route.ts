@@ -1,24 +1,38 @@
 // POST create team
-
-export const runtime = 'edge';
-
-import { NextRequest, NextResponse } from 'next/server';
-import { assertUserNotOnTeam, createTeamForUser } from '@/server/memberships';
-import { isDivisionId } from '@/lib/divisions';
+import { NextRequest } from "next/server";
+import { requireUser } from "@/lib/auth";
+import { kv } from "@vercel/kv";
+import { v4 as uuid } from "uuid";
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')!;
-  const { name, divisionId } = await req.json();
+  const userId = requireUser();
+  const { leagueId, name, description } = await req.json();
 
-  if (!name || typeof name !== 'string' || !isDivisionId(divisionId)) {
-    return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+  const memberships = await kv.get<any[]>(`user:${userId}:memberships`) || [];
+  if (memberships.some(m => m.leagueId === leagueId)) {
+    return Response.json({ error: { code: "ALREADY_ON_TEAM", message: "Already on a team in this league." }}, { status: 400 });
   }
 
-  try {
-    await assertUserNotOnTeam(userId);
-    const team = await createTeamForUser(userId, name.trim(), divisionId);
-    return NextResponse.json({ team, inviteOptions: { createLinkAt: '/api/invites', createCodeAt: '/api/invites' } });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
-  }
+  const teamId = uuid();
+  const now = new Date().toISOString();
+  const team = { id: teamId, leagueId, name, description, managerUserId: userId, approved: false, rosterLimit: 8, createdAt: now, updatedAt: now };
+  await kv.set(`team:${teamId}`, team);
+
+  // public team card
+  const card = { teamId, name, description };
+  const teams = (await kv.get<any[]>(`league:${leagueId}:teams`)) || [];
+  await kv.set(`league:${leagueId}:teams`, [...teams, card]);
+
+  // teamIds index (admin)
+  const ids = (await kv.get<string[]>(`league:${leagueId}:teamIds`)) || [];
+  await kv.set(`league:${leagueId}:teamIds`, [...ids, teamId]);
+
+  // roster with manager
+  const roster = [{ userId, displayName: "You", isManager: true, joinedAt: now }];
+  await kv.set(`team:${teamId}:roster`, roster);
+
+  // user memberships
+  await kv.set(`user:${userId}:memberships`, [...memberships, { leagueId, teamId, isManager: true }]);
+
+  return Response.json({ teamId });
 }

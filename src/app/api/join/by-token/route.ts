@@ -1,30 +1,35 @@
 // POST join via invite link
-
-export const runtime = 'edge';
-
-import { NextRequest, NextResponse } from 'next/server';
-import { getMembership, kv, now } from '@/lib/kv';
-import { consumeLinkInvite } from '@/server/invites';
-import { addPlayerToTeam } from '@/server/memberships';
-import { ensurePaymentRecord } from '@/server/payments';
+import { NextRequest } from "next/server";
+import { kv } from "@vercel/kv";
+import { requireUser } from "@/lib/auth";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')!;
+  const userId = requireUser();
   const { token } = await req.json();
+  const hash = crypto.createHash("sha256").update(token).digest("base64url");
 
-  try {
-    const existing = await getMembership(userId);
-    if (existing) return NextResponse.json({ error: 'Already on a team' }, { status: 409 });
+  const invite = await kv.get<any>(`invite:token:${hash}`);
+  if (!invite) return Response.json({ error: { code: "INVITE_INVALID" }}, { status: 400 });
 
-    const teamId = await consumeLinkInvite(token);
-    const team = await addPlayerToTeam(userId, teamId);
+  const team = await kv.get<any>(`team:${invite.teamId}`);
+  if (!team) return Response.json({ error: { code: "NOT_FOUND" }}, { status: 404 });
 
-    const amountCents = Number(process.env.FEE_PER_PLAYER_CENTS || 6500);
-    const dueBy = process.env.SEASON_PAYMENT_DEADLINE || '2025-10-31';
-    await ensurePaymentRecord(userId, team.id, amountCents, dueBy);
-
-    return NextResponse.json({ ok: true, team: { id: team.id, name: team.name, divisionId: team.divisionId } });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
+  const memberships = await kv.get<any[]>(`user:${userId}:memberships`) || [];
+  if (memberships.some(m => m.leagueId === team.leagueId)) {
+    return Response.json({ error: { code: "ALREADY_ON_TEAM" }}, { status: 400 });
   }
+
+  const roster = await kv.get<any[]>(`team:${team.id}:roster`) || [];
+  if (roster.length >= (team.rosterLimit ?? 8)) {
+    return Response.json({ error: { code: "TEAM_FULL" }}, { status: 400 });
+  }
+
+  const now = new Date().toISOString();
+  await kv.set(`team:${team.id}:roster`, [...roster, { userId, displayName: "You", isManager: false, joinedAt: now }]);
+  await kv.set(`team:${team.id}:roster:private:${userId}`, { paymentStatus: "UNPAID" });
+  await kv.set(`user:${userId}:memberships`, [...memberships, { leagueId: team.leagueId, teamId: team.id, isManager: false }]);
+  await kv.del(`invite:token:${hash}`);
+
+  return Response.json({ teamId: team.id });
 }

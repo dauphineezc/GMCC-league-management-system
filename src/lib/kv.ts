@@ -1,26 +1,18 @@
 // Thin helpers (get/set + common queries + hashing)
 
-import { kv } from '@vercel/kv';
-import crypto from 'crypto';
-import type { Game, MemberPublic } from '@/lib/types';
+import { kv } from "@vercel/kv";
 
-export { kv }; // re-export
+export async function getJSON<T>(key: string): Promise<T | null> {
+  const v = await kv.get(key);
+  return (v as T) ?? null;
+}
+export const setJSON = <T,>(key: string, value: T, opts?: { ex?: number }) => kv.set(key, value, opts);
+export const del = (key: string) => kv.del(key);
+export const incr = (key: string, ex?: number) => ex ? kv.incrbyex(key, 1, ex) : kv.incr(key);
 
-export const now = () => new Date().toISOString();
-export const sha256b64 = (s: string) => crypto.createHash('sha256').update(s).digest('base64url');
-
-export async function getMembership(userId: string) {
-  return kv.get<{ teamId: string; role: 'LEAD'|'PLAYER' }|null>(`user:${userId}:membership`);
-}
-export async function setMembership(userId: string, data: { teamId: string; role: 'LEAD'|'PLAYER' }|null) {
-  return kv.set(`user:${userId}:membership`, data);
-}
-export async function getTeamMembers(teamId: string) {
-  return (await kv.get<MemberPublic[]>(`team:${teamId}:members`)) ?? [];
-}
-export async function setTeamMembers(teamId: string, members: MemberPublic[]) {
-  return kv.set(`team:${teamId}:members`, members);
-}
-export async function getTeamSchedule(teamId: string) {
-  return (await kv.get<Game[]>(`game:${teamId}`)) ?? [];
-}
+// common queries
+export const userMemberships = (userId: string) => getJSON<any[]>(`user:${userId}:memberships`);
+export const team = (teamId: string) => getJSON<any>(`team:${teamId}`);
+export const teamRoster = (teamId: string) => getJSON<any[]>(`team:${teamId}:roster`);
+export const league = (leagueId: string) => getJSON<any>(`league:${leagueId}`);
+export const leagueTeams = (leagueId: string) => getJSON<any[]>(`league:${leagueId}:teams`);

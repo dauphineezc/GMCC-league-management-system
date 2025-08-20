@@ -1,29 +1,41 @@
 // Mock auth: sets/reads x-user-id + cookie
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuid } from "uuid";
 
-import { NextResponse } from 'next/server';
-import { v4 as uuid } from 'uuid';
+export function middleware(req: NextRequest) {
+  // If you only want to run this on certain paths, keep using `config.matcher` below.
+  const url = req.nextUrl;
 
-export function middleware(req: Request) {
-  const url = new URL(req.url);
-  if (!url.pathname.startsWith('/api')) return NextResponse.next();
+  // Sources of truth for a user id (in priority order)
+  const headerUid = req.headers.get("x-user-id") || null;           // e.g., from a proxy or real auth
+  const devUid    = req.cookies.get("dev-user-id")?.value || null;  // manual dev cookie for local testing
+  const persisted = req.cookies.get("auth_user")?.value || null;    // our own sticky cookie
 
-  // Try header, then cookie; else mint a dev id
-  const headers = new Headers(req.headers);
-  let userId = headers.get('x-user-id') || '';
-  const cookies = (req as any).cookies;
-  const cookieId = cookies?.get?.('auth_user')?.value;
-  if (!userId && cookieId) userId = cookieId;
-  if (!userId) userId = uuid();
+  // Mint a UUID if nothing is present (dev convenience)
+  const userId = headerUid || devUid || persisted || uuid();
 
-  const res = NextResponse.next({
-    request: { headers: new Headers({ ...Object.fromEntries(headers), 'x-user-id': userId }) },
+  // Propagate x-user-id to downstream request so `headers()` in RSC/API can read it
+  const nextHeaders = new Headers(req.headers);
+  nextHeaders.set("x-user-id", userId);
+
+  const res = NextResponse.next({ request: { headers: nextHeaders } });
+
+  // Persist/refresh our cookie for convenience (non-HTTPOnly for quick dev testing)
+  res.cookies.set("auth_user", userId, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 180, // 180 days
   });
-  // Persist cookie (non-HTTPOnly for convenience in dev)
-  res.cookies.set('auth_user', userId, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 180 });
+
   return res;
 }
 
+// Where should middleware run?
 export const config = {
-  // Apply to all API routes
-  matcher: ['/api/:path*'],
-};
+  // If you only need it for API routes, keep this:
+  // matcher: ["/api/:path*"]
+
+  // If you also want Server Components (e.g., /admin) to see x-user-id via headers(),
+  // widen the matcher to cover those pages too:
+  matcher: ["/api/:path*", "/admin/:path*"],
+}
