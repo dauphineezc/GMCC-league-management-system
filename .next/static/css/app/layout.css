@@ -1,0 +1,410 @@
+/*!************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[13].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"src/app/layout.tsx","import":"Racing_Sans_One","arguments":[{"weight":"400","subsets":["latin"],"variable":"--font-sport"}],"variableName":"racing"} ***!
+  \************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/* latin-ext */
+@font-face {
+  font-family: '__Racing_Sans_One_97fb25';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/_next/static/media/1369fa048801759f-s.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: '__Racing_Sans_One_97fb25';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/_next/static/media/a474899b80ee93d2-s.p.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}@font-face {font-family: '__Racing_Sans_One_Fallback_97fb25';src: local("Arial");ascent-override: 94.18%;descent-override: 27.40%;line-gap-override: 0.00%;size-adjust: 103.63%
+}.__className_97fb25 {font-family: '__Racing_Sans_One_97fb25', '__Racing_Sans_One_Fallback_97fb25';font-weight: 400;font-style: normal
+}.__variable_97fb25 {--font-sport: '__Racing_Sans_One_97fb25', '__Racing_Sans_One_Fallback_97fb25'
+}
+
+/*!*********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[2].use[1]!./node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[13].oneOf[2].use[2]!./node_modules/next/font/google/target.css?{"path":"src/app/layout.tsx","import":"Inter","arguments":[{"subsets":["latin"],"variable":"--font-body"}],"variableName":"inter"} ***!
+  \*********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/* cyrillic-ext */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/55c55f0601d81cf3-s.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/26a46d62cd723877-s.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/97e0cb1ae144a2a9-s.woff2) format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/581909926a08bbc8-s.woff2) format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/df0a9ae256c0569c-s.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/8e9860b6e62d6359-s.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: '__Inter_e8ce0c';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(/_next/static/media/e4af272ccee01ff0-s.p.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}@font-face {font-family: '__Inter_Fallback_e8ce0c';src: local("Arial");ascent-override: 90.49%;descent-override: 22.56%;line-gap-override: 0.00%;size-adjust: 107.06%
+}.__className_e8ce0c {font-family: '__Inter_e8ce0c', '__Inter_Fallback_e8ce0c';font-style: normal
+}.__variable_e8ce0c {--font-body: '__Inter_e8ce0c', '__Inter_Fallback_e8ce0c'
+}
+
+/*!*****************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[3]!./src/app/globals.css ***!
+  \*****************************************************************************************************************************************************************************************************************************************************************/
+/* ======= app/globals.css ======= */
+
+/* Colors, radius, shadows */
+:root{
+  --brand:#ff9369;                /* orange */
+  --brand-lines:#F5C7A1;          /* court lines */
+  --navy:#0E3760;                 /* link text */
+  --green:#02B365;                /* account pill */
+  --green-700:#019659;
+  --bg:#FCF9F4;
+  --card:#FFFDF9;
+  --text:#1C2430;
+  --muted:#6B7380;
+  --radius:12px;
+  --shadow:0 4px 18px rgba(0,0,0,.06);
+}
+
+/* Dark mode (optional) */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0F141A; --card:#0F171E; --text:#E8ECF1; --muted:#A9B3C2;
+  }
+}
+
+/* Resets */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family: var(--font-body), system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  font-size:18px;
+  line-height:1.6;
+}
+a{ color:inherit; text-decoration:none; }
+a:hover{ text-decoration: underline; }
+
+button{
+  border:none; background:transparent; padding:0;
+  font:inherit; cursor:pointer;
+}
+
+/* Layout helpers */
+.container{ max-width:1120px; margin:0 auto; padding:24px; }
+
+/* Cards & badges & buttons */
+.card{
+  background:var(--card);
+  border:1px solid rgba(0,0,0,.06);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+/* === Buttons (sporty, navbar-matching) === */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  text-transform: uppercase; letter-spacing:.6px; font-weight: 800;
+  padding:.5rem 1rem;
+  border-radius:14px;
+  border:1.5px solid transparent;
+  background: var(--card);
+  color: var(--navy);
+  box-shadow: 0 1px 0 rgba(0,0,0,.08);
+  transition: transform .08s ease, box-shadow .12s ease,
+              background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn:hover{ transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,0,0,.10); text-decoration:none; }
+
+/* Primary = orange */
+.btn--primary{
+  background: linear-gradient(180deg, #ffab85 0%, var(--brand) 100%);
+  color:#ffffff;
+  border-color: rgba(0,0,0,.08);
+}
+.btn--primary:hover{ filter: brightness(.98); }
+
+/* Outline Navy (great for "Join" / "Sign out") */
+.btn--outline{
+  background: transparent;
+  color: var(--navy);
+  border-color: var(--navy);
+}
+.btn--outline:hover{
+  box-shadow: 0 1px 0 rgba(0,0,0,.08),0 18px 50px 0 rgba(0,0,0,.08);
+  box-shadow: 0 3px 3px 0 rgba(0,0,0,.08),0 5px 10px 0 rgba(0,0,0,0.19);
+}
+
+/* Low-emphasis, card-looking button (if needed) */
+.btn--light{
+  background: var(--card);
+  color: var(--navy);
+  border-color: rgba(0,0,0,.12);
+}
+
+/* Optional shapes/sizing helpers */
+.btn--pill{ border-radius:999px; }
+.btn--sm{ padding:.5rem .75rem; font-size:.9rem; }
+.btn-row{ display:flex; gap:12px; flex-wrap:wrap; }
+
+
+.badge{
+  display:inline-flex; gap:.5rem; align-items:center;
+  padding:.25rem .6rem; border-radius:999px;
+  font-weight:700; font-size:.85rem;
+}
+.badge--ok{background:#EAF7EE; color:#1B7D3E}
+.badge--pending{background:#FFF3E6; color:#9B4B00}
+
+/* Headings */
+h1{font-size:clamp(32px,4vw,44px); line-height:1.15; margin:0 0 16px;}
+h2{font-size:clamp(22px,2.5vw,28px); margin:0 0 12px;}
+
+
+
+/* === Section header (matches your sporty vibe) === */
+.section-title{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  color: var(--navy);
+  font-size: clamp(28px, 3.1vw, 44px);
+  line-height: 1.1;
+  margin: 24px 0 12px;
+}
+
+/* === Responsive card grid === */
+.cards-grid{
+  display:grid;
+  grid-gap: 18px;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Grid that keeps each card a fixed max width (doesn't stretch to full row) */
+.cards-grid-fixed{
+  display:grid;
+  grid-gap:18px;
+  gap:18px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 520px));
+  justify-content: start; /* keep tracks left-aligned */
+}
+
+/* === Orange gradient panel (navbar-matching) === */
+.gradient-card{
+  background: linear-gradient(135deg, #f8b190 0%, var(--brand) 30%, var(--brand) 70%, #f8b190 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+/* White inset surface inside gradient card */
+.card-inner{
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+/* Big sporty title centered inside a card (team name) */
+.card-title{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  color: var(--navy);
+  font-size: clamp(24px, 2.4vw, 36px);
+  font-weight: 900;
+  text-align:center;
+  margin: 6px 6px 10px;
+}
+
+/* Status pills */
+.status{
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-weight: 700; text-transform: uppercase;
+  padding:.15rem .4rem; border-radius: 999px; font-size: .65rem;
+}
+.status--ok{ background:#EAF7EE; color:#05bc51; }
+.status--pending{ background:#FFF3E6; color:#ec720e; }
+
+/* Clear, underlined CTA links used in cards */
+.card-cta{
+  position: relative;
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-weight: 700; text-transform: uppercase;
+  font-size: .8rem; letter-spacing: .3px;
+  color: var(--navy);
+
+  /* underline that reads clearly */
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+
+  transition: text-decoration-thickness .12s ease, text-underline-offset .12s ease, transform .12s ease;
+}
+
+/* hover: thicker underline + tiny nudge to the right */
+.card-cta:hover{
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+  transform: translateX(1px);
+}
+
+/* keyboard focus ring for accessibility */
+.card-cta:focus-visible{
+  outline: 3px solid color-mix(in srgb, var(--navy) 30%, transparent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+
+/* List rows for Leagues list inside a gradient card */
+.league-row{
+  display:flex; align-items:center; justify-content:space-between;
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.league-row + .league-row{ margin-top: 10px; }
+
+.league-name{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  color: var(--navy);
+  font-size: clamp(20px, 1.8vw, 28px);
+  font-weight: 900;
+}
+
+
+/* ===== NAVBAR ===== */
+
+/* faint orange court background (fixed SVG encoding) */
+/* ===== NAVBAR (replacements) ===== */
+
+/* full-width bar with court background */
+.nav-court-bg{
+  background-color: var(--brand);
+  background-image:
+    url("data:image/svg+xml;utf8,\
+    <svg xmlns='http://www.w3.org/2000/svg' width='1600' height='100' viewBox='0 0 1600 100'>\
+    <rect fill='%23F39B77' width='1600' height='100'/>\
+    <g opacity='.28' fill='none' stroke='%23F5C7A1' stroke-width='6'>\
+    <path d='M0,100 C250,10 500,10 750,100'/>\
+    <path d='M850,100 C1100,10 1350,10 1600,100'/>\
+    </g></svg>");
+      background-repeat:no-repeat;
+      background-size:cover;
+      border-bottom:1px solid rgba(0,0,0,.06);
+}
+
+.nav-inner{
+  width:100%;
+  display:flex; align-items:center; justify-content:space-between;
+
+  /* a touch more space on both sides, extra on the LEFT */
+  padding-left: clamp(28px, 4.2vw, 40px);
+  padding-right: clamp(18px, 3.2vw, 40px);
+  padding-block: 10px;
+  
+}
+
+
+/* tighter left cluster spacing */
+.nav-left{
+  display:flex; align-items:center;
+  gap: clamp(4px, 0.6vw, 10px);
+}
+
+/* headline in nav, Racing Sans One, uppercase, bigger */
+.nav-title{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-size: clamp(28px, 2.8vw, 38px);   /* taller */
+  letter-spacing: .8px;
+  color: var(--navy);
+  text-transform: uppercase;
+  line-height: 1;                         /* keeps it centered next to the logo */
+  transform: translateY(-2px);             /* tiny optical nudge for vertical centerin */
+  margin-left: clamp(-24px, -3.2vw, -40px); /* max: -40px on wide screens */
+}
+
+/* right links */
+.nav-links{
+  margin-left:auto;
+  display:flex; align-items:center; gap: clamp(20px, 5vw, 20px);
+}
+
+/* link look (unchanged font family) */
+.nav-link{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  letter-spacing:.7px;
+  font-size: clamp(24px, 2vw, 28px);
+  color:var(--navy);
+  padding: 0 12px;          /* already minimal */
+  border-radius:10px;
+  transition: transform .06s ease, background-color .12s ease;
+}
+
+.nav-link:hover{ text-decoration:none; transform:translateY(-1px); background:rgba(255,255,255,.22); }
+
+/* subtler pill for My Account */
+.nav-pill{
+  background:var(--green);
+  color:#fff;
+  border-radius:12px;    /* less rounded than before */
+  padding:0px 12px;      /* smaller than before */
+  box-shadow:none;
+}
+.nav-pill:hover{ background:var(--green-700); }
+
+.nav-logo{ display:flex; align-items:center; }
+.nav-logo :is(img){ display:block; }                    /* vertical centering */
+.nav-left{ display:flex; align-items:center; gap: clamp(2px, .3vw, 6px); }
+.nav-title{ margin-left: clamp(-60px, -8vw, -75px); } /* pull close to logo */
+

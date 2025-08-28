@@ -1,1 +1,0 @@
-// Admin home (create seasons/divisions, seed schedules)

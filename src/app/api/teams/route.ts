@@ -1,38 +1,91 @@
-// POST create team
-import { NextRequest } from "next/server";
-import { requireUser } from "@/lib/auth";
+// src/app/api/teams/route.ts
+import type { NextRequest } from "next/server";
 import { kv } from "@vercel/kv";
-import { v4 as uuid } from "uuid";
+import { normalizeDivision } from "@/lib/divisions";
+import { upsertMembership } from "@/server/memberships";
+import { DIVISIONS } from "@/lib/divisions";
+
+type Body = {
+  name?: string;
+  description?: string;
+  leagueId?: string;       // preferred
+  division?: string;       // alias
+  divisionId?: string;     // alias
+};
 
 export async function POST(req: NextRequest) {
-  const userId = requireUser();
-  const { leagueId, name, description } = await req.json();
-
-  const memberships = await kv.get<any[]>(`user:${userId}:memberships`) || [];
-  if (memberships.some(m => m.leagueId === leagueId)) {
-    return Response.json({ error: { code: "ALREADY_ON_TEAM", message: "Already on a team in this league." }}, { status: 400 });
+  const userId = req.headers.get("x-user-id") || "";
+  if (!userId) {
+    return Response.json({ error: { code: "UNAUTHENTICATED" } }, { status: 401 });
   }
 
-  const teamId = uuid();
+  const body: Body = await req.json().catch(() => ({} as Body));
+  const name = (body.name || "").trim();
+  const description = (body.description || "").trim();
+
+  const rawDiv =
+    body.leagueId ??
+    body.division ??
+    body.divisionId ??
+    "";
+
+  const leagueId = normalizeDivision(String(rawDiv));
+  if (!leagueId) {
+    return Response.json(
+      { error: { code: "BAD_LEAGUE", message: `Unknown league/division: ${rawDiv}` } },
+      { status: 400 }
+    );
+  }
+  if (!name) {
+    return Response.json(
+      { error: { code: "BAD_NAME", message: "Team name is required" } },
+      { status: 400 }
+    );
+  }
+
+  const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const team = { id: teamId, leagueId, name, description, managerUserId: userId, approved: false, rosterLimit: 8, createdAt: now, updatedAt: now };
-  await kv.set(`team:${teamId}`, team);
 
-  // public team card
-  const card = { teamId, name, description };
-  const teams = (await kv.get<any[]>(`league:${leagueId}:teams`)) || [];
-  await kv.set(`league:${leagueId}:teams`, [...teams, card]);
+  const team = {
+    id,
+    leagueId,                 // <-- IMPORTANT
+    name,
+    description,
+    managerUserId: userId,
+    approved: false,
+    rosterLimit: 8,
+    createdAt: now,
+    updatedAt: now,
+  };
 
-  // teamIds index (admin)
-  const ids = (await kv.get<string[]>(`league:${leagueId}:teamIds`)) || [];
-  await kv.set(`league:${leagueId}:teamIds`, [...ids, teamId]);
+  // Save team
+  await kv.set(`team:${id}`, team);
 
-  // roster with manager
-  const roster = [{ userId, displayName: "You", isManager: true, joinedAt: now }];
-  await kv.set(`team:${teamId}:roster`, roster);
+  // Add to league lists
+  const teamCards = (await kv.get<any[]>(`league:${leagueId}:teams`)) ?? [];
+  const teamIds = (await kv.get<string[]>(`league:${leagueId}:teamIds`)) ?? [];
+  await kv.set(`league:${leagueId}:teams`, [
+    ...teamCards,
+    { teamId: id, name, description },
+  ]);
+  await kv.set(`league:${leagueId}:teamIds`, [...teamIds, id]);
 
-  // user memberships
-  await kv.set(`user:${userId}:memberships`, [...memberships, { leagueId, teamId, isManager: true }]);
+  // Initial roster: manager
+  const roster = (await kv.get<any[]>(`team:${id}:roster`)) ?? [];
+  await kv.set(`team:${id}:roster`, [
+    ...roster,
+    { userId, displayName: userId, isManager: true, joinedAt: now },
+  ]);
 
-  return Response.json({ teamId });
+  const leagueName = DIVISIONS.find(d => d.id === leagueId)?.name ?? leagueId;
+
+  await upsertMembership(userId, {
+    leagueId,
+    teamId: id,
+    isManager: true,
+    teamName: name,
+    leagueName,
+  });  
+
+  return Response.json({ ok: true, team });
 }

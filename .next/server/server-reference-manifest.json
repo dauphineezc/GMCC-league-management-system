@@ -1,0 +1,86 @@
+{
+  "node": {
+    "40a164735033bdd5d338f193f218bb43c340b588": {
+      "workers": {
+        "app/home/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fhome%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_2%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/home/page": "rsc"
+      }
+    },
+    "fafd3c82d3cf4f05c2dedbcaa8109cbb4c57f2f4": {
+      "workers": {
+        "app/home/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fhome%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_2%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/home/page": "rsc"
+      }
+    },
+    "ff900f89b1067dc3f4b96590a536dff720dc8fc8": {
+      "workers": {
+        "app/home/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fhome%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_2%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/home/page": "rsc"
+      }
+    },
+    "6c3a2706fd79d804b434ad794a360f5b22656ff4": {
+      "workers": {
+        "app/player/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fplayer%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/player/page": "rsc"
+      }
+    },
+    "aed26b5f2aee0e6a1c62b6546101370afb1ad813": {
+      "workers": {
+        "app/player/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fplayer%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/player/page": "rsc"
+      }
+    },
+    "38d87d3dda66815cd6872454e7203993e960822e": {
+      "workers": {
+        "app/(admin)/admin/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2F(admin)%2Fadmin%2Fpage.tsx%22%2C%5B%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/(admin)/admin/page": "rsc"
+      }
+    },
+    "87346e265f55c853e80dc3aa7b90178170d340bc": {
+      "workers": {
+        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/team/[teamId]/page": "rsc"
+      }
+    },
+    "97c504c647d124a054f0cdedd56e6d852e00f5ae": {
+      "workers": {
+        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/team/[teamId]/page": "rsc"
+      }
+    },
+    "a068935d43a77c0c9ea2a8c15b3ab66f7e1a12d1": {
+      "workers": {
+        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/team/[teamId]/page": "rsc"
+      }
+    },
+    "c67758494778b378f9c3ddd6680ddc742659762a": {
+      "workers": {
+        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/team/[teamId]/page": "rsc"
+      }
+    }
+  },
+  "edge": {},
+  "encryptionKey": "huz79/6jTYfVoiVI4tLamq2qm+hE3Hf0gafkRkYPt7I="
+}

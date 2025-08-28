@@ -17,13 +17,13 @@ export function makeCode8() {
 
 export async function createLinkInvite(teamId: string) {
   const token = randomBytes(32).toString('base64url');
-  const hash = sha256b64(token);
+  const hash = await sha256b64(token);
   await kv.set(`invite:token:${hash}`, { teamId, uses: 0 }, { ex: 60 * 60 * 24 * 14 }); // 14d TTL
   return { token };
 }
 
 export async function consumeLinkInvite(token: string) {
-  const hash = sha256b64(token || '');
+  const hash = await sha256b64(token || '');
   const invite = await kv.get<{ teamId: string; uses: number }>(`invite:token:${hash}`);
   if (!invite) throw Object.assign(new Error('Invalid/expired invite'), { status: 400 });
   // one-time use for now

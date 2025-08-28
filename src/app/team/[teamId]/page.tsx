@@ -1,63 +1,227 @@
-// Team page (roster, your payment, schedule)
+// app/team/[teamId]/page.tsx
+import { notFound, redirect } from "next/navigation";
+import { kv } from "@vercel/kv";
+import TeamTabs from "@/components/teamTabs";
+import TeamCard from "@/components/teamCard";
+import { getSession, hasRole } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
-'use client';
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+/* ------------ Types ------------- */
+type Team = {
+  id: string;
+  leagueId: string;
+  name: string;
+  description?: string;
+  managerUserId: string;
+  approved: boolean;
+  rosterLimit: number;
+  createdAt: string;
+  updatedAt: string;
+};
 
-export default function TeamPage() {
-  const { teamId } = useParams<{ teamId: string }>();
-  const [team, setTeam] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [code, setCode] = useState<string | null>(null);
+export type RosterEntry = {
+  userId: string;
+  displayName: string;
+  isTeamManager: boolean;
+  joinedAt: string;
+  paid?: boolean; // optional; admins can toggle
+};
 
-  useEffect(() => {
-    (async () => {
-      const t = await fetch('/api/me').then(r => r.json());
-      if (t?.team?.id !== teamId) { setTeam(null); return; }
-      setTeam(t.team);
-      const roster = await fetch(`/api/teams/${teamId}/schedule`).then(() => null).catch(() => null); // noop ensure auth
-      const membersArr = await fetch('/api/me').then(r => r.json()).then(d => d.team ? fetchRoster(d.team.id) : []);
-      setMembers(membersArr);
-    })();
-  }, [teamId]);
+type StandingRow = {
+  teamId: string;
+  rank?: number;
+  wins?: number;
+  losses?: number;
+  ties?: number;
+};
 
-  const fetchRoster = async (id: string) => {
-    // This demo stores roster at team:{id}:members; no dedicated API for brevity
-    const res = await fetch('/api/me'); // Using /api/me again for demo; consider making /api/teams/:id public roster
-    const j = await res.json();
-    // Just re-fetch from KV via a trivial API if you choose; skipping to keep minimal.
-    return [];
-  };
+export type Game = {
+  id: string;
+  startTime: string; // ISO
+  location?: string;
+  status?: "scheduled" | "final";
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore?: number;
+  awayScore?: number;
+  homeTeamName?: string;
+  awayTeamName?: string;
+};
 
-  const makeLink = async () => {
-    const r = await fetch('/api/invites', { method: 'POST', body: JSON.stringify({ teamId, kind: 'link' }) });
-    const j = await r.json(); if (r.ok) setInviteUrl(j.inviteUrl); else alert(j.error || 'Error');
-  };
-  const makeCode = async () => {
-    const r = await fetch('/api/invites', { method: 'POST', body: JSON.stringify({ teamId, kind: 'code' }) });
-    const j = await r.json(); if (r.ok) setCode(j.code); else alert(j.error || 'Error');
-  };
+export default async function TeamPage({ params }: { params: { teamId: string } }) {
+  const teamId = params.teamId;
 
-  if (!team) return <main><h1>Team</h1><p>Loading… or you don’t have access.</p></main>;
+  // session
+  const { userId, roles } = await getSession();
+
+  // data
+  const team = (await kv.get<Team>(`team:${teamId}`)) || null;
+  if (!team) notFound();
+
+  const roster = (await kv.get<RosterEntry[]>(`team:${teamId}:roster`)) ?? [];
+
+  const standings = (await kv.get<StandingRow[]>(`league:${team.leagueId}:standings`)) ?? [];
+  const standing = standings.find((s) => s.teamId === teamId) || null;
+
+  // games: prefer team key, else derive from league games
+  let games = (await kv.get<Game[]>(`team:${teamId}:games`)) ?? [];
+  if (!games.length) {
+    const leagueGames = (await kv.get<Game[]>(`league:${team.leagueId}:games`)) ?? [];
+    games = leagueGames.filter((g) => g.homeTeamId === teamId || g.awayTeamId === teamId);
+  }
+
+  // fill names for schedule
+  const teamIds = Array.from(new Set([teamId, ...games.flatMap((g) => [g.homeTeamId, g.awayTeamId])]));
+  const idToName = new Map<string, string>();
+  await Promise.all(
+    teamIds.map(async (id) => {
+      const t = await kv.get<Team>(`team:${id}`);
+      if (t?.name) idToName.set(id, t.name);
+    })
+  );
+  const gamesWithNames = games.map((g) => ({
+    ...g,
+    homeTeamName: g.homeTeamName || idToName.get(g.homeTeamId) || g.homeTeamId,
+    awayTeamName: g.awayTeamName || idToName.get(g.awayTeamId) || g.awayTeamId,
+  }));
+
+  /* ------------ permissions ------------- */
+  // membership
+  const memberships = userId ? ((await kv.get<any[]>(`user:${userId}:memberships`)) ?? []) : [];
+  const meOnThisTeam = memberships.find((m) => m.teamId === teamId);
+  const isMember = Boolean(meOnThisTeam);
+  const isTeamManager = Boolean(meOnThisTeam?.isTeamManager);
+
+  // league admin for THIS league
+  const managedLeagues = userId ? ((await kv.get<string[]>(`admin:${userId}:leagues`)) ?? []) : [];
+  const isLeagueAdmin = hasRole(roles, "admin") && managedLeagues.includes(team.leagueId);
+
+  // capability and chip label
+  const canManage = isTeamManager || isLeagueAdmin;
+  const chip: "Manager" | "Admin" | undefined = isTeamManager ? "Manager" : (isLeagueAdmin ? "Admin" : undefined);
+
+  const rankText =
+    standing?.rank != null
+      ? `Rank #${standing.rank}`
+      : standing
+      ? `${standing.wins ?? 0}-${standing.losses ?? 0}${standing.ties ? `-${standing.ties}` : ""}`
+      : "—";
+
+  /* ------------ server actions (bound to this team) ------------- */
+
+  async function updateMeta(formData: FormData) {
+    "use server";
+    if (!userId) redirect("/home");
+    // Only the roster manager can edit meta
+    // (admins should NOT be able to rename/invite)
+    const myMemberships = (await kv.get<any[]>(`user:${userId}:memberships`)) ?? [];
+    const onThisTeam = myMemberships.find((m) => m.teamId === teamId);
+    if (!onThisTeam?.isTeamManager) redirect(`/team/${teamId}`);
+
+    const name = (formData.get("name") as string) ?? "";
+    const description = (formData.get("description") as string) ?? "";
+
+    const current = (await kv.get<Team>(`team:${teamId}`)) || { id: teamId, leagueId: team.leagueId, name: "" };
+    await kv.set(`team:${teamId}`, { ...current, name: name.trim() || current.name, description: description.trim() });
+    revalidatePath(`/team/${teamId}`);
+  }
+
+  async function inviteByEmail(formData: FormData) {
+    "use server";
+    if (!userId) redirect("/home");
+    const myMemberships = (await kv.get<any[]>(`user:${userId}:memberships`)) ?? [];
+    const onThisTeam = myMemberships.find((m) => m.teamId === teamId);
+    if (!onThisTeam?.isTeamManager) redirect(`/team/${teamId}`);
+
+    const email = String(formData.get("email") || "").trim().toLowerCase();
+    if (email) {
+      // store a simple pending invite list for now
+      const key = `team:${teamId}:invites`;
+      const invites = (await kv.get<string[]>(key)) ?? [];
+      if (!invites.includes(email)) {
+        invites.push(email);
+        await kv.set(key, invites);
+      }
+    }
+    revalidatePath(`/team/${teamId}`);
+  }
+
+  async function setApproval(formData: FormData) {
+    "use server";
+    if (!userId) redirect("/home");
+    // Only league admins can approve/unapprove
+    if (!team) redirect(`/team/${teamId}`);
+    const leagues = (await kv.get<string[]>(`admin:${userId}:leagues`)) ?? [];
+    if (!leagues.includes(team.leagueId)) redirect(`/team/${teamId}`);
+
+    const approved = formData.get("approved") === "true";
+    const current = (await kv.get<Team>(`team:${teamId}`)) || { id: teamId, leagueId: team.leagueId, name: "" };
+    await kv.set(`team:${teamId}`, { ...current, approved });
+    revalidatePath(`/team/${teamId}`);
+  }
+
+  async function markPaid(formData: FormData) {
+    "use server";
+    if (!userId) redirect("/home");
+    const leagues = (await kv.get<string[]>(`admin:${userId}:leagues`)) ?? [];
+    if (!leagues.includes(team.leagueId)) redirect(`/team/${teamId}`);
+
+    const playerId = String(formData.get("userId") || "");
+    const paid = formData.get("paid") === "true";
+
+    const list = (await kv.get<RosterEntry[]>(`team:${teamId}:roster`)) ?? [];
+    const idx = list.findIndex((r) => r.userId === playerId);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], paid };
+      await kv.set(`team:${teamId}:roster`, list);
+    }
+    revalidatePath(`/team/${teamId}`);
+  }
 
   return (
-    <main>
-      <h1>{team.name}</h1>
-      <p>Division: {team.divisionId}</p>
+    <main style={{ display: "grid", gap: 16 }}>
+      <TeamCard
+        name={team.name}
+        approved={team.approved}
+        badge={chip}
+        nextGame={
+          gamesWithNames[0]
+            ? `${new Date(gamesWithNames[0].startTime).toLocaleString()} – vs ${
+                gamesWithNames[0].homeTeamId === teamId
+                  ? gamesWithNames[0].awayTeamName
+                  : gamesWithNames[0].homeTeamName
+              }`
+            : undefined
+        }
+      />
 
-      <section>
-        <h2>Invites</h2>
-        <button onClick={makeLink}>Generate link</button>
-        {inviteUrl && <p><a href={inviteUrl}>{inviteUrl}</a></p>}
-        <button onClick={makeCode}>Generate code</button>
-        {code && <p>Code: <b>{code}</b></p>}
+      <section className="card" style={{ padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <h2 style={{ margin: 0 }}>Team Overview</h2>
+          <span style={{ color: "var(--muted)" }}>{rankText}</span>
+        </div>
+        {team.description && <p style={{ marginTop: 8 }}>{team.description}</p>}
+        {!team.approved && <p style={{ marginTop: 8, color: "#b45309" }}>Pending admin approval.</p>}
       </section>
 
-      <section>
-        <h2>Schedule</h2>
-        <a href={`/team/${teamId}/schedule`}>Open schedule →</a>
-      </section>
+      <TeamTabs
+        teamId={teamId}
+        leagueId={team.leagueId}
+        roster={roster}
+        games={gamesWithNames}
+        isMember={isMember}
+        isTeamManager={isTeamManager}
+        isLeagueAdmin={isLeagueAdmin}
+        teamName={team.name}
+        teamDescription={team.description || ""}
+        approved={team.approved}
+        actions={{
+          updateMeta,
+          inviteByEmail,
+          setApproval,
+          markPaid,
+        }}
+      />
     </main>
   );
 }

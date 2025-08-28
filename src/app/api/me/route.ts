@@ -1,20 +1,50 @@
-export const runtime = 'edge';
+import type { NextRequest } from "next/server";
+import { kv } from "@vercel/kv";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { kv, getMembership } from '@/lib/kv';
+// Minimal type used in this handler
+type Membership = {
+  leagueId: string;
+  leagueName?: string;
+  teamId: string;
+  teamName?: string;
+  isManager: boolean;
+};
 
 export async function GET(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')!;
-  const profile = (await kv.get(`user:${userId}`)) ?? { id: userId, createdAt: new Date().toISOString() };
-  const membership = await getMembership(userId);
+  // Middleware injects this header for /api routes. We also accept dev cookie fallback.
+  const userId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("cookie")?.match(/(?:^|;\s*)auth_user=([^;]+)/)?.[1] ||
+    "";
 
-  let team = null, payment = null, nextGames: any[] = [];
-  if (membership?.teamId) {
-    const teamObj = await kv.get<any>(`team:${membership.teamId}`);
-    const schedule = (await kv.get<any[]>(`game:${membership.teamId}`)) ?? [];
-    team = { id: teamObj?.id, name: teamObj?.name, divisionId: teamObj?.divisionId, role: membership.role };
-    payment = await kv.get<any>(`user:${userId}:payment:${membership.teamId}`);
-    nextGames = schedule.filter(g => g.status === 'SCHEDULED').slice(0, 5);
+  if (!userId) {
+    return Response.json({ error: { code: "UNAUTHENTICATED" } }, { status: 401 });
   }
-  return NextResponse.json({ profile, membership, team, payment, nextGames });
+
+  // profile is optional and can be whatever you decide later
+  const profile =
+    (await kv.get<any>(`user:${userId}`)) ?? { id: userId, createdAt: new Date().toISOString() };
+
+  const memberships: Membership[] =
+    (await kv.get<any[]>(`user:${userId}:memberships`)) ?? [];
+
+  // choose the “primary” membership (manager first, else first)
+  const primary =
+    memberships.find((m) => m.isManager) ??
+    memberships[0] ??
+    null;
+
+  // Light extras the dashboard expects
+  let team = null;
+  if (primary?.teamId) {
+    team = (await kv.get<any>(`team:${primary.teamId}`)) ?? null;
+  }
+
+  return Response.json({
+    userId,
+    profile,
+    membership: primary,
+    memberships,
+    team,
+  });
 }

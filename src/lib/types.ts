@@ -1,6 +1,6 @@
 // Shared TS types for Team/User/Payment/Game
 
-export type DivisionId = '4v4-lowb'|'4v4'|'4v4-highba'|'4v4-women'|'5v5';
+import type { DivisionId } from "@/lib/divisions";
 
 export type Team = {
   id: string;
@@ -51,4 +51,12 @@ export type Game = {
   homeScore?: number;
   awayScore?: number;
   round?: number;
+};
+
+export type Membership = {
+  leagueId: DivisionId;
+  teamId: string;
+  isManager: boolean;
+  teamName?: string;    // denormalized team name
+  leagueName?: string;  // denormalized league name
 };

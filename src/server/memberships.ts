@@ -1,43 +1,41 @@
-// Join/create checks, one-team rule, roster cap
+// src/server/memberships.ts
+import { kv } from "@vercel/kv";
+import { DIVISIONS, type DivisionId } from "@/lib/divisions";
+import type { Membership } from "@/lib/types";
 
-import { kv, getMembership, getTeamMembers, setMembership, setTeamMembers, now } from '@/lib/kv';
-import { DEFAULT_ROSTER_LIMIT } from '@/lib/divisions';
-import type { MemberPublic, Team } from '@/lib/types';
-
-export async function assertUserNotOnTeam(userId: string) {
-  const m = await getMembership(userId);
-  if (m) throw Object.assign(new Error('User already on a team'), { status: 409 });
+function leagueNameFor(id: DivisionId): string {
+  return DIVISIONS.find((d) => d.id === id)?.name ?? id;
 }
 
-export async function createTeamForUser(userId: string, name: string, divisionId: string) {
-  const teamId = crypto.randomUUID();
-  const team: Team = {
-    id: teamId,
-    name,
-    divisionId: divisionId as any,
-    leadUserId: userId,
-    createdAt: now(),
-    rosterLimit: DEFAULT_ROSTER_LIMIT,
-  };
-  const lead: MemberPublic = { userId, name: 'Team Lead', role: 'LEAD', joinedAt: now() };
-  await Promise.all([
-    kv.set(`team:${teamId}`, team),
-    kv.set(`team:${teamId}:members`, [lead]),
-    kv.set(`user:${userId}:membership`, { teamId, role: 'LEAD' }),
-  ]);
-  return team;
+export async function upsertMembership(userId: string, m: Membership) {
+  const key = `user:${userId}:memberships`;
+  const arr: Membership[] = (await kv.get<Membership[]>(key)) ?? [];
+  const idx = arr.findIndex(x => x.teamId === m.teamId);
+  if (idx >= 0) arr[idx] = { ...arr[idx], ...m };
+  else arr.push(m);
+  await kv.set(key, arr);
 }
 
-export async function addPlayerToTeam(userId: string, teamId: string) {
-  const team = await kv.get<Team>(`team:${teamId}`);
-  if (!team) throw Object.assign(new Error('Team not found'), { status: 404 });
+/**
+ * Propagate team name / league changes to all members’ memberships.
+ * Note leagueId is DivisionId (not string) to satisfy the union type.
+ */
+export async function updateMembershipNamesForTeam(
+  teamId: string,
+  teamName: string,
+  leagueId: DivisionId
+) {
+  const roster = (await kv.get<{ userId: string }[]>(`team:${teamId}:roster`)) ?? [];
+  const leagueName = leagueNameFor(leagueId);
 
-  const members = await getTeamMembers(teamId);
-  const limit = team.rosterLimit ?? DEFAULT_ROSTER_LIMIT;
-  if (members.length >= limit) throw Object.assign(new Error('Roster full'), { status: 409 });
-
-  const updated = [...members, { userId, name: 'Player', role: 'PLAYER' as const, joinedAt: now() }];
-  await setTeamMembers(teamId, updated);
-  await setMembership(userId, { teamId, role: 'PLAYER' });
-  return team;
+  await Promise.all(
+    roster.map(async ({ userId }) => {
+      const arr = (await kv.get<Membership[]>(`user:${userId}:memberships`)) ?? [];
+      const idx = arr.findIndex((x) => x.teamId === teamId);
+      if (idx >= 0) {
+        arr[idx] = { ...arr[idx], teamName, leagueId, leagueName };
+        await kv.set(`user:${userId}:memberships`, arr);
+      }
+    })
+  );
 }
