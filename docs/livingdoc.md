@@ -1,1 +1,6 @@
 - should be a way for admin/super admin to export all players/all teams - simple to implement since we already have viewing capabilities for full roster of players/full roster of teams
+- league or team should include practice schedule
+- admins could also be players on a team of a different league
+- divide league names up into gender (mens, womens, n/a) and division (low b, high b/a, etc)
+- how do we want the league registration to work? right now, when creating a team, players can select any league. should we add registration start/end dates to the leagues to restrict when people can create a new team for that league?
+- 
