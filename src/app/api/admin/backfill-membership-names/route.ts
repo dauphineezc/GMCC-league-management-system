@@ -4,9 +4,9 @@ import { DIVISIONS } from "@/lib/divisions";
 export async function POST() {
   let updated = 0;
 
-  // naive scan: iterate all known leagues -> teamIds -> roster -> users’ memberships
+  // naive scan: iterate all known leagues -> teams (SET) -> roster -> users' memberships
   for (const d of DIVISIONS) {
-    const ids = (await kv.get<string[]>(`league:${d.id}:teamIds`)) ?? [];
+    const ids = (await kv.smembers(`league:${d.id}:teams`)) as string[] || [];
     for (const teamId of ids) {
       const team = (await kv.get<any>(`team:${teamId}`)) ?? {};
       const roster = (await kv.get<{ userId: string }[]>(`team:${teamId}:roster`)) ?? [];

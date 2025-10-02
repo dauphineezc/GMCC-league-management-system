@@ -3,30 +3,50 @@ type Props = {
   name: string;
   approved?: boolean;
   nextGame?: string;
+  isManager?: boolean;
   badge?: "Manager" | "Admin"; // << new: what to show in the chip
+  href?: string;
 };
 
-export default function TeamCard({ name, approved, nextGame, badge }: Props) {
+export default function TeamCard({
+  name,
+  approved,
+  nextGame,
+  isManager,              // <- grab it
+  href,
+}: Props) {
   return (
-    <article className="card" style={{ padding: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ margin: 0, color: "var(--navy)", fontWeight: 900, fontSize: 22 }}>{name}</h3>
-        {badge && <span style={{ fontWeight: 700 }}>⭐ {badge}</span>}
-      </div>
-
-      <div style={{ marginTop: 10 }}>
-        {approved ? (
-          <span className="badge badge--ok">✅ Approved</span>
-        ) : (
-          <span className="badge badge--pending">⏳ Pending Approval</span>
-        )}
-      </div>
-
-      {nextGame && (
-        <p style={{ marginTop: 10, color: "var(--muted)" }}>
-          <strong>Next Game:</strong> {nextGame}
+    <article className="gradient-card">
+      <h3 className="card-title">{name}</h3>
+      {isManager && (
+        <p style={{ margin: "-8px 0 10px", textAlign: "center", color: "var(--navy)", fontWeight: 700 }}>
+          You manage this team
         </p>
       )}
+
+      <div className="card-inner">
+        <div>
+          <span className={`status ${approved ? "status--ok" : "status--pending"}`}>
+            {approved ? "Approved" : "Pending Approval"}
+          </span>
+        </div>
+
+        <p style={{ margin: "10px 0 6px", color: "var(--text)" }}>
+          {nextGame ? (
+            <>
+              <strong>Next Game:</strong> {nextGame}
+            </>
+          ) : (
+            <em>No upcoming game.</em>
+          )}
+        </p>
+
+        {href && (
+          <div style={{ textAlign: "right" }}>
+            <a className="card-cta" href={href}>View Team →</a>
+          </div>
+        )}
+      </div>
     </article>
   );
 }

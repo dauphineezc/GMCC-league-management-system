@@ -1,1 +1,0 @@
-// Shows YOUR payment chip + “Pay now”

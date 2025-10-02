@@ -2,8 +2,7 @@
 import { headers, cookies } from "next/headers";
 import { kv } from "@vercel/kv";
 import TeamCard from "@/components/teamCard";
-
-type Membership = { leagueId: string; teamId: string; isManager?: boolean };
+import type { Membership } from "@/types/domain";
 
 export default async function MyTeamsPage() {
   const h = headers();

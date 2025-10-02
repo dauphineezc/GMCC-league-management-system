@@ -1,8 +1,8 @@
 // Provider adapter interface + fake implementation
 
+import type { CheckoutInput, CheckoutOutput } from "@/types/domain";
+
 // Minimal provider abstraction; swap to Stripe later if needed.
-export type CheckoutInput = { userId: string; teamId: string; amountCents: number };
-export type CheckoutOutput = { redirectUrl: string; providerInvoiceId: string };
 
 export async function createCheckout({ userId, teamId, amountCents }: CheckoutInput): Promise<CheckoutOutput> {
   // Fake provider: create a pretend invoice id and return a hosted URL

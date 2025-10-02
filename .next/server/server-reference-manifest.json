@@ -1,86 +1,46 @@
 {
   "node": {
-    "40a164735033bdd5d338f193f218bb43c340b588": {
+    "701c1c36548f136115d9fe9d630c3107c9521417": {
       "workers": {
-        "app/home/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fhome%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_2%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
       },
       "layer": {
-        "app/home/page": "rsc"
+        "app/(superadmin)/superadmin/leagues/page": "action-browser"
       }
     },
-    "fafd3c82d3cf4f05c2dedbcaa8109cbb4c57f2f4": {
+    "8d37f9b1cb731853e8e75fc60c48cb27f14185e0": {
       "workers": {
-        "app/home/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fhome%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_2%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
       },
       "layer": {
-        "app/home/page": "rsc"
+        "app/(superadmin)/superadmin/leagues/page": "action-browser"
       }
     },
-    "ff900f89b1067dc3f4b96590a536dff720dc8fc8": {
+    "bc2f7ea3a75181eedc09615ab6bbe41c5bded538": {
       "workers": {
-        "app/home/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fhome%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_2%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
       },
       "layer": {
-        "app/home/page": "rsc"
+        "app/(superadmin)/superadmin/leagues/page": "action-browser"
       }
     },
-    "6c3a2706fd79d804b434ad794a360f5b22656ff4": {
+    "d2c41ede6fb09030009c98de2c300147e634eb45": {
       "workers": {
-        "app/player/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fplayer%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
       },
       "layer": {
-        "app/player/page": "rsc"
+        "app/(superadmin)/superadmin/leagues/page": "action-browser"
       }
     },
-    "aed26b5f2aee0e6a1c62b6546101370afb1ad813": {
+    "9cef648a7fc2fa375fe5eed30efaa08336090cd1": {
       "workers": {
-        "app/player/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fplayer%2Fpage.tsx%22%2C%5B%22%24%24ACTION_1%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+        "app/(superadmin)/superadmin/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cteam%5C%5C%5BteamId%5D%5C%5Cpage.tsx%22%2C%5B%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
       },
       "layer": {
-        "app/player/page": "rsc"
-      }
-    },
-    "38d87d3dda66815cd6872454e7203993e960822e": {
-      "workers": {
-        "app/(admin)/admin/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2F(admin)%2Fadmin%2Fpage.tsx%22%2C%5B%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/(admin)/admin/page": "rsc"
-      }
-    },
-    "87346e265f55c853e80dc3aa7b90178170d340bc": {
-      "workers": {
-        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/team/[teamId]/page": "rsc"
-      }
-    },
-    "97c504c647d124a054f0cdedd56e6d852e00f5ae": {
-      "workers": {
-        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/team/[teamId]/page": "rsc"
-      }
-    },
-    "a068935d43a77c0c9ea2a8c15b3ab66f7e1a12d1": {
-      "workers": {
-        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/team/[teamId]/page": "rsc"
-      }
-    },
-    "c67758494778b378f9c3ddd6680ddc742659762a": {
-      "workers": {
-        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fzoedauphinee%2Fgmcc%2FGMCC-league-management-system%2Fsrc%2Fapp%2Fteam%2F%5BteamId%5D%2Fpage.tsx%22%2C%5B%22%24%24ACTION_2%22%2C%22%24%24ACTION_1%22%2C%22%24%24ACTION_3%22%2C%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/team/[teamId]/page": "rsc"
+        "app/(superadmin)/superadmin/team/[teamId]/page": "rsc"
       }
     }
   },
   "edge": {},
-  "encryptionKey": "huz79/6jTYfVoiVI4tLamq2qm+hE3Hf0gafkRkYPt7I="
+  "encryptionKey": "3ov5vFVDZz7wydobF+yowIWqx+aPCtGTEng+5gq1Aw8="
 }

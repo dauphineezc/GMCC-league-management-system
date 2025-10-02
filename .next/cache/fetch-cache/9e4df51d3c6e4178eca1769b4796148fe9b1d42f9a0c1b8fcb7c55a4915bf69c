@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{"access-control-allow-credentials":"true","content-length":"15","content-type":"application/json; charset=utf-8","date":"Mon, 15 Sep 2025 15:57:55 GMT","server":"Upstash Redis Database (1.14.4)","upstash-sync-token":"0"},"body":"eyJyZXN1bHQiOm51bGx9","status":200,"url":"https://generous-boar-17588.upstash.io/"},"revalidate":31536000,"tags":[]}

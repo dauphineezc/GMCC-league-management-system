@@ -1,38 +1,39 @@
+// src/components/leagueTabs.tsx
 "use client";
-import * as React from "react";
 
-type TabsProps = {
-  tabs: Record<string, React.ReactNode>;
-  initial?: string;
-  labels?: Record<string, string>;
-};
+import { useState } from "react";
 
-export default function Tabs({ tabs, initial, labels }: TabsProps) {
-  const keys = Object.keys(tabs);
-  const first = initial && keys.includes(initial) ? initial : keys[0];
-  const [active, setActive] = React.useState(first);
+type Key = "teams" | "schedule" | "history" | "standings";
+
+export default function LeagueTabs({
+  initial,
+  labels,
+  tabs,
+}: {
+  initial: Key;
+  labels: Record<Key, string>;
+  tabs: Record<Key, React.ReactNode>;
+}) {
+  const [tab, setTab] = useState<Key>(initial);
 
   return (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        {keys.map((k) => (
+    <section className="card">
+      <div className="team-tabs">
+        {(Object.keys(labels) as Key[]).map((k) => (
           <button
             key={k}
-            onClick={() => setActive(k)}
-            style={{
-              padding: "6px 10px",
-              border: "1px solid #d1d5db",
-              borderRadius: 8,
-              background: active === k ? "#f3f4f6" : "white",
-              cursor: "pointer",
-            }}
-            aria-pressed={active === k}
+            type="button"
+            className={`team-tab ${tab === k ? "is-active" : ""}`}
+            onClick={() => setTab(k)}
           >
-            {labels?.[k] ?? k}
+            {labels[k]}
           </button>
         ))}
       </div>
-      <div>{tabs[active]}</div>
-    </div>
+
+      <div className="pad-card-sides" style={{ paddingTop: 14 }}>
+        {tabs[tab]}
+      </div>
+    </section>
   );
 }

@@ -1,50 +1,37 @@
-import type { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
+// /src/app/api/me/route.ts
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { adminAuth } from "@/lib/firebaseAdmin";
 
-// Minimal type used in this handler
-type Membership = {
-  leagueId: string;
-  leagueName?: string;
-  teamId: string;
-  teamName?: string;
-  isManager: boolean;
-};
+export const runtime = "nodejs"; // important: use the admin SDK on Node
 
-export async function GET(req: NextRequest) {
-  // Middleware injects this header for /api routes. We also accept dev cookie fallback.
-  const userId =
-    req.headers.get("x-user-id") ||
-    req.headers.get("cookie")?.match(/(?:^|;\s*)auth_user=([^;]+)/)?.[1] ||
-    "";
-
-  if (!userId) {
-    return Response.json({ error: { code: "UNAUTHENTICATED" } }, { status: 401 });
+export async function GET() {
+  try {
+    const cookie = cookies().get("fb:session")?.value; // same name you use elsewhere
+    if (!cookie) {
+      return NextResponse.json(
+        { ok: false, auth: null },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    const decoded = await adminAuth.verifySessionCookie(cookie, true);
+    // return a compact, non-sensitive view
+    return NextResponse.json(
+      {
+        ok: true,
+        auth: {
+          uid: decoded.uid,
+          email: decoded.email ?? null,
+          superadmin: !!(decoded as any).superadmin,
+          leagueAdminOf: (decoded as any).leagueAdminOf ?? null,
+        },
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
+    return NextResponse.json(
+      { ok: false, auth: null },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   }
-
-  // profile is optional and can be whatever you decide later
-  const profile =
-    (await kv.get<any>(`user:${userId}`)) ?? { id: userId, createdAt: new Date().toISOString() };
-
-  const memberships: Membership[] =
-    (await kv.get<any[]>(`user:${userId}:memberships`)) ?? [];
-
-  // choose the “primary” membership (manager first, else first)
-  const primary =
-    memberships.find((m) => m.isManager) ??
-    memberships[0] ??
-    null;
-
-  // Light extras the dashboard expects
-  let team = null;
-  if (primary?.teamId) {
-    team = (await kv.get<any>(`team:${primary.teamId}`)) ?? null;
-  }
-
-  return Response.json({
-    userId,
-    profile,
-    membership: primary,
-    memberships,
-    team,
-  });
 }

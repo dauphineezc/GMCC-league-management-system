@@ -1,179 +1,163 @@
+// /src/app/(admin)/admin/leagues/[leagueId]/page.tsx
+export const dynamic = "force-dynamic";
+
 import { kv } from "@vercel/kv";
-import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import AdminLeagueSplitTabs from "@/components/adminLeagueSplitTabs";
+import { DIVISIONS } from "@/lib/divisions";
+import { getServerUser, isLeagueAdmin } from "@/lib/serverUser";
+import type { RosterEntry } from "@/types/domain";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { isLeagueAdminAsync } from "@/lib/serverUser";
 
-type Params = { leagueId: string };
+/* ---------------- tolerant helpers ---------------- */
 
-export default async function LeagueAdmin({ params }: { params: Params }) {
-  const leagueId = params.leagueId;
-  const userId = headers().get("x-user-id") || "unknown";
-  const managed: string[] = (await kv.get<string[]>(`admin:${userId}:leagues`)) ?? [];
-  const canManage = managed.includes(leagueId);
+// Safe SMEMBERS → string[]
+async function smembersSafe(key: string): Promise<string[]> {
+  try {
+    const v = (await kv.smembers(key)) as unknown;
+    if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
+  } catch {
+    /* ignore WRONGTYPE */
+  }
+  return [];
+}
 
-  const league = (await kv.get<any>(`league:${leagueId}`)) ?? { id: leagueId, name: leagueId };
-  const teamCards = (await kv.get<any[]>(`league:${leagueId}:teams`)) ?? [];
-  const teamIds = (await kv.get<string[]>(`league:${leagueId}:teamIds`)) ?? [];
-  const teams = await Promise.all(
-    teamIds.map(async tid => ({
-      info: await kv.get<any>(`team:${tid}`),
-      roster: (await kv.get<any[]>(`team:${tid}:roster`)) ?? [],
-    }))
+// Read an array-like key (GET) that may be an array JSON string or a real array
+async function readArr<T = any>(key: string): Promise<T[]> {
+  let raw: unknown;
+  try {
+    raw = await kv.get(key);
+  } catch {
+    return [];
+  }
+  if (Array.isArray(raw)) return raw as T[];
+  if (typeof raw === "string") {
+    const s = raw.trim();
+    if (!s) return [];
+    try {
+      const arr = JSON.parse(s);
+      return Array.isArray(arr) ? (arr as T[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  if (raw && typeof raw === "object") {
+    // some older data might be an object { ... } — not an array
+    return [];
+  }
+  return [];
+}
+
+// Prefer hash for league doc; fallback to GET object
+async function readLeagueDoc(leagueId: string): Promise<Record<string, any> | null> {
+  try {
+    const h = (await kv.hgetall(`league:${leagueId}`)) as Record<string, any> | null;
+    if (h && typeof h === "object" && Object.keys(h).length) return h;
+  } catch {}
+  try {
+    const g = (await kv.get(`league:${leagueId}`)) as any;
+    if (g && typeof g === "object") return g as Record<string, any>;
+  } catch {}
+  return null;
+}
+
+/* ---------------- page helpers ---------------- */
+
+type TeamCard = { teamId: string; name: string; description?: string; approved?: boolean };
+
+async function getTeamsForLeague(leagueId: string): Promise<TeamCard[]> {
+  // Teams are a SET at league:{leagueId}:teams
+  const teamIds = await smembersSafe(`league:${leagueId}:teams`);
+
+  // If none, optionally infer from players (legacy)
+  const seeds = new Set<string>(teamIds);
+  if (seeds.size === 0) {
+    const players = await readArr<any>(`league:${leagueId}:players`);
+    for (const tid of players.map((p) => String(p?.teamId ?? "")).filter(Boolean)) {
+      seeds.add(tid);
+    }
+  }
+
+  const ids = Array.from(seeds);
+  const rows = await Promise.all(
+    ids.map(async (id) => {
+      const t = (await kv.get<any>(`team:${id}`)) || null;
+      return {
+        teamId: id,
+        name: t?.name ?? id,
+        description: t?.description ?? "",
+        approved: Boolean(t?.approved),
+      } as TeamCard;
+    })
   );
-  const master = (await kv.get<any[]>(`league:${leagueId}:players`)) ?? [];
+
+  return rows.sort((a, b) => (a.name || a.teamId).localeCompare(b.name || b.teamId, undefined, { sensitivity: "base" }));
+}
+
+/* ---------------- page ---------------- */
+
+export default async function AdminLeaguePage({ params }: { params: { leagueId: string } }) {
+  const user = await getServerUser();
+  if (!user) redirect("/login");
+  if (!(await isLeagueAdminAsync(user, params.leagueId))) notFound();
+
+  const leagueId = params.leagueId;
+
+  const [leagueDoc, teams] = await Promise.all([
+    readLeagueDoc(leagueId),
+    getTeamsForLeague(leagueId),
+  ]);
+
+  // League name: doc.name → DIVISIONS map → id
+  const leagueName =
+    (leagueDoc?.name && String(leagueDoc.name)) ||
+    DIVISIONS.find((d) => d.id === leagueId)?.name ||
+    leagueId;
+
+  const description = leagueDoc?.description ?? "";
+
+  // Build master roster (union across teams) and mark paid from team payments
+  const masterRoster: Array<RosterEntry & { teamId: string; teamName: string; paid?: boolean }> = [];
+
+  await Promise.all(
+    teams.map(async (t) => {
+      const [r, payMap] = await Promise.all([
+        readArr<RosterEntry>(`team:${t.teamId}:roster`),
+        kv.get<Record<string, boolean>>(`team:${t.teamId}:payments`).catch(() => null),
+      ]);
+
+      for (const entry of r) {
+        masterRoster.push({
+          ...entry,
+          teamId: t.teamId,
+          teamName: t.name,
+          paid: Boolean(payMap?.[entry.userId]),
+        });
+      }
+    })
+  );
 
   return (
-    <main style={{ padding: 24, display: "grid", gap: 20 }}>
-      <p><Link href="/admin">← Back to Admin</Link></p>
-      <h1>{league.name} <span style={{ color: "#6b7280" }}>({leagueId})</span></h1>
-      {!canManage && (
-        <p style={{ color: "#9ca3af" }}>You don’t manage this league. Read-only.</p>
+    <main style={{ display: "grid", gap: 16 }}>
+      <header className="team-header">
+        <div className="team-title-wrap">
+          <h1 className="page-title">{leagueName}</h1>
+        </div>
+        <div className="mt-2">
+          <a className="btn btn--outline" href={`/admin/leagues/${encodeURIComponent(leagueId)}/export.csv`}>
+            Download Roster CSV
+          </a>
+        </div>
+      </header>
+
+      {description && (
+        <section className="card--soft" style={{ maxWidth: 720 }}>
+          {description}
+        </section>
       )}
 
-      {/* Schedule PDF (editable if owner) */}
-      <section style={card}>
-        <h3 style={{ marginTop: 0 }}>Schedule (PDF)</h3>
-        <form action={updateSchedule} style={{ display: "flex", gap: 8 }}>
-          <input type="hidden" name="leagueId" value={leagueId} />
-          <input
-            name="schedulePdfUrl"
-            defaultValue={league.schedulePdfUrl || ""}
-            placeholder="https://…/schedule.pdf"
-            style={input}
-            disabled={!canManage}
-          />
-          <button style={btn} disabled={!canManage}>Save</button>
-        </form>
-        {league.schedulePdfUrl && (
-          <p style={{ marginTop: 8 }}>
-            Current: <a href={league.schedulePdfUrl} target="_blank" rel="noreferrer">{league.schedulePdfUrl}</a>
-          </p>
-        )}
-      </section>
-
-      {/* Teams table */}
-      <section style={card}>
-        <h3 style={{ marginTop: 0 }}>Teams ({teamCards.length})</h3>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={th}>Team</th>
-                <th style={th}>Approved</th>
-                <th style={th}>Manager</th>
-                <th style={th}>Roster Size</th>
-                <th style={th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teams.map(({ info, roster }) => (
-                <tr key={info.id}>
-                  <td style={td}><strong>{info.name}</strong><div style={{ color:"#6b7280" }}>{info.description}</div></td>
-                  <td style={td}>{info.approved ? "✅ Yes" : "—"}</td>
-                  <td style={td}><code>{info.managerUserId}</code></td>
-                  <td style={td}>{roster.length} / {info.rosterLimit}</td>
-                  <td style={td}>
-                    <form action={toggleApproved}>
-                      <input type="hidden" name="teamId" value={info.id} />
-                      <input type="hidden" name="approved" value={String(info.approved)} />
-                      <button style={btn} disabled={!canManage}>{info.approved ? "Unapprove" : "Approve"}</button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-              {teams.length === 0 && <tr><td colSpan={5} style={td}>No teams yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Master roster (edit dues if owner) */}
-      <section style={card}>
-        <h3 style={{ marginTop: 0 }}>Master Roster (dues status)</h3>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={th}>Player</th>
-                <th style={th}>Team</th>
-                <th style={th}>Manager</th>
-                <th style={th}>Payment</th>
-                <th style={th}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {master.map((p) => (
-                <tr key={`${p.userId}-${p.teamId}`}>
-                  <td style={td}><code>{p.userId}</code> <div>{p.displayName}</div></td>
-                  <td style={td}>{p.teamName}</td>
-                  <td style={td}>{p.isManager ? "⭐" : ""}</td>
-                  <td style={td}>{p.paymentStatus === "PAID" ? "💰 PAID" : "— UNPAID"}</td>
-                  <td style={td}>
-                    <form action={flipPayment}>
-                      <input type="hidden" name="teamId" value={p.teamId} />
-                      <input type="hidden" name="userId" value={p.userId} />
-                      <button style={btn} disabled={!canManage}>Toggle</button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-              {master.length === 0 && <tr><td colSpan={5} style={td}>No players yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <AdminLeagueSplitTabs leagueId={leagueId} teams={teams} roster={masterRoster} />
     </main>
   );
 }
-
-/* ---------- server actions (co-located) ---------- */
-async function updateSchedule(formData: FormData) {
-  "use server";
-  const leagueId = String(formData.get("leagueId") || "");
-  const schedulePdfUrl = String(formData.get("schedulePdfUrl") || "");
-  const prev = (await kv.get<any>(`league:${leagueId}`)) || {};
-  await kv.set(`league:${leagueId}`, { ...prev, schedulePdfUrl, updatedAt: new Date().toISOString(), });
-  revalidatePath(`/admin/leagues/${leagueId}`);
-}
-
-async function toggleApproved(formData: FormData) {
-  "use server";
-  const teamId = String(formData.get("teamId") || "");
-  const approved = String(formData.get("approved") || "") === "true";
-  const t = (await kv.get<any>(`team:${teamId}`)) ?? {};
-  await kv.set(`team:${teamId}`, { ...t, approved: !approved, updatedAt: new Date().toISOString() });
-  // keep summary list in sync
-  if (t.leagueId) {
-    const cards = (await kv.get<any[]>(`league:${t.leagueId}:teams`)) ?? [];
-    const idx = cards.findIndex(c => c.teamId === teamId);
-    if (idx >= 0) cards[idx] = { ...cards[idx] }; // nothing visible changes here, but we could include approved if you add it to the card shape
-    await kv.set(`league:${t.leagueId}:teams`, cards);
-  }
-  revalidatePath(`/admin/leagues/${t.leagueId || ""}`);
-}
-
-async function flipPayment(formData: FormData) {
-  "use server";
-  const teamId = String(formData.get("teamId") || "");
-  const userId = String(formData.get("userId") || "");
-  const key = `team:${teamId}:roster:private:${userId}`;
-  const cur = (await kv.get<any>(key)) ?? { paymentStatus: "UNPAID" };
-  const next = cur.paymentStatus === "PAID" ? "UNPAID" : "PAID";
-  await kv.set(key, { paymentStatus: next });
-
-  // also reflect in league:<id>:players if present
-  const team = (await kv.get<any>(`team:${teamId}`)) ?? {};
-  const leagueKey = `league:${team.leagueId}:players`;
-  const rows = (await kv.get<any[]>(leagueKey)) ?? [];
-  const i = rows.findIndex(r => r.userId === userId && r.teamId === teamId);
-  if (i >= 0) { rows[i] = { ...rows[i], paymentStatus: next }; await kv.set(leagueKey, rows); }
-
-  revalidatePath(`/admin/leagues/${team.leagueId || ""}`);
-}
-
-/* ---------- styles ---------- */
-const card: React.CSSProperties = { border: "1px solid #eee", borderRadius: 12, padding: 16 };
-const input: React.CSSProperties = { flex: 1, padding: 8, border: "1px solid #ccc", borderRadius: 8 };
-const btn:   React.CSSProperties = { padding: "8px 12px", border: "1px solid #ccc", borderRadius: 8, background: "white", cursor: "pointer" };
-const th:    React.CSSProperties = { textAlign: "left", borderBottom: "1px solid #eee", padding: 8, fontWeight: 600, fontSize: 13 };
-const td:    React.CSSProperties = { borderBottom: "1px solid #eee", padding: 8, fontSize: 14 };

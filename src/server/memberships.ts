@@ -39,3 +39,28 @@ export async function updateMembershipNamesForTeam(
     })
   );
 }
+
+export async function addPlayerToTeam(userId: string, teamId: string) {
+  const team = await kv.get<any>(`team:${teamId}`);
+  if (!team) throw new Error('Team not found');
+  
+  const now = new Date().toISOString();
+  const roster = (await kv.get<any[]>(`team:${teamId}:roster`)) ?? [];
+  
+  // Add to roster
+  await kv.set(`team:${teamId}:roster`, [
+    ...roster,
+    { userId, displayName: "Player", isManager: false, joinedAt: now }
+  ]);
+  
+  // Add membership
+  await upsertMembership(userId, {
+    teamId,
+    leagueId: team.leagueId,
+    isManager: false,
+    teamName: team.name,
+    leagueName: leagueNameFor(team.leagueId)
+  });
+  
+  return team;
+}

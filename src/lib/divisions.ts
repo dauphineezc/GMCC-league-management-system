@@ -27,3 +27,7 @@ export function normalizeDivision(input: string): DivisionId | null {
   if (DIVISIONS.some(d => d.id === v)) return v as DivisionId;
   return ALIASES[v] ?? null;
 }
+
+export function isDivisionId(input: string): input is DivisionId {
+  return DIVISIONS.some(d => d.id === input);
+}
