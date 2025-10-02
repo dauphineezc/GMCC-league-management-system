@@ -1,1 +1,24 @@
-- should be a way for admin/super admin to export all players/all teams - simple to implement since we already have viewing capabilities for full roster of players/full roster of teams
+- There should be a way for admin/super admin to export team roster/league roster
+- Team page should include a practice schedule input by admin
+    - The practice schedule for every team in the league will be uploaded by admins the same way that the game schedule currently is, and will be filtered to provide only the specific team's practice schedule on the team page. Unlike the game schedule (entire league game schedule visible on public league card), there will be no place to view the entire league's practice schedule. Only players on a team will be able to view their team's practice schedule
+- Add registration start/end dates to restrict when people can create a new team
+
+9/5 Meeting:
+- Instead of selecting league during team creation, player should put in gender (co-ed/mens/womens), estimated level (low b/high b/a, etc), and preferred nights of play. Leagues will be created by admin (super admin?) once they see the distribution of teams that are signed up
+    - How will league creation work? Thinking admin will Create new league: enter league name, gender, division, practice nights, then select teams to add to that league. Will need to retroactively add leagueId to team object. Will need a place to store and visually list teams not yet assigned to a league.
+    - How will admins work with this approach? Right now, super admins assign a league to an admin. Will super admins possess the list of all the teams, create the leagues and add teams, and then assign the leagues to the admins? Because if super admins are not responsible for league creation, then admins would have to have access to all teams which we don't want
+- Player information we want (need to enter upon account creation): first name, last name, gender, DOB, email, phone #
+- Team name should be uneditable after team creation
+- Approved status will be manually set by admin after the minimum number of players are registered and paid
+- There will be a predetermined date on which players can no longer be added to a team - a team can be approved before this date, but still add players up to this date
+- There should be an option for admin to unlock the “add player” functionality for the team manager after the aforementioned date, in case players get injured/drop out for some reason and new team members have to be added
+- Admin should have ability to remove a player from a team
+- On the player/team and admin/team there should be a note saying “You have # players (registered and paid) out of the required #. You can have a maximum of # players.”
+    - This quick-read number of valid players will make it easy for admin to know if they can approve a team - they won’t have to count # of paid players
+- Players can be on multiple teams in different leagues; can also technically be on multiple teams in the same league, though rare - i don’t think anything in the code prohibits this
+- Admin can also be players - they can just have different accounts. Admin will be registered with their greatermidland email; player accounts will use personal emails
+- For some leagues (like 5v5 basketball and volleyball), in addition to the individual player fees, there is also a team/sponsor fee. The payment status of this fee should be visible to both admin and players, and should be editable by admin
+- PDF schedule is good for now; as is manually entering game results
+    - Have program calculate standings (wins/losses, etc) so not everything has to be manually entered
+- Make confirmation page: “You successfully created X team”/”You successfully joined X team”, and include rectrac link to register and pay - also put this link on team page so it’s easily accessible after people exit out of confirmation page
+- Ideally have MVP ready by mid-late October to be used for CCL
