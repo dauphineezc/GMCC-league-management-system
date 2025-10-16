@@ -4,7 +4,6 @@
 export type {
   UserProfile,
   MemberPublic,
-  PaymentStatusType as PaymentStatus,
   Game,
   Membership,
 } from "@/types/domain";

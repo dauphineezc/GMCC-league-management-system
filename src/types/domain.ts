@@ -6,7 +6,6 @@ export type Gender = "mens" | "womens" | "co-ed";
 export type PracticeDay = "Mon"|"Tue"|"Wed"|"Thu"|"Fri"|"Sat"|"Sun";
 export type Role = "player" | "admin";
 export type GameStatus = "scheduled" | "final" | "postponed";
-export type PaymentStatus = "UNPAID" | "PENDING" | "PAID";
 
 // ===== CORE DOMAIN TYPES =====
 export type TeamFee = {
@@ -151,30 +150,6 @@ export type PlayerInfo = {
     emergencyPhone?: string;
   };
   teams: PlayerTeam[];
-};
-
-// ===== PAYMENT TYPES =====
-export type PaymentStatusType = {
-  teamId: string;
-  userId: string;
-  status: PaymentStatus;
-  amountCents: number;
-  createdAt: string;
-  updatedAt: string;
-  provider?: 'other'|'stripe';
-  providerInvoiceId?: string;
-  dueBy?: string;
-};
-
-export type CheckoutInput = { 
-  userId: string; 
-  teamId: string; 
-  amountCents: number 
-};
-
-export type CheckoutOutput = { 
-  redirectUrl: string; 
-  providerInvoiceId: string 
 };
 
 // ===== UI/COMPONENT TYPES =====
