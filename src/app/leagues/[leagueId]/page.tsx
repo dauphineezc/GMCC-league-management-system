@@ -160,37 +160,55 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
     // Build master roster for admins - OPTIMIZED with batch operations
     // OLD: 2N KV calls (N rosters + N payments)
     // NEW: 2 batch calls total
-    const teamIds = teams.map(t => t.teamId);
-    const [rostersMap, paymentsMap] = await Promise.all([
-      batchGetRosters(teamIds),
-      batchGetPayments(teamIds),
-    ]);
+    try {
+      const teamIds = teams.map(t => t.teamId);
+      const [rostersMap, paymentsMap] = await Promise.all([
+        batchGetRosters(teamIds),
+        batchGetPayments(teamIds),
+      ]);
 
-    teams.forEach((t) => {
-      const roster = rostersMap.get(t.teamId) ?? [];
-      const payMap = paymentsMap.get(t.teamId) ?? {};
-      
-      roster.forEach(entry => {
-        masterRoster.push({
-          ...entry,
-          teamId: t.teamId,
-          teamName: t.name,
-          paid: Boolean(payMap[entry.userId]),
+      teams.forEach((t) => {
+        const roster = rostersMap.get(t.teamId) ?? [];
+        const payMap = paymentsMap.get(t.teamId) ?? {};
+        
+        roster.forEach(entry => {
+          masterRoster.push({
+            ...entry,
+            teamId: t.teamId,
+            teamName: t.name,
+            paid: Boolean(payMap[entry.userId]),
+          });
         });
       });
-    });
+    } catch (error) {
+      console.error('Error fetching admin roster data:', error);
+      // Continue with empty master roster if batch operations fail
+    }
   }
 
   const userIds = masterRoster.map(r => r.userId);
-  const playerTeamsByUser = await buildPlayerTeamsByUserFromMemberships(userIds);
+  let playerTeamsByUser: Record<string, any[]> = {};
+  
+  try {
+    playerTeamsByUser = await buildPlayerTeamsByUserFromMemberships(userIds);
+  } catch (error) {
+    console.error('Error fetching player teams:', error);
+    // Continue with empty object if player teams lookup fails
+  }
 
 
   if (permissions.isSuperAdmin()) {
     // Fetch league admin info for superadmins
-    const leagueDocFull = await readLeagueDocJSON(leagueId);
-    const adminUserId = leagueDocFull?.adminUserId ?? null;
-    const leagueAdminName = await getAdminDisplayName(adminUserId);
-    adminInfo = { adminUserId, leagueAdminName };
+    try {
+      const leagueDocFull = await readLeagueDocJSON(leagueId);
+      const adminUserId = leagueDocFull?.adminUserId ?? null;
+      const leagueAdminName = await getAdminDisplayName(adminUserId);
+      adminInfo = { adminUserId, leagueAdminName };
+    } catch (error) {
+      console.error('Error fetching admin info:', error);
+      // Continue with null values if admin lookup fails
+      adminInfo = { adminUserId: null, leagueAdminName: null };
+    }
   }
 
   return (
