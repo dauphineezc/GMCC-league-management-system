@@ -74,7 +74,8 @@ export async function POST(
 
     // Automatically recalculate standings after saving result
     try {
-      const standingsUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/leagues/${leagueId}/standings/calculate`;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const standingsUrl = `${baseUrl}/api/leagues/${leagueId}/standings/calculate`;
       const standingsResponse = await fetch(standingsUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }

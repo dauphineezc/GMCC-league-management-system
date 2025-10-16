@@ -148,7 +148,7 @@ export default function CreateTeamPage() {
 
       <div style={{ display: "flex", gap: 12 }}>
         <button type="submit" className="btn btn--primary">Create</button>
-        <Link href="/player" className="btn btn--primary">Cancel</Link>
+        <Link href="/" className="btn btn--primary">Cancel</Link>
       </div>
     </form>
   );

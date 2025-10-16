@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import type { LMSUser } from "./authTypes";
+import type { LMSUser } from "@/lib/authTypes";
 import { kv } from "@vercel/kv";
 
 export type ServerUser = {
@@ -73,4 +73,7 @@ export function isLeagueAdmin(user: ServerUser | null, leagueId: string) {
 }
 export function isTeamManager(user: ServerUser | null, teamId: string) {
   return !!user?.superadmin; // or your own logic
+}
+export async function isSuperAdmin(user: ServerUser | null) {
+  return !!user?.superadmin;
 }

@@ -23,27 +23,27 @@ export default async function Navbar() {
           {/* SUPER ADMIN */}
           {isSuper && (
             <>
-              <Link className="nav-link" href="/superadmin">Home</Link>
-              <Link className="nav-link" href="/superadmin/teams">Teams</Link>
-              <Link className="nav-link" href="/superadmin/leagues">Leagues</Link>
-              <Link className="nav-link" href="/superadmin/players">Players</Link>
-              <Link className="nav-link" href="/superadmin/admins">Admins</Link>
+              <Link className="nav-link" href="/">Home</Link>
+              <Link className="nav-link" href="/teams">Teams</Link>
+              <Link className="nav-link" href="/leagues">Leagues</Link>
+              <Link className="nav-link" href="/players">Players</Link>
+              <Link className="nav-link" href="/admins">Admins</Link>
             </>
           )}
 
           {/* ADMIN (non-super) */}
           {!isSuper && isAdmin && (
             <>
-              <Link className="nav-link" href="/admin#public-leagues">Leagues</Link>
-              <Link className="nav-link" href="/admin#leagues">My Leagues</Link>
+              <Link className="nav-link" href="/#public-leagues">Leagues</Link>
+              <Link className="nav-link" href="/#leagues">My Leagues</Link>
             </>
           )}
 
           {/* PLAYER (signed-in, not admin/super) */}
           {!isSuper && !isAdmin && isSignedIn && (
             <>
-              <Link className="nav-link" href="/player#public-leagues">Leagues</Link>
-              <Link className="nav-link" href="/player#teams">My Teams</Link>
+              <Link className="nav-link" href="/#public-leagues">Leagues</Link>
+              <Link className="nav-link" href="/#teams">My Teams</Link>
             </>
           )}
 

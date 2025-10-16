@@ -26,22 +26,24 @@ export async function POST(req: Request, { params }: { params: { leagueId: strin
     const { leagueId } = params;
     console.log(`Calculating standings for league ${leagueId}`);
 
-    // Get all teams in the league
-    const teamsKey = `league:${leagueId}:teams`;
-    let rawTeams = await kv.get(teamsKey);
-    if (!rawTeams && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      const url = `${process.env.KV_REST_API_URL}/get/${encodeURIComponent(teamsKey)}`;
-      const r = await fetch(url, {
-        headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
-        cache: "no-store",
-      });
-      const body = await r.json().catch(() => ({}));
-      if (r.ok && body?.result) {
-        rawTeams = body.result;
-      }
-    }
+    // Get all team IDs in the league (stored as a SET)
+    const teamIds = (await kv.smembers(`league:${leagueId}:teams`)) as string[] || [];
+    console.log(`Found ${teamIds.length} team IDs`);
 
-    const teams = parseKV(rawTeams);
+    // Fetch team data for each team ID
+    const teams = await Promise.all(
+      teamIds.map(async (teamId) => {
+        const teamData = await kv.get(`team:${teamId}`);
+        if (typeof teamData === 'string') {
+          const parsed = JSON.parse(teamData);
+          return { teamId, name: parsed.name || teamId, ...parsed };
+        }
+        if (teamData && typeof teamData === 'object') {
+          return { teamId, name: (teamData as any).name || teamId, ...teamData };
+        }
+        return { teamId, name: teamId };
+      })
+    );
     console.log(`Found ${teams.length} teams`);
 
     // Get all games with final results

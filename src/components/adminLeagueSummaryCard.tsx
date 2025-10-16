@@ -79,7 +79,7 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
       )}
 
       <div style={{ textAlign: "right", marginTop: 12 }}>
-        <Link href={`/admin/leagues/${encodeURIComponent(leagueId)}`} prefetch={false}>
+        <Link href={`/leagues/${encodeURIComponent(leagueId)}`} prefetch={false}>
           <span className="card-cta">VIEW LEAGUE →</span>
         </Link>
       </div>

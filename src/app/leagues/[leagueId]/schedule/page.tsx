@@ -1,17 +1,30 @@
-// src/app/leagues/[leagueId]/schedule/page.tsx
-import { ScheduleList } from '@/components/scheduleList';
+// Unified Schedule Management Page (Admin-only)
+// Uses new permission system for consistency
+// OPTIMIZED: Allow caching since this is a read page
+export const revalidate = 30;
 
-async function fetchGames(leagueId: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/leagues/${leagueId}/schedule`, { cache: 'no-store' });
-  return (await res.json()) as any[];
-}
+import ScheduleClient from "./scheduleClient";
+import { readLeagueName } from "@/lib/readLeagueName";
+import { getServerUser } from "@/lib/serverUser";
+import { hasLeaguePermission } from "@/lib/permissions";
+import { redirect, notFound } from "next/navigation";
 
-export default async function LeagueSchedulePage({ params }: { params: { leagueId: string } }) {
-  const games = await fetchGames(params.leagueId);
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Schedule</h1>
-      <ScheduleList games={games} />
-    </div>
-  );
+export default async function LeagueSchedulePage({
+  params,
+}: {
+  params: { leagueId: string };
+}) {
+  const user = await getServerUser();
+  if (!user) redirect("/login");
+  
+  // Use new permission system
+  const isAuthorized = await hasLeaguePermission(user, params.leagueId, "admin");
+  if (!isAuthorized) {
+    notFound(); // More appropriate than redirect with error
+  }
+
+  const leagueId = params.leagueId;
+  const leagueName = await readLeagueName(leagueId);
+
+  return <ScheduleClient leagueId={leagueId} leagueName={leagueName} />;
 }

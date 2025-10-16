@@ -5,13 +5,15 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import tz from 'dayjs/plugin/timezone';
 import cpf from 'dayjs/plugin/customParseFormat';
+import { batchGetTeamNames } from '@/lib/kvBatch';
 
 dayjs.extend(utc);
 dayjs.extend(tz);
 dayjs.extend(cpf);
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// OPTIMIZED: Use revalidation instead of force-dynamic
+export const revalidate = 60; // Revalidate every 60 seconds
 
 const COMPLETION_GRACE_MINUTES = 120; // how long after scheduled start we consider it "completed"
 
@@ -105,13 +107,8 @@ export async function GET(req: Request, { params }: { params: { leagueId: string
       )
     );
 
-    const idToName = new Map<string, string>();
-    await Promise.all(
-      teamIds.map(async (id) => {
-        const t = await kv.get<any>(`team:${id}`);
-        if (t?.name) idToName.set(id, t.name);
-      })
-    );
+    // OPTIMIZED: Batch fetch team names instead of N individual queries
+    const idToName = await batchGetTeamNames(teamIds);
 
     const deduped = sourceGames.map((g) => toNewShape(g, idToName));
 
@@ -131,7 +128,8 @@ export async function GET(req: Request, { params }: { params: { leagueId: string
       status: 200,
       headers: {
         'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store, max-age=0',
+        // OPTIMIZED: Cache for 60 seconds, revalidate in background
+        'cache-control': 'public, s-maxage=60, stale-while-revalidate=30',
       },
     });
   } catch (e: any) {

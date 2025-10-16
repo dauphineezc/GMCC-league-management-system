@@ -14,6 +14,17 @@ type Props = {
   playerTeamsByUser?: Record<string, PlayerTeam[]>;
 };
 
+type TeamsAPIResp = {
+  teams: Array<{
+    teamId: string;
+    teamName: string;
+    leagueId: string | null;
+    leagueName: string | null;
+    isManager: boolean;
+    paid: boolean;
+  }>;
+};
+
 type TabKey = "teams" | "roster";
 
 function slugify(s: string) {
@@ -57,23 +68,45 @@ export default function AdminLeagueSplitTabs({
   }, []);
 
   const handleView = useCallback(
-    (row: RosterRow) => {
+    async (row: RosterRow) => {
       const contact = fakeContact(row.displayName);
-      const leagueName =
-        (DIVISIONS.find((d) => d.id === (leagueId as any))?.name ?? leagueId) as string;
-
+      const leagueName = (DIVISIONS.find((d) => d.id === (leagueId as any))?.name ?? leagueId) as string;
+  
       const withLeague = (t: Partial<PlayerTeam>): PlayerTeam => ({
         teamId: t.teamId!,
         teamName: t.teamName!,
-        isManager: Boolean(t.isManager),
-        paid: Boolean(t.paid),
-        leagueId: String(leagueId),
-        leagueName,
+        isManager: !!t.isManager,
+        paid: !!t.paid,
+        leagueId: t.leagueId ?? String(leagueId),
+        leagueName: t.leagueName ?? leagueName,
       });
+  
+      let teamsForUser: PlayerTeam[] | undefined =
+        playerTeamsByUser?.[row.userId]?.map(withLeague);
 
-      const teamsForUser: PlayerTeam[] =
-        playerTeamsByUser?.[row.userId]?.map(withLeague) ??
-        [
+      if (!teamsForUser) {
+        try {
+          const res = await fetch(`/api/users/${row.userId}/teams`, { cache: "no-store" });
+          const data = (await res.json()) as TeamsAPIResp;
+
+          if (Array.isArray(data?.teams)) {
+            teamsForUser = data.teams.map((t) =>
+              withLeague({
+                teamId: t.teamId,
+                teamName: t.teamName,
+                isManager: t.isManager,
+                paid: t.paid,
+                leagueId: t.leagueId ?? undefined,     // keep per-team league
+                leagueName: t.leagueName ?? undefined,
+              })
+            );
+          }
+        } catch { /* ignore, keep fallback */ }
+      }
+  
+      // still fallback to the current team if nothing else available
+      if (!teamsForUser || teamsForUser.length === 0) {
+        teamsForUser = [
           withLeague({
             teamId: row.teamId,
             teamName: row.teamName,
@@ -81,20 +114,15 @@ export default function AdminLeagueSplitTabs({
             paid: row.paid,
           }),
         ];
-
-      setPlayer({
-        userId: row.userId,
-        displayName: row.displayName,
-        contact,
-        teams: teamsForUser,
-      });
-
-      setContextTeamId(row.teamId); // <- so modal can prioritize this membership
-      setContextPaid(row.paid);     // <- and show the correct PAID/UNPAID chip
+      }
+  
+      setPlayer({ userId: row.userId, displayName: row.displayName, contact, teams: teamsForUser });
+      setContextTeamId(row.teamId);
+      setContextPaid(row.paid);
       setOpen(true);
     },
     [leagueId, playerTeamsByUser]
-  );
+  );  
 
   return (
     <section className="card">
@@ -259,21 +287,21 @@ function TeamsPane({
             }}
           >
             <Link
-              href={`/admin/leagues/${leagueId}/schedule`}
+              href={`/leagues/${leagueId}/schedule`}
               className="btn btn--primary"
               style={{ width: "100%", maxWidth: 320, justifyContent: "center" }}
             >
               Manage Schedule
             </Link>
             <Link
-              href={`/admin/leagues/${leagueId}/results`}
+              href={`/leagues/${leagueId}/results`}
               className="btn btn--primary"
               style={{ width: "100%", maxWidth: 320, justifyContent: "center" }}
             >
               Enter Game Results
             </Link>
             <Link
-              href={`/admin/leagues/${leagueId}/announce`}
+              href={`/leagues/${leagueId}/sendAnnouncement`}
               className="btn btn--primary"
               style={{ width: "100%", maxWidth: 320, justifyContent: "center" }}
             >
@@ -296,6 +324,13 @@ function RosterPane({
 }) {
   const COL_GAP = 70;
 
+  // Sort roster alphabetically by display name
+  const sortedRoster = useMemo(() => {
+    return [...roster].sort((a, b) => 
+      (a.displayName || a.userId || '').localeCompare(b.displayName || b.userId || '', undefined, { sensitivity: 'base' })
+    );
+  }, [roster]);
+
   const col = useMemo(() => {
     if (typeof document === "undefined") {
       return { namePx: 200, teamPx: 160, managerPx: 140, paidPx: 110 };
@@ -316,7 +351,7 @@ function RosterPane({
     let namePx = 160;
     let teamPx = 140;
 
-    for (const r of roster) {
+    for (const r of sortedRoster) {
       namePx = Math.max(namePx, measure(r.displayName || "", nameFont));
       teamPx = Math.max(teamPx, measure((r.teamName || "").toUpperCase(), teamFont));
     }
@@ -325,17 +360,17 @@ function RosterPane({
     const paidPx = Math.max(measure("PAID", badgeFont), measure("UNPAID", badgeFont)) + 28;
 
     return { namePx, teamPx, managerPx, paidPx };
-  }, [roster]);
+  }, [sortedRoster]);
 
   return (
     <div className="roster-gradient" style={{ marginTop: 8 }}>
-      {roster.length === 0 ? (
+      {sortedRoster.length === 0 ? (
         <p className="muted" style={{ margin: 0 }}>
           No players yet.
         </p>
       ) : (
         <ul className="roster-list">
-          {roster.map((p) => (
+          {sortedRoster.map((p) => (
             <li key={`${p.teamId}:${p.userId}`}>
               <div
                 className="player-card player-card--aligned"

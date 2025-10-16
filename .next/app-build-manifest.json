@@ -11,25 +11,50 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/leagues/[leagueId]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/leagues/[leagueId]/page.js"
+    ],
+    "/team/[teamId]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/team/[teamId]/page.js"
+    ],
+    "/logout/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/logout/page.js"
+    ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/login/page.js"
+    ],
+    "/(admin)/admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/page.js"
+    ],
+    "/(admin)/admin/team/[teamId]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(admin)/admin/team/[teamId]/page.js"
+    ],
     "/(superadmin)/superadmin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(superadmin)/superadmin/page.js"
     ],
-    "/(superadmin)/superadmin/teams/page": [
+    "/player/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(superadmin)/superadmin/teams/page.js"
+      "static/chunks/app/player/page.js"
     ],
-    "/(superadmin)/superadmin/leagues/page": [
+    "/create-account/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(superadmin)/superadmin/leagues/page.js"
-    ],
-    "/(superadmin)/superadmin/team/[teamId]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(superadmin)/superadmin/team/[teamId]/page.js"
+      "static/chunks/app/create-account/page.js"
     ]
   }
 }

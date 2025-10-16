@@ -36,7 +36,8 @@ export async function GET(req: Request, { params }: { params: { leagueId: string
     if (standings.length === 0) {
       console.log('No standings found, calculating initial standings');
       
-      const calculateUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/leagues/${leagueId}/standings/calculate`;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const calculateUrl = `${baseUrl}/api/leagues/${leagueId}/standings/calculate`;
       const calculateResponse = await fetch(calculateUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }

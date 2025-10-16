@@ -1,5 +1,9 @@
 {
-  "/(superadmin)/superadmin/leagues/page": "app/(superadmin)/superadmin/leagues/page.js",
-  "/(superadmin)/superadmin/team/[teamId]/page": "app/(superadmin)/superadmin/team/[teamId]/page.js",
-  "/(superadmin)/superadmin/teams/page": "app/(superadmin)/superadmin/teams/page.js"
+  "/page": "app/page.js",
+  "/team/[teamId]/page": "app/team/[teamId]/page.js",
+  "/leagues/[leagueId]/page": "app/leagues/[leagueId]/page.js",
+  "/login/page": "app/login/page.js",
+  "/create-account/page": "app/create-account/page.js",
+  "/api/leagues/[leagueId]/schedule/route": "app/api/leagues/[leagueId]/schedule/route.js",
+  "/api/leagues/[leagueId]/standings/route": "app/api/leagues/[leagueId]/standings/route.js"
 }

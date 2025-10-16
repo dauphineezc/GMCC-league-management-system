@@ -1,46 +1,22 @@
 {
   "node": {
-    "701c1c36548f136115d9fe9d630c3107c9521417": {
+    "0b10adcf670dc333b941408773a1a6d87d0be509": {
       "workers": {
-        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
+        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5Cteam%5C%5C%5BteamId%5D%5C%5Cpage.tsx%22%2C%5B%22%24%24ACTION_0%22%2C%22%24%24ACTION_1%22%5D%5D%5D&__client_imported__=!"
       },
       "layer": {
-        "app/(superadmin)/superadmin/leagues/page": "action-browser"
+        "app/team/[teamId]/page": "rsc"
       }
     },
-    "8d37f9b1cb731853e8e75fc60c48cb27f14185e0": {
+    "c1270ee00b6481a5f98e34c677241ed1b550dcd6": {
       "workers": {
-        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
+        "app/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5Cteam%5C%5C%5BteamId%5D%5C%5Cpage.tsx%22%2C%5B%22%24%24ACTION_0%22%2C%22%24%24ACTION_1%22%5D%5D%5D&__client_imported__=!"
       },
       "layer": {
-        "app/(superadmin)/superadmin/leagues/page": "action-browser"
-      }
-    },
-    "bc2f7ea3a75181eedc09615ab6bbe41c5bded538": {
-      "workers": {
-        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/(superadmin)/superadmin/leagues/page": "action-browser"
-      }
-    },
-    "d2c41ede6fb09030009c98de2c300147e634eb45": {
-      "workers": {
-        "app/(superadmin)/superadmin/leagues/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cleagues%5C%5CcreateLeagueAction.ts%22%2C%5B%22addTeamToLeague%22%2C%22addTeamToLeagueDirect%22%2C%22createLeagueAction%22%2C%22addTeamToLeagueAction%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/(superadmin)/superadmin/leagues/page": "action-browser"
-      }
-    },
-    "9cef648a7fc2fa375fe5eed30efaa08336090cd1": {
-      "workers": {
-        "app/(superadmin)/superadmin/team/[teamId]/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Czdauphinee%5C%5Cgmcc%5C%5CGMCC-league-management-system%5C%5Csrc%5C%5Capp%5C%5C(superadmin)%5C%5Csuperadmin%5C%5Cteam%5C%5C%5BteamId%5D%5C%5Cpage.tsx%22%2C%5B%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/(superadmin)/superadmin/team/[teamId]/page": "rsc"
+        "app/team/[teamId]/page": "rsc"
       }
     }
   },
   "edge": {},
-  "encryptionKey": "3ov5vFVDZz7wydobF+yowIWqx+aPCtGTEng+5gq1Aw8="
+  "encryptionKey": "LZlAlM7iqHOT+6ZeSiABTN5zGpliDdHH2ne/QTmADyo="
 }

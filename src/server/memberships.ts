@@ -7,9 +7,17 @@ function leagueNameFor(id: DivisionId): string {
   return DIVISIONS.find((d) => d.id === id)?.name ?? id;
 }
 
+// Helper to read array from KV (handles both array and stringified JSON)
+async function readArr<T = any>(key: string): Promise<T[]> {
+  const raw = await kv.get(key);
+  if (Array.isArray(raw)) return raw as T[];
+  if (typeof raw === "string") return raw.trim() ? (JSON.parse(raw) as T[]) : [];
+  return [];
+}
+
 export async function upsertMembership(userId: string, m: Membership) {
   const key = `user:${userId}:memberships`;
-  const arr: Membership[] = (await kv.get<Membership[]>(key)) ?? [];
+  const arr: Membership[] = await readArr<Membership>(key);
   const idx = arr.findIndex(x => x.teamId === m.teamId);
   if (idx >= 0) arr[idx] = { ...arr[idx], ...m };
   else arr.push(m);
@@ -25,12 +33,12 @@ export async function updateMembershipNamesForTeam(
   teamName: string,
   leagueId: DivisionId
 ) {
-  const roster = (await kv.get<{ userId: string }[]>(`team:${teamId}:roster`)) ?? [];
+  const roster = await readArr<{ userId: string }>(`team:${teamId}:roster`);
   const leagueName = leagueNameFor(leagueId);
 
   await Promise.all(
     roster.map(async ({ userId }) => {
-      const arr = (await kv.get<Membership[]>(`user:${userId}:memberships`)) ?? [];
+      const arr = await readArr<Membership>(`user:${userId}:memberships`);
       const idx = arr.findIndex((x) => x.teamId === teamId);
       if (idx >= 0) {
         arr[idx] = { ...arr[idx], teamName, leagueId, leagueName };
@@ -44,13 +52,17 @@ export async function addPlayerToTeam(userId: string, teamId: string) {
   const team = await kv.get<any>(`team:${teamId}`);
   if (!team) throw new Error('Team not found');
   
-  const now = new Date().toISOString();
-  const roster = (await kv.get<any[]>(`team:${teamId}:roster`)) ?? [];
+  // Fetch user's display name
+  const user = await kv.get<any>(`user:${userId}`);
+  const displayName = user?.displayName || user?.email || userId;
   
-  // Add to roster
+  const now = new Date().toISOString();
+  const roster = await readArr<any>(`team:${teamId}:roster`);
+  
+  // Add to roster with actual display name
   await kv.set(`team:${teamId}:roster`, [
     ...roster,
-    { userId, displayName: "Player", isManager: false, joinedAt: now }
+    { userId, displayName, isManager: false, joinedAt: now }
   ]);
   
   // Add membership
@@ -63,4 +75,28 @@ export async function addPlayerToTeam(userId: string, teamId: string) {
   });
   
   return team;
+}
+
+export async function removePlayerFromTeam(userId: string, teamId: string) {
+  const team = await kv.get<any>(`team:${teamId}`);
+  if (!team) throw new Error('Team not found');
+  
+  // Remove from roster
+  const roster = await readArr<any>(`team:${teamId}:roster`);
+  const newRoster = roster.filter(r => r.userId !== userId);
+  await kv.set(`team:${teamId}:roster`, newRoster);
+  
+  // Remove from team payments
+  const payKey = `team:${teamId}:payments`;
+  const payMap = (await kv.get<Record<string, boolean>>(payKey)) || {};
+  delete payMap[userId];
+  await kv.set(payKey, payMap);
+  
+  // Remove membership - use readArr to handle both array and stringified JSON
+  const membershipKey = `user:${userId}:memberships`;
+  const memberships = await readArr<Membership>(membershipKey);
+  const newMemberships = memberships.filter(m => m.teamId !== teamId);
+  await kv.set(membershipKey, newMemberships);
+  
+  return { team, removedUser: userId };
 }
