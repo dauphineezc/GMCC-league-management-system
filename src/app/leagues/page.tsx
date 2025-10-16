@@ -246,9 +246,9 @@ export default async function LeaguesListPage({
 
                 <div style={{ justifySelf: "end" }}>
                   {hasFilters && (
-                    <a href="/leagues" className="btn btn--light" style={{ marginRight: 8 }}>
+                    <Link href="/leagues" className="btn btn--light" style={{ marginRight: 8 }}>
                       Reset
-                    </a>
+                    </Link>
                   )}
                   <button className="btn btn--outline" type="submit">
                     Apply

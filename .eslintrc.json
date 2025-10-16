@@ -6,6 +6,7 @@
     "@typescript-eslint/ban-ts-comment": "warn",
     "prefer-const": "warn",
     "react/no-unescaped-entities": "warn",
-    "react-hooks/exhaustive-deps": "warn"
+    "react-hooks/exhaustive-deps": "warn",
+    "@next/next/no-html-link-for-pages": "warn"
   }
 }
