@@ -12,7 +12,7 @@ export async function batchGet<T = any>(keys: string[]): Promise<Map<string, T |
   if (keys.length === 0) return new Map();
   
   // Use MGET for efficient batch retrieval
-  const values = await kv.mget<T>(...keys);
+  const values = await kv.mget(...keys) as (T | null)[];
   
   const result = new Map<string, T | null>();
   keys.forEach((key, index) => {
