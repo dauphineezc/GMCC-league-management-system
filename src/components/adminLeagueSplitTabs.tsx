@@ -6,12 +6,16 @@ import { useCallback, useMemo, useState } from "react";
 import PlayerInfoPopup from "@/components/playerInfoPopup";
 import { DIVISIONS } from "@/lib/divisions";
 import type { TeamLite, RosterRow, PlayerTeam, PlayerInfo } from "@/types/domain";
+import ScheduleViewer from "@/components/scheduleViewer";
+import GameHistory from "@/components/gameHistory";
 
 type Props = {
   leagueId: string;
   teams: TeamLite[];
   roster: RosterRow[];
   playerTeamsByUser?: Record<string, PlayerTeam[]>;
+  games?: any[];
+  standings?: any[];
 };
 
 type TeamsAPIResp = {
@@ -25,7 +29,7 @@ type TeamsAPIResp = {
   }>;
 };
 
-type TabKey = "teams" | "roster";
+type TabKey = "teams" | "roster" | "schedule" | "history" | "standings";
 
 function slugify(s: string) {
   return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
@@ -51,6 +55,8 @@ export default function AdminLeagueSplitTabs({
   teams,
   roster,
   playerTeamsByUser,
+  games = [],
+  standings = [],
 }: Props) {
   const [tab, setTab] = useState<TabKey>("teams");
 
@@ -141,14 +147,35 @@ export default function AdminLeagueSplitTabs({
         >
           League Roster
         </button>
+        <button
+          type="button"
+          className={`team-tab ${tab === "schedule" ? "is-active" : ""}`}
+          onClick={() => setTab("schedule")}
+        >
+          Schedule
+        </button>
+        <button
+          type="button"
+          className={`team-tab ${tab === "history" ? "is-active" : ""}`}
+          onClick={() => setTab("history")}
+        >
+          Game History
+        </button>
+        <button
+          type="button"
+          className={`team-tab ${tab === "standings" ? "is-active" : ""}`}
+          onClick={() => setTab("standings")}
+        >
+          Standings
+        </button>
       </div>
 
       <div className="pad-card-sides" style={{ paddingTop: 14 }}>
-        {tab === "teams" ? (
-          <TeamsPane leagueId={leagueId} teams={teams} />
-        ) : (
-          <RosterPane roster={roster} onView={handleView} />
-        )}
+        {tab === "teams" && <TeamsPane leagueId={leagueId} teams={teams} />}
+        {tab === "roster" && <RosterPane roster={roster} onView={handleView} />}
+        {tab === "schedule" && <ScheduleViewer leagueId={leagueId} />}
+        {tab === "history" && <GameHistory leagueId={leagueId} />}
+        {tab === "standings" && <StandingsPane standings={standings} />}
       </div>
 
       <PlayerInfoPopup
@@ -313,6 +340,50 @@ function TeamsPane({
     </div>
   );
 }
+
+/* ========= Standings tab ========= */
+function StandingsPane({ standings }: { standings: any[] }) {
+  return (
+    <div>
+      {standings.length === 0 ? (
+        <div className="p-4 text-center">
+          <div className="text-gray-500">No standings yet.</div>
+        </div>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={th}>Team</th>
+              <th style={thCenter}>Wins</th>
+              <th style={thCenter}>Losses</th>
+              <th style={thCenter}>Win %</th>
+              <th style={thCenter}>Points For</th>
+              <th style={thCenter}>Points Against</th>
+            </tr>
+          </thead>
+          <tbody>
+            {standings.map((s: any) => (
+              <tr key={s.teamId}>
+                <td style={td}>{s.teamName || s.name || s.teamId}</td>
+                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
+                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
+                <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
+                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
+                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/* helpers for the standings table */
+const th: React.CSSProperties = { textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" };
+const thCenter: React.CSSProperties = { textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee" };
+const td: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px solid #f3f4f6" };
+const tdCenter: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center" };
 
 /* ========= Roster tab ========= */
 function RosterPane({

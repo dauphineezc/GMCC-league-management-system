@@ -298,7 +298,14 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
         }
       >
         {/* Admin content */}
-        <AdminLeagueSplitTabs leagueId={leagueId} teams={teams} roster={masterRoster} playerTeamsByUser={playerTeamsByUser} />
+        <AdminLeagueSplitTabs 
+          leagueId={leagueId} 
+          teams={teams} 
+          roster={masterRoster} 
+          playerTeamsByUser={playerTeamsByUser}
+          games={games}
+          standings={standings}
+        />
       </IfAdmin>
     </main>
   );
