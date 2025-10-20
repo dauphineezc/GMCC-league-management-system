@@ -12,6 +12,7 @@ import AdminAssignmentEditor from "@/components/adminAssignmentEditor";
 import Tabs from "@/components/leagueTabs";
 import ScheduleViewerServer from "@/components/scheduleViewer.server";
 import GameHistory from "@/components/gameHistory";
+import LeagueActionsDropdown from "@/components/leagueActionsDropdown";
 import { DIVISIONS } from "@/lib/divisions";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 import type { RosterEntry } from "@/types/domain";
@@ -19,6 +20,7 @@ import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { batchGetRosters, batchGetPayments } from "@/lib/kvBatch";
 import { buildPlayerTeamsByUserFromMemberships } from "@/lib/playerTeams";
+import Link from "next/link";
 
 /* ---------------- tolerant helpers ---------------- */
 
@@ -217,18 +219,6 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
         <div className="team-title-wrap">
           <h1 className="page-title">{leagueName}</h1>
         </div>
-        
-        {/* Admin-only CSV export */}
-        <IfAdmin checker={permissions}>
-          <div className="mt-2">
-            <a 
-              className="btn btn--outline" 
-              href={`/leagues/${encodeURIComponent(leagueId)}/export.csv`}
-            >
-              Download Roster CSV
-            </a>
-          </div>
-        </IfAdmin>
       </header>
 
       {description && (
@@ -244,6 +234,11 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
           leagueAdminName={adminInfo.leagueAdminName}
         />
       </IfSuperAdmin>
+
+      {/* Admin-only Actions Dropdown */}
+      <IfAdmin checker={permissions}>
+        <LeagueActionsDropdown leagueId={leagueId} />
+      </IfAdmin>
 
       {/* Admin view: show admin tabs */}
       <IfAdmin 
@@ -284,30 +279,32 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
                       <div className="text-gray-500">No standings yet.</div>
                     </div>
                   ) : (
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr>
-                          <th style={th}>Team</th>
-                          <th style={thCenter}>Wins</th>
-                          <th style={thCenter}>Losses</th>
-                          <th style={thCenter}>Win %</th>
-                          <th style={thCenter}>Points For</th>
-                          <th style={thCenter}>Points Against</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {standings.map((s: any) => (
-                          <tr key={s.teamId}>
-                            <td style={td}>{s.teamName || s.name || s.teamId}</td>
-                            <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
-                            <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
-                            <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
-                            <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
-                            <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+                    <div className="standings-container">
+                      <table className="standings-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr>
+                            <th style={th}>Team</th>
+                            <th style={thCenter}>Wins</th>
+                            <th style={thCenter}>Losses</th>
+                            <th style={thCenter}>Win %</th>
+                            <th style={thCenter}>Points For</th>
+                            <th style={thCenter}>Points Against</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {standings.map((s: any) => (
+                            <tr key={s.teamId}>
+                              <td style={td}>{s.teamName || s.name || s.teamId}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               ),

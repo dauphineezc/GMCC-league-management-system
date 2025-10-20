@@ -1,6 +1,7 @@
 // Server-side schedule viewer - eliminates client-side fetch latency
 import { kv } from "@vercel/kv";
 import { parseArrayFromKV } from "@/lib/kvBatch";
+import { ScheduleViewerShared } from "./scheduleViewer.shared";
 
 type Props = {
   leagueId: string;
@@ -67,14 +68,6 @@ async function getGames(leagueId: string, teamFilter?: string): Promise<Game[]> 
   }
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function formatTime(dateString: string) {
-  return new Date(dateString).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
-
 export default async function ScheduleViewerServer({ leagueId, teamId, teamName }: Props) {
   // Fetch data in parallel on the server
   const [pdfInfo, games] = await Promise.all([
@@ -88,11 +81,6 @@ export default async function ScheduleViewerServer({ leagueId, teamId, teamName 
     const gameDate = new Date(game.dateTimeISO);
     const status = (game.status || '').toLowerCase();
     return gameDate >= now || status === 'scheduled';
-  });
-  
-  const completedGames = games.filter(game => {
-    const status = (game.status || '').toLowerCase();
-    return status === 'completed' || status === 'final';
   });
 
   // No schedule data at all
@@ -148,51 +136,11 @@ export default async function ScheduleViewerServer({ leagueId, teamId, teamName 
 
   // Case 2 & 3: Manual games (with or without PDF)
   return (
-    <div className="space-y-4">
-      <div className="card--soft rounded-2xl border overflow-hidden">
-        {pdfInfo && (
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <a
-                href={`/api/leagues/${leagueId}/schedule/pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn--secondary text-sm"
-              >
-                Download PDF Schedule
-              </a>
-            </div>
-          </div>
-        )}
-        
-        <div className="overflow-x-auto rounded-2xl border">
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Date</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Time</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Home Team</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Away Team</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Court</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scheduledGames.map((game) => (
-                <tr key={game.id}>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{formatDate(game.dateTimeISO)}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{formatTime(game.dateTimeISO)}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.homeTeamName}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.awayTeamName}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.location}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <ScheduleViewerShared
+      pdfInfo={pdfInfo}
+      scheduledGames={scheduledGames}
+      leagueId={leagueId}
+      downloadHref={`/api/leagues/${leagueId}/schedule/pdf`}
+    />
   );
 }
-

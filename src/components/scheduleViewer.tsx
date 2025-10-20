@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ScheduleViewerShared } from './scheduleViewer.shared';
 
 type Props = {
   leagueId: string;
@@ -70,14 +71,6 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  };
-
   // Separate games into upcoming/scheduled vs completed
   const now = new Date();
   const scheduledGames = games.filter(game => {
@@ -85,13 +78,6 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
     const status = (game.status || '').toLowerCase();
     // Show as scheduled if: future date OR status is explicitly 'scheduled'
     return gameDate >= now || status === 'scheduled';
-  });
-  
-  const completedGames = games.filter(game => {
-    const gameDate = new Date(game.dateTimeISO);
-    const status = (game.status || '').toLowerCase();
-    // Show as completed if: status is 'completed' or 'final'
-    return status === 'completed' || status === 'final';
   });
 
   if (loading) {
@@ -124,21 +110,27 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
     return (
       <div className="space-y-4">
         {/* PDF Info Header */}
-        <div className="card--soft p-4 rounded-2xl border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">📄 Schedule</h3>
-              <p className="text-xs text-gray-500">
-                Updated {new Date(pdfInfo.uploadedAt).toLocaleDateString()}
-              </p>
+        <div className="card--soft rounded-2xl border overflow-hidden">
+        <div className="p-3 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button onClick={downloadPDF} className="btn btn--light btn--sm">
+                    Download Schedule PDF
+                  </button>
+                  <span 
+                    className="whitespace-nowrap"
+                    style={{ 
+                      fontSize: '12px', 
+                      color: '#9CA3AF',
+                      fontWeight: '400',
+                      marginLeft: 10,
+                    }}
+                  >
+                    Updated {new Date(pdfInfo.uploadedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
             </div>
-            <button
-              onClick={downloadPDF}
-              className="btn btn--secondary text-sm"
-            >
-              Download PDF
-            </button>
-          </div>
         </div>
 
         {/* Embedded PDF Viewer */}
@@ -163,50 +155,11 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
 
   // Case 2 & 3: Manual games (with or without PDF) - show games table
   return (
-    <div className="space-y-4">
-      {/* Games Table */}
-      <div className="card--soft rounded-2xl border overflow-hidden">
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            {/* Case 3: Show PDF download button if both exist */}
-            {pdfInfo && (
-              <button
-                onClick={downloadPDF}
-                className="btn btn--secondary text-sm"
-              >
-                Download PDF Schedule
-              </button>
-            )}
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto rounded-2xl border">
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Date</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Time</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Home Team</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Away Team</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Court</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scheduledGames.map((game) => (
-                <tr key={game.id}>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{formatDate(game.dateTimeISO)}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{formatTime(game.dateTimeISO)}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.homeTeamName}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.awayTeamName}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.location}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>{game.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <ScheduleViewerShared
+      pdfInfo={pdfInfo}
+      scheduledGames={scheduledGames}
+      leagueId={leagueId}
+      onDownloadPDF={downloadPDF}
+    />
   );
 }

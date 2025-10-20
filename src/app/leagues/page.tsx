@@ -210,6 +210,7 @@ export default async function LeaguesListPage({
               />
 
               <div
+                className="filter-grid"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "160px 160px 160px max-content",
@@ -272,7 +273,7 @@ export default async function LeaguesListPage({
               return (
                 <li key={l.leagueId}>
                   <div
-                    className="player-card"
+                    className="player-card league-card-mobile"
                     style={{
                       display: "grid",
                       gridTemplateColumns:

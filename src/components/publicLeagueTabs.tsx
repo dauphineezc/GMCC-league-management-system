@@ -72,7 +72,7 @@ export default function PublicLeagueTabs({
           ) : list.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>No leagues available yet.</p>
           ) : (
-            <ul className="roster-list">
+            <ul className="roster-list" style={{ gap: "6px" }}>
               {list.map(lg => (
                 <li key={lg.id}>
                   <div
@@ -81,18 +81,39 @@ export default function PublicLeagueTabs({
                       display: "flex", 
                       alignItems: "center", 
                       justifyContent: "space-between", 
-                      gap: 12 
+                      padding: "8px 12px",
+                      minHeight: "auto",
+                      height: "auto",
                     }}
                   >
                     <span className="item-name" style={{ 
                       fontWeight: 500,
-                      fontSize: 24,
+                      fontSize: 22,
                       lineHeight: 1.1,
-                      paddingLeft: 15 
+                      color: "var(--navy)",
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}>
                       {lg.name}
                     </span>
-                    <Link href={`/leagues/${lg.id}`} className="card-cta">
+                    <Link 
+                      href={`/leagues/${lg.id}`} 
+                      className="card-cta"
+                      style={{
+                        fontSize: "12px",
+                        textDecoration: "underline",
+                        color: "var(--navy)",
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        marginLeft: "12px",
+                        lineHeight: 1.2,
+                        justifyContent: "flex-end",
+                        paddingRight: "12px",
+                      }}
+                    >
                       VIEW LEAGUE →
                     </Link>
                   </div>

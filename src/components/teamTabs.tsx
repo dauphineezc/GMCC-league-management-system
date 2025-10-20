@@ -128,27 +128,42 @@ export default function TeamTabs(props: {
                 <ul className="roster-list">
                   {sortedRoster.map((p) => (
                     <li key={p.userId} className="player-card">
-                      <span style={{
-                          fontFamily:
-                            "var(--font-sport), var(--font-body), system-ui",
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px"
+                      }}>
+                        <span style={{
+                          fontFamily: "var(--font-sport), var(--font-body), system-ui",
                           fontSize: 24,
                           fontWeight: 400,
-                        }}
-                      >{p.displayName || p.userId}</span>
-                      {p.isManager && (
-                        <span className="player-meta" title="Team Manager">
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="16"
-                            height="16"
-                            fill="navy"
-                            aria-hidden="true"
-                          >
-                            <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                          </svg>
-                          Team Manager
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {p.displayName || p.userId}
                         </span>
-                      )}
+                        {p.isManager && (
+                          <span className="player-meta" title="Team Manager" style={{
+                            fontSize: "12px",
+                            flexShrink: 0,
+                          }}>
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="14"
+                              height="14"
+                              fill="navy"
+                              aria-hidden="true"
+                            >
+                              <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                            </svg>
+                            Team Manager
+                          </span>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -197,41 +212,110 @@ export default function TeamTabs(props: {
             ) : standings.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#666' }}>No standings yet.</p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Team</th>
-                      <th style={thCenter}>Wins</th>
-                      <th style={thCenter}>Losses</th>
-                      <th style={thCenter}>Win %</th>
-                      <th style={thCenter}>Points For</th>
-                      <th style={thCenter}>Points Against</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <>
+                {/* Desktop table */}
+                <div className="standings-desktop">
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={th}>Team</th>
+                          <th style={thCenter}>Wins</th>
+                          <th style={thCenter}>Losses</th>
+                          <th style={thCenter}>Win %</th>
+                          <th style={thCenter}>Points For</th>
+                          <th style={thCenter}>Points Against</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {standings.map((s: any) => {
+                          const isCurrentTeam = s.teamName === teamName || s.teamId === teamId;
+                          return (
+                            <tr 
+                              key={s.teamId}
+                              style={{ 
+                                background: isCurrentTeam ? '#F1F8FF' : 'transparent',
+                                fontWeight: isCurrentTeam ? 600 : 400,
+                              }}
+                            >
+                              <td style={td}>{s.teamName || s.name || s.teamId}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* Mobile cards */}
+                <div className="standings-mobile">
+                  <ul className="roster-list">
                     {standings.map((s: any) => {
                       const isCurrentTeam = s.teamName === teamName || s.teamId === teamId;
                       return (
-                        <tr 
-                          key={s.teamId}
-                          style={{ 
-                            background: isCurrentTeam ? '#F1F8FF' : 'transparent',
-                            fontWeight: isCurrentTeam ? 600 : 400,
-                          }}
-                        >
-                          <td style={td}>{s.teamName || s.name || s.teamId}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
-                        </tr>
+                        <li key={s.teamId}>
+                          <div 
+                            className="player-card" 
+                            style={{ 
+                              padding: "12px 16px",
+                              background: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
+                              border: isCurrentTeam ? '2px solid var(--light-blue)' : '1px solid rgba(0,0,0,.06)',
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                              <h3 style={{ 
+                                margin: 0, 
+                                fontSize: "22px", 
+                                fontWeight: isCurrentTeam ? 600 : 400, 
+                                color: "var(--navy)",
+                                fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                              }}>
+                                {s.teamName || s.name || s.teamId}
+                              </h3>
+                              {/* {s.gamesPlayed > 0 && (
+                                <span style={{
+                                  fontSize: "14px",
+                                  fontWeight: 700,
+                                  color: "var(--navy)",
+                                  background: "var(--light-blue)",
+                                  padding: "4px 8px",
+                                  borderRadius: "4px"
+                                }}>
+                                  {(s.winPercentage * 100).toFixed(1)}%
+                                </span>
+                              )} */}
+                            </div>
+                            
+                            <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "4px" }}>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                                </div>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Win Percentage:</strong> {(s.winPercentage * 100).toFixed(1)}%
+                                </div>
+                              </div>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                                </div>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </ul>
+                </div>
+              </>
             )}
           </div>
         )}

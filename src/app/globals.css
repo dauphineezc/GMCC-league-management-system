@@ -54,7 +54,13 @@ button{
 }
 
 /* Layout helpers */
-.container{ max-width:1120px; margin:0 auto; padding:24px; }
+.container{ 
+  max-width:1120px; 
+  margin:0 auto; 
+  padding: clamp(12px, 4vw, 24px);
+  width: 100%;
+  box-sizing: border-box;
+}
 
 /* Cards & badges & buttons */
 .card{
@@ -724,6 +730,19 @@ button.card-cta {
 }
 .team-title-wrap{ display:flex; flex-direction:column; gap:4px; }
 
+/* Mobile responsive team header */
+@media (max-width: 768px) {
+  .team-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .team-title-wrap {
+    width: 100%;
+  }
+}
+
 .team-subtle{ 
   font-family: var(--font-body), system-ui;
   color: var(--muted); 
@@ -806,13 +825,13 @@ button.card-cta {
   padding: 14px;
 }
 
-/* grid of “little cards” */
+/* grid of "little cards" */
 .roster-list{
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* each player card */
@@ -867,15 +886,20 @@ button.card-cta {
 .player-card.player-card--aligned{
   display:grid !important;
   align-items:center;
-  justify-items:center;                 /* ← this makes the visible gaps equal */
+  justify-items:start;                 /* ← left align all items by default */
   column-gap: var(--col-gap, 70px);  /* your master gap */
-  padding-right: 16px;               /* breathing room to the right of “View” */
+  padding-right: 16px;               /* breathing room to the right of "View" */
 }
 
 /* Name can stay anchored left if you prefer, but then its visible gap will vary.
    If you want truly equal gaps everywhere, omit this rule. */
 .player-card--aligned .col--name{
   justify-self:start;
+}
+
+/* Right-align the VIEW PLAYER button in the last column */
+.player-card--aligned .col-view{
+  justify-self:end;
 }
 
 /* Admin team roster row: Name | Manager | Paid | Toggle | (spacer) | View  */
@@ -1163,7 +1187,915 @@ button.card-cta {
   .nav-title{ font-size: clamp(18px, 1.8vw, 28px); margin-left: clamp(-14px, -2.6vw, -24px); }
 }
 
+/* Mobile navbar improvements */
+@media (max-width: 768px) {
+  .nav-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .nav-left {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .nav-links {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .nav-title {
+    font-size: clamp(14px, 3vw, 20px);
+    margin-left: clamp(-4px, -1vw, -8px);
+  }
+  
+  .nav-logo img {
+    width: clamp(24px, 6vw, 40px);
+    height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-inner {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .nav-links {
+    gap: 6px;
+  }
+  
+  .nav-title {
+    font-size: clamp(12px, 2.5vw, 16px);
+    margin-left: 0;
+  }
+  
+  .nav-logo img {
+    width: clamp(20px, 5vw, 32px);
+  }
+}
+
 /* Motion-friendly */
 @media (prefers-reduced-motion: reduce){
   .nav-link, .account .account-trigger{ transition:none; }
+}
+
+/* =============== MOBILE RESPONSIVENESS =============== */
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 768px) {
+  /* Prevent horizontal scrolling */
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  /* Responsive container */
+  .container {
+    padding: 12px;
+    max-width: 100%;
+  }
+  
+  /* MOBILE-FIRST: All cards and grids become single column */
+  .cards-grid,
+  .cards-grid-fixed {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  /* MOBILE-FIRST: Home page admin leagues grid */
+  .cards-grid-fixed[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  /* MOBILE-FIRST: All form grids stack */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .form-grid.thirds {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  /* MOBILE-FIRST: Admin layouts stack */
+  .admin-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  /* MOBILE-FIRST: Team tabs - no scrolling, full height */
+  .team-tabs {
+    gap: 8px !important;
+    padding-inline: 8px !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+    display: flex !important;
+    width: 100% !important;
+  }
+  
+  .team-tab {
+    font-size: 16px !important;
+    padding: 8px 16px !important;
+    white-space: nowrap !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+  
+  /* MOBILE-FIRST: All player cards become single column */
+  .player-card--admingrid,
+  .player-card {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  
+  .player-card--admingrid .col-manager,
+  .player-card--admingrid .col-paid,
+  .player-card--admingrid .col-toggle,
+  .player-card--admingrid .col-view,
+  .player-card > * {
+    grid-column: 1 !important;
+    justify-self: start !important;
+    width: 100% !important;
+  }
+  
+  /* MOBILE-FIRST: Tables become horizontally scrollable */
+  .schedule-table,
+  .team-table,
+  .standings-table {
+    display: block !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+  }
+  
+  .schedule-table th,
+  .schedule-table td,
+  .team-table th,
+  .team-table td,
+  .standings-table th,
+  .standings-table td {
+    min-width: 120px !important;
+    padding: 8px 6px !important;
+  }
+  
+  /* MOBILE-FIRST: Standings container */
+  .standings-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(0,0,0,.06) !important;
+    width: 100% !important;
+  }
+  
+  /* MOBILE-FIRST: Navbar becomes vertical stack */
+  .nav-inner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+  
+  .nav-left {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+  
+  .nav-links {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .nav-title {
+    font-size: clamp(14px, 3vw, 20px) !important;
+    margin-left: clamp(-4px, -1vw, -8px) !important;
+  }
+  
+  /* MOBILE-FIRST: Buttons become full-width where appropriate */
+  .btn {
+    font-size: 14px !important;
+    padding: 10px 16px !important;
+    min-height: 44px !important;
+  }
+  
+  .btn--sm {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+  
+  /* MOBILE-FIRST: League rows stack */
+  .league-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+  
+  /* MOBILE-FIRST: Roster actions stack */
+  .roster-actions {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .roster-actions .btn {
+    width: 100% !important;
+    text-align: center !important;
+  }
+  
+  /* MOBILE-FIRST: League cards become single column */
+  .league-card-mobile {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+  
+  .league-card-mobile > div {
+    grid-column: 1 !important;
+    justify-self: start !important;
+    text-align: left !important;
+  }
+  
+  .league-card-mobile .col-view {
+    justify-self: start !important;
+    margin-top: 8px !important;
+  }
+  
+  /* MOBILE-FIRST: Filter grids stack */
+  .filter-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .filter-grid > div:last-child {
+    justify-self: start !important;
+    margin-top: 8px !important;
+  }
+  
+  /* MOBILE-FIRST: Remove max-width constraints on cards */
+  .gradient-card,
+  .card,
+  article[style*="maxWidth"] {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  
+  /* MOBILE-FIRST: Admin league cards become single column */
+  .player-card[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  /* MOBILE-FIRST: Public league cards stack */
+  .player-card[style*="justifyContent"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  
+  /* MOBILE-FIRST: Team cards in teams tab should span full width for readability */
+  .roster-gradient .player-card {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+/* MOBILE-FIRST: Admin team cards specifically */
+.admin-league-layout .roster-gradient .player-card {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* MOBILE-FIRST: League roster - component now has correct structure built-in */
+
+
+/* MOBILE-FIRST: Team roster - compact mobile layout */
+@media (max-width: 768px) {
+  .roster-list .player-card--team-roster {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* MOBILE: Top row - name, manager badge, and trash icon inline */
+  .roster-list .player-card--team-roster .player-card__top-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    font-size: 20px !important;
+    font-weight: 500 !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+    grid-column: unset !important;
+  }
+  
+  /* MOBILE: Hide desktop manager badge */
+  .roster-list .player-card--team-roster .player-card__manager-desktop {
+    display: none !important;
+  }
+  
+  /* MOBILE: Payment group and view player - combined row */
+  .roster-list .player-card--team-roster .player-card__payment-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+  }
+  
+  /* MOBILE: Payment elements group */
+  .roster-list .player-card--team-roster .player-card__payment-row > div:first-child {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  
+  /* MOBILE: Hide desktop view player button */
+  .roster-list .player-card--team-roster .player-card__view-desktop {
+    display: none !important;
+  }
+  
+  /* MOBILE: Hide desktop trash icon */
+  .roster-list .player-card--team-roster .player-card__trash-desktop {
+    display: none !important;
+  }
+}
+
+/* DESKTOP: Team roster - show desktop elements, hide mobile elements */
+@media (min-width: 1024px) {
+  /* DESKTOP: Ensure desktop grid layout is maintained */
+  .roster-list .player-card--team-roster {
+    display: grid !important;
+    grid-template-columns: minmax(240px,1fr) max-content max-content max-content max-content !important;
+    align-items: center !important;
+    column-gap: 20px !important;
+    justify-items: start !important;
+    padding-right: 10px !important;
+  }
+}
+  
+  /* MOBILE-FIRST: Ensure roster-list takes full width */
+  .admin-league-layout .roster-list {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  /* MOBILE-FIRST: Smaller fonts on mobile for better fit */
+  .admin-league-layout .player-card span[style*="fontSize: 24"] {
+    font-size: 18px !important;
+  }
+  
+  .admin-league-layout .player-card span[style*="fontSize: 20"] {
+    font-size: 16px !important;
+  }
+  
+  .admin-league-layout .badge[style*="fontSize: 12px"] {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+  
+  .admin-league-layout .card-cta[style*="fontSize: 12px"] {
+    font-size: 11px !important;
+  }
+  
+  /* MOBILE-FIRST: League summary cards - smaller fonts on mobile */
+  .gradient-card .player-card span[style*="fontSize: 20"] {
+    font-size: 16px !important;
+  }
+  
+  .gradient-card .badge[style*="fontSize: 12px"] {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+  
+  .gradient-card .card-cta[style*="fontSize: 12px"] {
+    font-size: 11px !important;
+  }
+  
+  /* MOBILE-FIRST: Team summary cards remove max-width */
+  article[style*="maxWidth"] {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  
+  /* MOBILE-FIRST: Home page specific fixes */
+  .home-main {
+    padding: 12px !important;
+    gap: 16px !important;
+  }
+  
+  .admin-leagues-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .card-scale-90 {
+    transform: none !important;
+    width: 100% !important;
+  }
+  
+  /* MOBILE-FIRST: Admin team cards - keep compact layout */
+  .admin-team-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+    padding: 12px 16px !important;
+  }
+  
+  .admin-team-card > div:first-child {
+    width: 100% !important;
+  }
+  
+  .admin-team-card > div:last-child {
+    align-self: flex-end !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-end !important;
+  }
+  
+  /* MOBILE-FIRST: Admin league layout - stack vertically */
+  .admin-league-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Override inline styles on mobile */
+  .admin-league-layout[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .admin-league-layout > div:last-child {
+    order: -1 !important;
+    width: 100% !important;
+  }
+  
+  /* Ensure teams section takes full width on mobile */
+  .admin-league-layout > div:first-child {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  /* MOBILE-FIRST: Team tabs - prevent overlapping */
+  .team-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    padding: 8px !important;
+    overflow: visible !important;
+  }
+  
+  .team-tab {
+    flex: 1 !important;
+    min-width: 0 !important;
+    font-size: 14px !important;
+    padding: 6px 8px !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  /* MOBILE-FIRST: Standings - show mobile cards, hide desktop table */
+  .standings-desktop {
+    display: none !important;
+  }
+  
+  .standings-mobile {
+    display: block !important;
+  }
+  
+  /* Force mobile standings on small screens */
+  @media (max-width: 768px) {
+    .standings-desktop {
+      display: none !important;
+    }
+    
+    .standings-mobile {
+      display: block !important;
+    }
+  }
+  
+  /* Debug: Force mobile standings everywhere for testing */
+  .standings-mobile {
+    display: block !important;
+  }
+  
+  .standings-desktop {
+    display: none !important;
+  }
+  
+  /* Force mobile standings with higher specificity */
+  div.standings-mobile {
+    display: block !important;
+  }
+  
+  div.standings-desktop {
+    display: none !important;
+  }
+  
+  /* Override any inline styles */
+  [class*="standings-mobile"] {
+    display: block !important;
+  }
+  
+  [class*="standings-desktop"] {
+    display: none !important;
+  }
+  
+  /* MOBILE-FIRST: Game History - show mobile cards, hide desktop table */
+  .game-history-desktop {
+    display: none !important;
+  }
+  
+  .game-history-mobile {
+    display: block !important;
+  }
+  
+  /* MOBILE-FIRST: Schedule - show mobile cards, hide desktop table */
+  .schedule-desktop {
+    display: none !important;
+  }
+  
+  .schedule-mobile {
+    display: block !important;
+  }
+}
+
+/* Desktop: Show table, hide mobile cards */
+@media (min-width: 769px) {
+  .standings-desktop {
+    display: block !important;
+  }
+  
+  .standings-mobile {
+    display: none !important;
+  }
+  
+  .game-history-desktop {
+    display: block !important;
+  }
+  
+  .game-history-mobile {
+    display: none !important;
+  }
+  
+  .schedule-desktop {
+    display: block !important;
+  }
+  
+  .schedule-mobile {
+    display: none !important;
+  }
+  
+  /* DESKTOP: Override mobile column layout for team cards */
+  .admin-league-layout .player-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* DESKTOP: Team name takes up available space */
+  .admin-league-layout .player-card > div:first-child {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  
+  /* DESKTOP: Badge and view link in same row on desktop */
+  .admin-league-layout .player-card > div:last-child {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    justify-content: flex-end !important;
+  }
+  
+  /* DESKTOP: Reset font sizes for desktop */
+  .admin-league-layout .player-card span[style*="fontSize: 24"] {
+    font-size: 20px !important;
+  }
+  
+  .admin-league-layout .player-card span[style*="fontSize: 20"] {
+    font-size: 18px !important;
+  }
+  
+  .admin-league-layout .badge[style*="fontSize: 12px"] {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+  
+  .admin-league-layout .card-cta[style*="fontSize: 10px"] {
+    font-size: 12px !important;
+  }
+  
+  .admin-league-layout .card-cta[style*="fontSize: 12px"] {
+    font-size: 12px !important;
+  }
+  
+  /* DESKTOP: League summary cards - same treatment */
+  .gradient-card .player-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+  }
+  
+  .gradient-card .player-card > div:first-child {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  
+  .gradient-card .player-card > div:last-child {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    justify-content: flex-end !important;
+  }
+  
+  .gradient-card .player-card span[style*="fontSize: 20"] {
+    font-size: 18px !important;
+  }
+  
+  .gradient-card .badge[style*="fontSize: 12px"] {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+  
+  .gradient-card .card-cta[style*="fontSize: 12px"] {
+    font-size: 12px !important;
+  }
+  
+  /* DESKTOP: League roster - force single row layout using correct selector */
+  .roster-gradient .player-card--mobile-layout {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 8px 16px !important;
+    width: 100% !important;
+    padding-right: 16px !important;
+  }
+  
+  /* DESKTOP: Player name - sports font and fixed width */
+  .roster-gradient .player-card--mobile-layout > div:first-child {
+    width: 300px !important;
+    font-size: 24px !important;
+    font-weight: 500 !important;
+    padding-left: 15px !important;
+    line-height: 1.1 !important;
+    color: var(--navy) !important;
+    font-family: var(--font-sport), var(--font-body), system-ui !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* DESKTOP: Second div contains team name, manager badge, paid badge, and view button */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) {
+    display: grid !important;
+    grid-template-columns: 1fr 120px minmax(80px, auto) 1fr auto !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  
+  /* DESKTOP: Team name - grid column 1 */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) > div:first-child {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    color: var(--navy) !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-family: var(--font-body), system-ui !important;
+    grid-column: 1 !important;
+  }
+  
+  /* DESKTOP: Manager badge - grid column 2 */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) .player-meta {
+    font-family: var(--font-body), system-ui !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    grid-column: 2 !important;
+    justify-self: start !important;
+  }
+  
+  /* DESKTOP: Paid badge - grid column 3 */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) .badge {
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    grid-column: 3 !important;
+    justify-self: start !important;
+    padding: 4px 8px !important;
+    white-space: nowrap !important;
+  }
+  
+  /* DESKTOP: Spacer - grid column 4 */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) > div:nth-last-child(2) {
+    grid-column: 4 !important;
+  }
+  
+  /* DESKTOP: VIEW PLAYER button - grid column 5 */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) .card-cta {
+    grid-column: 5 !important;
+    justify-self: end !important;
+  }
+  
+  /* DESKTOP: Spacer div within the second div */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) > div:nth-last-child(2) {
+    flex: 1 !important;
+    min-width: 20px !important;
+  }
+  
+  
+  /* DESKTOP: VIEW PLAYER button - anchor to far right */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) .card-cta {
+    flex-shrink: 0 !important;
+  }
+  
+  /* DESKTOP: Ensure roster list takes full width */
+  .admin-league-layout .roster-list {
+    width: 100% !important;
+  }
+  
+  .admin-league-layout .roster-gradient {
+    width: 100% !important;
+  }
+  
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .container {
+    padding: 8px !important;
+  }
+  
+  /* Even more compact spacing */
+  .card {
+    padding: 12px !important;
+  }
+  
+  .gradient-card {
+    padding: 12px !important;
+  }
+  
+  .card-inner {
+    padding: 8px 10px !important;
+  }
+  
+  /* Compact navbar for very small screens */
+  .nav-inner {
+    padding: 8px !important;
+  }
+  
+  .nav-links {
+    gap: 4px !important;
+  }
+  
+  .nav-link,
+  .account .account-trigger {
+    font-size: 14px !important;
+    padding: 6px 8px !important;
+  }
+  
+  /* Stack form elements vertically */
+  .auth-row {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
+  
+  .auth-forgot {
+    grid-column: 1 !important;
+    justify-self: start !important;
+  }
+  
+  /* Extra compact home page */
+  .home-main {
+    padding: 8px !important;
+    gap: 12px !important;
+  }
+  
+  /* Extra compact buttons */
+  .btn {
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    min-height: 40px !important;
+  }
+  
+  /* Extra compact text */
+  .page-title {
+    font-size: clamp(24px, 6vw, 32px) !important;
+  }
+  
+  .section-title {
+    font-size: clamp(18px, 4vw, 24px) !important;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .nav-inner {
+    padding-block: 8px;
+  }
+  
+  .container {
+    padding: 8px;
+  }
+}
+
+/* MOBILE: Override desktop layout for smaller screens */
+@media (max-width: 768px) {
+  /* Hide desktop layout */
+  .roster-gradient .player-card--mobile-layout > div:nth-child(2) {
+    display: none !important;
+  }
+  
+  /* Line 1: Player name - add consistent margin */
+  .roster-gradient .player-card--mobile-layout > div:first-child {
+    margin-bottom: 0px !important;
+  }
+  
+  /* Line 2: Team name + Manager badge on same line */
+  .roster-gradient .mobile-team-name {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 0px !important;
+    width: 100% !important;
+  }
+  
+  .roster-gradient .mobile-team-name > span:first-child {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    color: var(--navy) !important;
+    font-family: var(--font-body), system-ui !important;
+  }
+  
+  .roster-gradient .mobile-team-name .player-meta {
+    font-family: var(--font-body), system-ui !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  
+  .roster-gradient .mobile-badges-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    margin-bottom: 0px !important;
+  }
+  
+  .roster-gradient .mobile-badges-row .badge {
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 3px 6px !important;
+    white-space: nowrap !important;
+    font-size: 11px !important;
+  }
+  
+  .roster-gradient .mobile-badges-row .card-cta {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
 }

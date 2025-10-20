@@ -32,42 +32,66 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
             return (
               <li key={safeId}>
                 <div
-                  className="player-card"
+                  className="player-card admin-team-card"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(170px,1fr) 120px max-content",
-                    columnGap: 30,
-                    alignItems: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    padding: "12px 16px",
+                    minHeight: "auto",
+                    height: "auto",
                   }}
                 >
-                  {/* name */}
-                  <span
-                    title={t.name}
-                    style={{
-                      fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                      fontWeight: 500,
-                      fontSize: 24,
-                      lineHeight: 1.1,
-                      letterSpacing: ".3px",
-                      paddingLeft: 15,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t.name}
-                  </span>
-
-                  {/* centered badge */}
-                  <div style={{ display: "grid", placeItems: "center" }}>
-                    <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`}>
+                  {/* Top row: Team name and badge inline */}
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "space-between",
+                    gap: "12px"
+                  }}>
+                    <span
+                      title={t.name}
+                      style={{
+                        fontFamily: "var(--font-sport), var(--font-body), system-ui",
+                        fontWeight: 500,
+                        fontSize: 22,
+                        lineHeight: 1.2,
+                        letterSpacing: ".3px",
+                        color: "var(--navy)",
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.name}
+                    </span>
+                    
+                    {/* Badge inline with team name */}
+                    <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
+                      fontSize: "12px",
+                      padding: "4px 8px",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      flexShrink: 0,
+                    }}>
                       {t.approved ? "APPROVED" : "PENDING"}
                     </span>
                   </div>
-
-                  {/* view link */}
-                  <div style={{ justifySelf: "end" }}>
-                    <Link className="card-cta" href={`/admin/team/${safeId}`} prefetch={false}>
+                  
+                  {/* Bottom row: View link aligned right */}
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "flex-end" 
+                  }}>
+                    <Link className="card-cta" href={`/admin/team/${safeId}`} prefetch={false} style={{
+                      fontSize: "12px",
+                      textDecoration: "underline",
+                      color: "var(--navy)",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                    }}>
                       VIEW TEAM →
                     </Link>
                   </div>
@@ -80,7 +104,7 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
 
       <div style={{ textAlign: "right", marginTop: 12 }}>
         <Link href={`/leagues/${encodeURIComponent(leagueId)}`} prefetch={false}>
-          <span className="card-cta">VIEW LEAGUE →</span>
+          <span className="card-cta" style={{ fontSize: "12px" }}>VIEW LEAGUE →</span>
         </Link>
       </div>
     </div>

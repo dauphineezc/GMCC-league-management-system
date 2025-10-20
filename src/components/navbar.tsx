@@ -1,12 +1,16 @@
 // /src/components/navbar.tsx
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { getServerUser } from "@/lib/serverUser";
+import { useState } from "react";
 
-export const dynamic = "force-dynamic"; // <-- ensure navbar re-renders per request
+type NavbarProps = {
+  user: any;
+};
 
-export default async function Navbar() {
-  const user = await getServerUser();
+export default function Navbar({ user }: NavbarProps) {
+  const [accountOpen, setAccountOpen] = useState(false);
   const isSignedIn = !!user;
   const isSuper = !!user?.superadmin;
   const isAdmin = isSuper || Array.isArray(user?.leagueAdminOf);
@@ -15,7 +19,14 @@ export default async function Navbar() {
     <nav className="nav-court-bg">
       <div className="nav-inner">
         <Link href="/" className="nav-left nav-logo">
-          <Image src="/gmcc-ribbon-logo.png" alt="Company" width={140} height={80} priority />
+          <Image 
+            src="/gmcc-ribbon-logo.png" 
+            alt="Company" 
+            width={140} 
+            height={80} 
+            priority 
+            style={{ maxWidth: '100%', height: 'auto' }}
+          />
           <span className="nav-title">League Management System</span>
         </Link>
 
@@ -52,10 +63,23 @@ export default async function Navbar() {
 
           {/* ACCOUNT MENU */}
           {isSignedIn ? (
-            <details className="account">
+            <details className="account" open={accountOpen} onToggle={(e: any) => setAccountOpen(e.target.open)}>
               <summary className="account-trigger nav-pill">
-                <span className="chev">▾</span>
                 <span>My Account</span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  style={{
+                    marginLeft: "4px",
+                    verticalAlign: "middle",
+                    transition: "transform 0.2s ease",
+                    transform: accountOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                >
+                  <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
               </summary>
               <div className="account-menu">
                 <Link className="block px-3 py-2 hover:bg-gray-50" href="/account">Settings</Link>
@@ -63,10 +87,23 @@ export default async function Navbar() {
               </div>
             </details>
           ) : (
-            <details className="account">
+            <details className="account" open={accountOpen} onToggle={(e: any) => setAccountOpen(e.target.open)}>
               <summary className="account-trigger nav-pill">
-                <span className="chev">▾</span>
                 <span>My Account</span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  style={{
+                    marginLeft: "4px",
+                    verticalAlign: "middle",
+                    transition: "transform 0.2s ease",
+                    transform: accountOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                >
+                  <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
               </summary>
               <div className="account-menu">
                 <Link className="block px-3 py-2 hover:bg-gray-50" href="/login">Sign in</Link>

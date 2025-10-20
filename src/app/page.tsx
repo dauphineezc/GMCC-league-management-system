@@ -282,7 +282,7 @@ export default async function UnifiedHome() {
   }
 
   return (
-    <main style={{ padding: 20, display: "grid", gap: homeRole === "public" ? 10 : 30 }}>
+    <main className="home-main" style={{ padding: 20, display: "grid", gap: homeRole === "public" ? 10 : 30 }}>
       {/* Welcome Section */}
       <section>
         <h1 className="page-title">Welcome</h1>
@@ -333,7 +333,7 @@ export default async function UnifiedHome() {
         <section id="leagues">
           <h2 className="section-title">My Leagues</h2>
           <div
-            className="cards-grid-fixed"
+            className="cards-grid-fixed admin-leagues-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(2, minmax(320px, 1fr))",
@@ -343,7 +343,7 @@ export default async function UnifiedHome() {
           >
             {adminLeagues.length ? (
               adminLeagues.map((lg) => (
-                <div className="card-scale-90" key={lg.leagueId}>
+                <div key={lg.leagueId}>
                   <AdminLeagueCard
                     leagueId={lg.leagueId}
                     leagueName={lg.leagueName}

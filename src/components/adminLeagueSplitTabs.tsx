@@ -204,12 +204,7 @@ function TeamsPane({
 
   return (
     <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: `1fr ${ACTIONS_WIDTH}px`,
-        columnGap: COL_GAP,
-        alignItems: "start",
-      }}
+      className="admin-league-layout"
     >
       <div className="roster-gradient">
         {teams.length === 0 ? (
@@ -221,58 +216,65 @@ function TeamsPane({
             {teams.map((t) => (
               <li key={t.teamId}>
                 <div
-                  className="player-card"
+                  className="player-card admin-team-card"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(220px,1fr) 140px max-content", // name | status | link
-                    columnGap: 24,
-                    alignItems: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    padding: "12px 16px",
+                    minHeight: "auto",
+                    height: "auto",
                   }}
                 >
-                  {/* Team name */}
-                  <span
-                    style={{
-                      fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                      fontWeight: 500,
-                      letterSpacing: ".3px",
-                      fontSize: 24,
-                      lineHeight: 1.1,
-                      paddingLeft: 15,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t.name}
-                  </span>
-
-                  {/* Status column — FORCE center */}
-                  <div
-                    style={{
-                      width: "100%",                 // fill the grid cell
-                      height: "100%",
-                      justifySelf: "center",         // prevent any global justify-self:end
-                      textAlign: "initial",          // neutralize text-align from ancestors
-                      display: "flex",               // center the badge inside this cell
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
+                  {/* Top row: Team name and badge inline */}
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "space-between",
+                    gap: "12px"
+                  }}>
                     <span
-                      className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`}
                       style={{
-                        marginLeft: 0,               // neutralize any global auto margins
-                        marginRight: 0,
+                        fontFamily: "var(--font-sport), var(--font-body), system-ui",
+                        fontWeight: 500,
+                        letterSpacing: ".3px",
+                        fontSize: 22,
+                        lineHeight: 1.2,
+                        color: "var(--navy)",
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}
                     >
+                      {t.name}
+                    </span>
+                    
+                    {/* Badge inline with team name */}
+                    <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
+                      fontSize: "12px",
+                      padding: "4px 8px",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      flexShrink: 0,
+                    }}>
                       {t.approved ? "APPROVED" : "PENDING"}
                     </span>
                   </div>
-
-                  {/* View link */}
-                  <div style={{ justifySelf: "end" }}>
-                    <Link href={`/admin/team/${t.teamId}`} className="card-cta">
+                  
+                  {/* Bottom row: View link aligned right */}
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "flex-end" 
+                  }}>
+                    <Link href={`/admin/team/${t.teamId}`} className="card-cta" style={{
+                      fontSize: "12px",
+                      textDecoration: "underline",
+                      color: "var(--navy)",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                    }}>
                       VIEW TEAM →
                     </Link>
                   </div>
@@ -282,61 +284,6 @@ function TeamsPane({
           </ul>
         )}
       </div>
-
-      <aside
-        className="gradient-card"
-        style={{
-          width: ACTIONS_WIDTH,
-          minHeight: ACTIONS_MIN_H,
-          alignSelf: "start",
-          justifySelf: "end",
-        }}
-      >
-        <div className="card-inner" style={{ textAlign: "center" }}>
-          <h3
-            style={{
-              margin: "0 0 12px",
-              fontFamily: "var(--font-sport), var(--font-body), system-ui",
-              fontSize: 32,
-              fontWeight: 600,
-              color: "var(--navy)",
-            }}
-          >
-            League Actions
-          </h3>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <Link
-              href={`/leagues/${leagueId}/schedule`}
-              className="btn btn--primary"
-              style={{ width: "100%", maxWidth: 320, justifyContent: "center" }}
-            >
-              Manage Schedule
-            </Link>
-            <Link
-              href={`/leagues/${leagueId}/results`}
-              className="btn btn--primary"
-              style={{ width: "100%", maxWidth: 320, justifyContent: "center" }}
-            >
-              Enter Game Results
-            </Link>
-            <Link
-              href={`/leagues/${leagueId}/sendAnnouncement`}
-              className="btn btn--primary"
-              style={{ width: "100%", maxWidth: 320, justifyContent: "center" }}
-            >
-              Send Announcement
-            </Link>
-          </div>
-        </div>
-      </aside>
     </div>
   );
 }
@@ -350,30 +297,91 @@ function StandingsPane({ standings }: { standings: any[] }) {
           <div className="text-gray-500">No standings yet.</div>
         </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={th}>Team</th>
-              <th style={thCenter}>Wins</th>
-              <th style={thCenter}>Losses</th>
-              <th style={thCenter}>Win %</th>
-              <th style={thCenter}>Points For</th>
-              <th style={thCenter}>Points Against</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s: any) => (
-              <tr key={s.teamId}>
-                <td style={td}>{s.teamName || s.name || s.teamId}</td>
-                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
-                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
-                <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
-                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
-                <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {/* Desktop table */}
+          <div className="standings-desktop">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Team</th>
+                  <th style={thCenter}>Wins</th>
+                  <th style={thCenter}>Losses</th>
+                  <th style={thCenter}>Win %</th>
+                  <th style={thCenter}>Points For</th>
+                  <th style={thCenter}>Points Against</th>
+                </tr>
+              </thead>
+              <tbody>
+                {standings.map((s: any) => (
+                  <tr key={s.teamId}>
+                    <td style={td}>{s.teamName || s.name || s.teamId}</td>
+                    <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
+                    <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
+                    <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
+                    <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
+                    <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Mobile cards */}
+          <div className="standings-mobile">
+            <ul className="roster-list">
+              {standings.map((s: any) => (
+                <li key={s.teamId}>
+                  <div className="player-card" style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <h3 style={{ 
+                        margin: 0, 
+                        fontSize: "22px", 
+                        fontWeight: 500, 
+                        color: "var(--navy)",
+                        fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                      }}>
+                        {s.teamName || s.name || s.teamId}
+                      </h3>
+                      {/* {s.gamesPlayed > 0 && (
+                        <span style={{
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          color: "var(--navy)",
+                          background: "var(--light-blue)",
+                          padding: "4px 8px",
+                          borderRadius: "4px"
+                        }}>
+                          {(s.winPercentage * 100).toFixed(1)}%
+                        </span>
+                      )} */}
+                    </div>
+                    
+                    <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
+
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "4px" }}>
+                        <div>
+                          <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                        </div>
+                        <div>
+                          <strong style={{ color: "var(--navy)" }}>Win Percentage:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
+                        </div>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                        <div>
+                          <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                        </div>
+                        <div>
+                          <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
       )}
     </div>
   );
@@ -444,67 +452,147 @@ function RosterPane({
           {sortedRoster.map((p) => (
             <li key={`${p.teamId}:${p.userId}`}>
               <div
-                className="player-card player-card--aligned"
+                className="player-card player-card--aligned player-card--mobile-layout"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "minmax(200px,1fr) 120px 120px 120px max-content",
-                  alignItems: "center",
-                  justifyItems: "center",
+                  padding: "10px 16px",
                 }}
               >
+                {/* Line 1: Player name only */}
                 <div
                   style={{
-                    justifySelf: "start",
                     fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: 500,
                     lineHeight: 1.1,
-                    paddingLeft: 15
+                    color: "var(--navy)",
                   }}
                 >
                   {p.displayName}
                 </div>
 
+                {/* Desktop layout: Team name, Manager badge, Paid badge, and View Player link */}
                 <div
+                  className={p.isManager ? "has-manager-badge" : "no-manager-badge"}
                   style={{
-                    fontSize: 16,
-                    fontWeight: 800,
-                    color: "var(--navy)",
-                    textTransform: "uppercase",
+                    display: "flex",
+                    alignItems: "center",
+                    width: "100%",
+                    gap: "12px",
                   }}
                 >
-                  {p.teamName}
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", minHeight: "24px" }}>
-                  {p.isManager ? (
-                    <span className="player-meta" title="Team Manager" style={{ whiteSpace: "nowrap" }}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4 }}>
+                  {/* Team name - takes available space */}
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: "var(--navy)",
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {p.teamName}
+                  </div>
+                  
+                  {/* Manager badge - fixed width */}
+                  {p.isManager && (
+                    <span className="player-meta" title="Team Manager" style={{ 
+                      whiteSpace: "nowrap",
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      flexShrink: 0,
+                      width: "80px",
+                    }}>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
                         <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
                       </svg>
-                      Team Manager
-                    </span>
-                  ) : (
-                    <span className="player-meta" style={{ opacity: 0, whiteSpace: "nowrap" }}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4 }}>
-                        <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                      </svg>
-                      Team Manager
+                      Manager
                     </span>
                   )}
-                </div>
+                  
+                  {/* Paid badge - auto width */}
+                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`} style={{ 
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    textAlign: "center",
+                  }}>
+                    {p.paid ? "PAID" : "UNPAID"}
+                  </span>
 
-                <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`} style={{ whiteSpace: "nowrap" }}>
-                  {p.paid ? "PAID" : "UNPAID"}
-                </span>
+                  {/* Spacer to push View Player to the right */}
+                  <div style={{ flex: 1, minWidth: "20px" }} />
 
-                <div className="col-view">
+                  {/* View Player link - anchored to right */}
                   <button
                     type="button"
                     className="card-cta"
                     aria-label={`View ${p.displayName}`}
                     onClick={() => onView(p)}
                     title={`View ${p.displayName}`}
+                    style={{ 
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    VIEW PLAYER →
+                  </button>
+                </div>
+
+                {/* Mobile layout: Team name and manager badge on same line */}
+                <div className="mobile-team-name" style={{ display: "none" }}>
+                  <span style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: "var(--navy)",
+                    fontFamily: "var(--font-body), system-ui",
+                  }}>
+                    {p.teamName}
+                  </span>
+                  
+                  {p.isManager && (
+                    <span className="player-meta" title="Team Manager" style={{ 
+                      whiteSpace: "nowrap",
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      flexShrink: 0,
+                      marginLeft: "8px",
+                    }}>
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                        <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                      </svg>
+                      Manager
+                    </span>
+                  )}
+                </div>
+                
+                <div className="mobile-badges-row" style={{ display: "none" }}>
+                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`} style={{ 
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    textAlign: "center",
+                    marginRight: "12px",
+                  }}>
+                    {p.paid ? "PAID" : "UNPAID"}
+                  </span>
+                  
+                  <button
+                    type="button"
+                    className="card-cta"
+                    aria-label={`View ${p.displayName}`}
+                    onClick={() => onView(p)}
+                    title={`View ${p.displayName}`}
+                    style={{ 
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
                   >
                     VIEW PLAYER →
                   </button>

@@ -48,6 +48,7 @@ export default function AdminTeamTabs({
   playerTeamsByUser,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("roster");
+  const [isMobile, setIsMobile] = useState(false);
 
   // popup state
   const [open, setOpen] = useState(false);
@@ -56,6 +57,18 @@ export default function AdminTeamTabs({
   
   // remove player state
   const [removingPlayer, setRemovingPlayer] = useState<string | null>(null);
+
+  // Detect screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
   
   // standings state
   const [standings, setStandings] = useState<any[]>([]);
@@ -176,7 +189,7 @@ export default function AdminTeamTabs({
                 {sortedRoster.map((p) => (
                   <li key={p.userId}>
                     <div
-                        className="player-card"
+                        className="player-card player-card--team-roster"
                         style={{
                           display: "grid",
                           alignItems: "center",
@@ -186,82 +199,186 @@ export default function AdminTeamTabs({
                           paddingRight: 10,
                         }}
                       >
-                      <div style={{ 
-                        fontFamily: "var(--font-sport), var(--font-body), system-ui", 
-                        fontSize: 24, 
-                        fontWeight: 500,
-                        paddingLeft: 15,
-                        letterSpacing: ".3px",
-                        lineHeight: 1.1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                        {p.displayName}
-                      </div>
-
-                      <div>
-                        {p.isManager ? (
-                          <span className="player-meta" title="Team Manager">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4, alignSelf: "center" }}>
-                              <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                            </svg>
-                            Team Manager
-                          </span>
-                        ) : (
-                          <span className="player-meta" style={{ opacity: 0 }}>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4, alignSelf: "center" }}>
-                              <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                            </svg>
-                            Team Manager
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="paygroup" style={{ display: "inline-flex", alignItems: "center", gap: PAYGROUP_GAP, alignSelf: "center" }}>
-                        <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>{p.paid ? "PAID" : "UNPAID"}</span>
-                        <form action={onTogglePaid}>
-                          <input type="hidden" name="userId" value={p.userId} />
-                          <button className="btn btn--light btn--sm" type="submit">
-                            {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
-                          </button>
-                        </form>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="card-cta"
-                        aria-label={`View ${p.displayName}`}
-                        onClick={() => openPopupFor(p)}
-                        title={`View ${p.displayName}`}
-                        style={{
+                      {/* Mobile: Top row - player name, manager badge, trash icon */}
+                      {isMobile ? (
+                        <div style={{ 
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingLeft: 15,
+                          paddingRight: 15
+                        }}>
+                          <div style={{
+                            fontFamily: "var(--font-sport), var(--font-body), system-ui", 
+                            fontSize: 24, 
+                            fontWeight: 500,
+                            letterSpacing: ".3px",
+                            lineHeight: 1.1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            flex: 1
+                          }}>
+                            {p.displayName}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            {p.isManager && (
+                              <span className="player-meta" title="Team Manager" style={{ 
+                                fontSize: "12px", 
+                                display: "flex", 
+                                alignItems: "center", 
+                                gap: "4px",
+                                fontFamily: "var(--font-body), system-ui"
+                              }}>
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                                  <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                                </svg>
+                                Manager
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="icon-btn icon-btn--danger"
+                              onClick={() => handleRemovePlayer(p.userId, p.displayName)}
+                              disabled={removingPlayer === p.userId}
+                              aria-label={`Remove ${p.displayName}`}
+                              title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
+                              style={{ padding: "4px" }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
+                                <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                                <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                                <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Desktop: Player name only */
+                        <div style={{ 
+                          fontFamily: "var(--font-sport), var(--font-body), system-ui", 
+                          fontSize: 24, 
+                          fontWeight: 500,
+                          paddingLeft: 15,
+                          letterSpacing: ".3px",
+                          lineHeight: 1.1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
-                          overflowWrap: "normal",
-                          wordBreak: "normal",
-                          display: "inline-block"
-                        }}
-                      >
-                        VIEW PLAYER →
-                      </button>
+                        }}>
+                          {p.displayName}
+                        </div>
+                      )}
 
-                      <button
-                        type="button"
-                        className="icon-btn icon-btn--danger"
-                        onClick={() => handleRemovePlayer(p.userId, p.displayName)}
-                        disabled={removingPlayer === p.userId}
-                        aria-label={`Remove ${p.displayName}`}
-                        title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
-                        style={{
-                          justifySelf: "end",
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
-                          <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
-                          <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
-                          <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                      </button>
+                      {/* Desktop: Manager badge column */}
+                      {!isMobile && (
+                        <div className="player-card__manager-desktop">
+                          {p.isManager ? (
+                            <span className="player-meta" title="Team Manager">
+                              <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4, alignSelf: "center" }}>
+                                <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                              </svg>
+                              Team Manager
+                            </span>
+                          ) : (
+                            <span className="player-meta" style={{ opacity: 0 }}>
+                              <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4, alignSelf: "center" }}>
+                                <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                              </svg>
+                              Team Manager
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Mobile: Payment group and view player inline */}
+                      {isMobile ? (
+                        <div style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "space-between",
+                          paddingLeft: 15,
+                          paddingRight: 15
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: PAYGROUP_GAP }}>
+                            <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>{p.paid ? "PAID" : "UNPAID"}</span>
+                            <form action={onTogglePaid}>
+                              <input type="hidden" name="userId" value={p.userId} />
+                              <button className="btn btn--light btn--sm" type="submit">
+                                {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
+                              </button>
+                            </form>
+                          </div>
+                          <button
+                            type="button"
+                            className="card-cta"
+                            aria-label={`View ${p.displayName}`}
+                            onClick={() => openPopupFor(p)}
+                            title={`View ${p.displayName}`}
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflowWrap: "normal",
+                              wordBreak: "normal",
+                              display: "inline-block"
+                            }}
+                          >
+                            VIEW PLAYER →
+                          </button>
+                        </div>
+                      ) : (
+                        /* Desktop: Payment group only */
+                        <div className="paygroup" style={{ display: "inline-flex", alignItems: "center", gap: PAYGROUP_GAP, alignSelf: "center" }}>
+                          <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>{p.paid ? "PAID" : "UNPAID"}</span>
+                          <form action={onTogglePaid}>
+                            <input type="hidden" name="userId" value={p.userId} />
+                            <button className="btn btn--light btn--sm" type="submit">
+                              {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
+                            </button>
+                          </form>
+                        </div>
+                      )}
+
+                      {/* Desktop: Separate view player button */}
+                      {!isMobile && (
+                        <button
+                          type="button"
+                          className="card-cta player-card__view-desktop"
+                          aria-label={`View ${p.displayName}`}
+                          onClick={() => openPopupFor(p)}
+                          title={`View ${p.displayName}`}
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflowWrap: "normal",
+                            wordBreak: "normal",
+                            display: "inline-block"
+                          }}
+                        >
+                          VIEW PLAYER →
+                        </button>
+                      )}
+
+                      {/* Desktop: Trash icon column */}
+                      {!isMobile && (
+                        <button
+                          type="button"
+                          className="icon-btn icon-btn--danger player-card__trash-desktop"
+                          onClick={() => handleRemovePlayer(p.userId, p.displayName)}
+                          disabled={removingPlayer === p.userId}
+                          aria-label={`Remove ${p.displayName}`}
+                          title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
+                          style={{
+                            justifySelf: "end",
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
+                            <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                            <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                            <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -285,41 +402,110 @@ export default function AdminTeamTabs({
             ) : standings.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#666' }}>No standings yet.</p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Team</th>
-                      <th style={thCenter}>Wins</th>
-                      <th style={thCenter}>Losses</th>
-                      <th style={thCenter}>Win %</th>
-                      <th style={thCenter}>Points For</th>
-                      <th style={thCenter}>Points Against</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <>
+                {/* Desktop table */}
+                <div className="standings-desktop">
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={th}>Team</th>
+                          <th style={thCenter}>Wins</th>
+                          <th style={thCenter}>Losses</th>
+                          <th style={thCenter}>Win %</th>
+                          <th style={thCenter}>Points For</th>
+                          <th style={thCenter}>Points Against</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {standings.map((s: any) => {
+                          const isCurrentTeam = s.teamName === teamName || s.teamId === teamId;
+                          return (
+                            <tr 
+                              key={s.teamId}
+                              style={{ 
+                                background: isCurrentTeam ? '#F1F8FF' : 'transparent',
+                                fontWeight: isCurrentTeam ? 600 : 400,
+                              }}
+                            >
+                              <td style={td}>{s.teamName || s.name || s.teamId}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
+                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* Mobile cards */}
+                <div className="standings-mobile">
+                  <ul className="roster-list">
                     {standings.map((s: any) => {
                       const isCurrentTeam = s.teamName === teamName || s.teamId === teamId;
                       return (
-                        <tr 
-                          key={s.teamId}
-                          style={{ 
-                            background: isCurrentTeam ? '#F1F8FF' : 'transparent',
-                            fontWeight: isCurrentTeam ? 600 : 400,
-                          }}
-                        >
-                          <td style={td}>{s.teamName || s.name || s.teamId}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
-                          <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
-                        </tr>
+                        <li key={s.teamId}>
+                          <div 
+                            style={{
+                              backgroundColor: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
+                              padding: "10px 10px",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                              <h3 style={{ 
+                                margin: 0, 
+                                fontSize: "22px", 
+                                fontWeight: 400, 
+                                color: "var(--navy)",
+                                fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                              }}>
+                                {s.teamName || s.name || s.teamId}
+                              </h3>
+                              {
+                              /* {s.gamesPlayed > 0 && (
+                                <span style={{
+                                  fontSize: "14px",
+                                  fontWeight: 700,
+                                  color: "var(--navy)",
+                                  background: "var(--light-blue)",
+                                  padding: "4px 8px",
+                                  borderRadius: "4px"
+                                }}>
+                                  {(s.winPercentage * 100).toFixed(1)}%
+                                </span>
+                                
+                              )} */}
+                            </div>
+                            
+                            <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "4px" }}>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                                </div>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Win Percentage:</strong> {(s.winPercentage * 100).toFixed(1)}%
+                                </div>
+                              </div>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                                </div>
+                                <div>
+                                  <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </ul>
+                </div>
+              </>
             )}
           </div>
         )}
