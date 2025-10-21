@@ -130,26 +130,20 @@ export default function TeamTabs(props: {
                     <li key={p.userId} className="player-card">
                       <div style={{
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px"
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        gap: "8px"
                       }}>
                         <span style={{
                           fontFamily: "var(--font-sport), var(--font-body), system-ui",
                           fontSize: 24,
                           fontWeight: 400,
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
                         }}>
                           {p.displayName || p.userId}
                         </span>
                         {p.isManager && (
                           <span className="player-meta" title="Team Manager" style={{
                             fontSize: "12px",
-                            flexShrink: 0,
                           }}>
                             <svg
                               viewBox="0 0 24 24"

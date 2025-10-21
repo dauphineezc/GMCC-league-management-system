@@ -272,8 +272,9 @@ export default async function LeaguesListPage({
             {rows.map((l) => {
               return (
                 <li key={l.leagueId}>
+                  {/* Desktop Layout */}
                   <div
-                    className="player-card league-card-mobile"
+                    className="player-card league-card-desktop"
                     style={{
                       display: "grid",
                       gridTemplateColumns:
@@ -332,11 +333,72 @@ export default async function LeaguesListPage({
                         textTransform: "uppercase",
                       }}
                     >
-                      {l.adminName ?? "—"}
+                      {l.adminName ?? "Unassigned"}
                     </div>
 
                     {/* 4) View link */}
-                    <div className="col-view" style={{ justifySelf: "end", marginRight: 0 }}>
+                    <div className="col-view" style={{ justifySelf: "end", marginRight: 0, justifyContent: "flex-end" }}>
+                      <Link href={`/leagues/${l.leagueId}`} className="card-cta">
+                        VIEW LEAGUE →
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout */}
+                  <div
+                    className="player-card league-card-mobile"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                      padding: "12px 16px",
+                    }}
+                  >
+                    {/* Line 1: League name */}
+                    <div
+                      className="item-name"
+                      title={l.name}
+                      style={{
+                        fontWeight: 500,
+                        fontSize: 24,
+                        lineHeight: 1.1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        paddingLeft: 0,
+                        marginBottom: "0px",
+                      }}
+                    >
+                      {l.name}
+                    </div>
+
+                    {/* Line 2: Sport and Admin on same line */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "60px",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: "var(--navy)",
+                        textTransform: "uppercase",
+                        marginBottom: "0px",
+                      }}
+                    >
+                      <span title={l.sport ?? ""}>
+                        {l.sport ?? "—"}
+                      </span>
+                      <span title={l.adminName ?? ""}>
+                        {l.adminName ?? "Unassigned"}
+                      </span>
+                    </div>
+
+                    {/* Line 3: View link */}
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "flex-end",
+                      width: "100%"
+                    }}>
                       <Link href={`/leagues/${l.leagueId}`} className="card-cta">
                         VIEW LEAGUE →
                       </Link>

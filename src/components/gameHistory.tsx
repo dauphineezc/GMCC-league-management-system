@@ -156,7 +156,7 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
             return (
               <li key={game.id}>
                 <div className="player-card" style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
                         {formatDate(game.dateTimeISO)} at {formatTime(game.dateTimeISO)}
@@ -182,14 +182,22 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px" }}>
                     <div style={{ flex: 1, textAlign: "center" }}>
                       <div style={{ fontWeight: 800, color: winnerInfo.homeColor }}>
-                        {game.homeTeamName} {game.homeScore != null ? `(${game.homeScore})` : ''}
+                        {game.homeTeamName}
                       </div>
                       <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Home</div>
                     </div>
-                    <div style={{ margin: "0 12px", fontSize: "18px", fontWeight: 700, color: "var(--navy)" }}>vs</div>
+                    <div style={{ fontWeight: 800, color: winnerInfo.homeColor }}>
+                      <span style={{ fontWeight: 800, color: winnerInfo.homeColor }}>
+                        {game.homeScore != null ? `${game.homeScore}` : ''}
+                      </span>
+                      <span style={{ fontWeight: 800, color: "var(--navy)" }}> - </span>
+                      <span style={{ fontWeight: 800, color: winnerInfo.awayColor }}>
+                        {game.awayScore != null ? `${game.awayScore}` : ''}
+                      </span>
+                    </div>
                     <div style={{ flex: 1, textAlign: "center" }}>
                       <div style={{ fontWeight: 800, color: winnerInfo.awayColor }}>
-                        {game.awayTeamName} {game.awayScore != null ? `(${game.awayScore})` : ''}
+                        {game.awayTeamName}
                       </div>
                       <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Away</div>
                     </div>
