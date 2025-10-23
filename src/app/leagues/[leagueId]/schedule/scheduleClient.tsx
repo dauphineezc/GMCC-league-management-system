@@ -613,22 +613,32 @@ export default function ScheduleClient({
                       <td className="actions" style={td}>
                         {isEditing ? (
                           <div className="flex items-center gap-1">
-                            <button
-                              onClick={saveGame}
-                              disabled={saving}
-                              className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                              style={{ fontSize: '14px', padding: '2px 6px' }}
-                            >
-                              {saving ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              onClick={cancelEditing}
-                              disabled={saving}
-                              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
-                              style={{ fontSize: '14px', padding: '2px 6px' }}
-                            >
-                              Cancel
-                            </button>
+                              <button
+                                onClick={saveGame}
+                                disabled={saving}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ 
+                                  color: 'var(--navy)',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  padding: '2px 6px'
+                                }}
+                              >
+                                {saving ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                disabled={saving}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ 
+                                  color: 'var(--navy)',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  padding: '2px 6px'
+                                }}
+                              >
+                                Cancel
+                              </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1">
@@ -681,12 +691,80 @@ export default function ScheduleClient({
                       <div className="player-card" style={{ padding: "10px 12px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                           <div>
-                            <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
-                              {d.dateText} at {d.timeText}
-                            </div>
-                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
-                              {d.court}
-                            </div>
+                            {isEditing ? (
+                              <div style={{ display: "flex", gap: "8px", marginBottom: "4px" }}>
+                                <input
+                                  type="date"
+                                  value={editingGame.date}
+                                  onChange={(e) => setEditingGame(prev => prev ? { ...prev, date: e.target.value } : null)}
+                                  disabled={saving}
+                                  style={{ 
+                                    width: "120px", 
+                                    padding: "4px 6px", 
+                                    border: "1px solid #d1d5db", 
+                                    borderRadius: "4px",
+                                    fontSize: "12px"
+                                  }}
+                                />
+                                <input
+                                  type="time"
+                                  value={editingGame.time}
+                                  onChange={(e) => setEditingGame(prev => prev ? { ...prev, time: e.target.value } : null)}
+                                  disabled={saving}
+                                  style={{ 
+                                    width: "100px", 
+                                    padding: "4px 6px", 
+                                    border: "1px solid #d1d5db", 
+                                    borderRadius: "4px",
+                                    fontSize: "12px"
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
+                                {d.dateText} at {d.timeText}
+                              </div>
+                            )}
+                            {isEditing ? (
+                              <div style={{ marginBottom: "4px" }}>
+                                <select
+                                  value={editingGame.location}
+                                  onChange={(e) => setEditingGame(prev => prev ? { ...prev, location: e.target.value } : null)}
+                                  disabled={saving}
+                                  style={{ 
+                                    width: "100%", 
+                                    padding: "4px 6px", 
+                                    border: "1px solid #d1d5db", 
+                                    borderRadius: "4px",
+                                    fontSize: "12px",
+                                    marginBottom: editingGame.location === "custom" ? "4px" : "0"
+                                  }}
+                                >
+                                  <option value="Court A">Court A</option>
+                                  <option value="Court B">Court B</option>
+                                  <option value="custom">Custom</option>
+                                </select>
+                                {editingGame.location === "custom" && (
+                                  <input
+                                    placeholder="Custom location"
+                                    value={editingGame.customLocation}
+                                    onChange={(e) => setEditingGame(prev => prev ? { ...prev, customLocation: e.target.value } : null)}
+                                    disabled={saving}
+                                    style={{ 
+                                      width: "100%", 
+                                      padding: "4px 6px", 
+                                      border: "1px solid #d1d5db", 
+                                      borderRadius: "4px",
+                                      fontSize: "12px"
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
+                                {d.court}
+                              </div>
+                            )}
                           </div>
                           <span style={{
                             fontSize: "12px",
@@ -700,21 +778,63 @@ export default function ScheduleClient({
                           </span>
                         </div>
                         
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontSize: "14px", gap: "50px" }}>
-                          <div style={{ textAlign: "center" }}>
-                            <div style={{ fontWeight: 800, color: "var(--navy)" }}>
-                              {d.home}
+                        {isEditing ? (
+                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontSize: "14px", gap: "12px", marginBottom: "8px" }}>
+                            <div style={{ textAlign: "center" }}>
+                              <input
+                                list="team-suggestions-edit"
+                                placeholder="Home team"
+                                value={editingGame.homeTeamName}
+                                onChange={(e) => setEditingGame(prev => prev ? { ...prev, homeTeamName: e.target.value } : null)}
+                                disabled={saving}
+                                style={{ 
+                                  width: "100px", 
+                                  padding: "4px 6px", 
+                                  border: "1px solid #d1d5db", 
+                                  borderRadius: "4px",
+                                  fontSize: "12px",
+                                  textAlign: "center"
+                                }}
+                              />
+                              <div style={{ fontSize: "10px", color: "var(--gray-600)", marginTop: "2px" }}>Home</div>
                             </div>
-                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Home</div>
-                          </div>
-                          <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)" }}>vs</div>
-                          <div style={{ textAlign: "center" }}>
-                            <div style={{ fontWeight: 800, color: "var(--navy)" }}>
-                              {d.away}
+                            <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)" }}>vs</div>
+                            <div style={{ textAlign: "center" }}>
+                              <input
+                                list="team-suggestions-edit"
+                                placeholder="Away team"
+                                value={editingGame.awayTeamName}
+                                onChange={(e) => setEditingGame(prev => prev ? { ...prev, awayTeamName: e.target.value } : null)}
+                                disabled={saving}
+                                style={{ 
+                                  width: "100px", 
+                                  padding: "4px 6px", 
+                                  border: "1px solid #d1d5db", 
+                                  borderRadius: "4px",
+                                  fontSize: "12px",
+                                  textAlign: "center"
+                                }}
+                              />
+                              <div style={{ fontSize: "10px", color: "var(--gray-600)", marginTop: "2px" }}>Away</div>
                             </div>
-                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Away</div>
                           </div>
-                        </div>
+                        ) : (
+                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontSize: "14px", gap: "50px" }}>
+                            <div style={{ textAlign: "center" }}>
+                              <div style={{ fontWeight: 800, color: "var(--navy)" }}>
+                                {d.home}
+                              </div>
+                              <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Home</div>
+                            </div>
+                            <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)" }}>vs</div>
+                            <div style={{ textAlign: "center" }}>
+                              <div style={{ fontWeight: 800, color: "var(--navy)" }}>
+                                {d.away}
+                              </div>
+                              <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Away</div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Mobile Actions */}
                         <div style={{ display: "flex", justifyContent: "end", gap: "4px", marginTop: "2px" }}>
@@ -723,16 +843,26 @@ export default function ScheduleClient({
                               <button
                                 onClick={saveGame}
                                 disabled={saving}
-                                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                                style={{ fontSize: '12px', padding: '2px 6px' }}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ 
+                                  color: 'var(--navy)',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  padding: '2px 6px'
+                                }}
                               >
                                 {saving ? 'Saving...' : 'Save'}
                               </button>
                               <button
                                 onClick={cancelEditing}
                                 disabled={saving}
-                                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
-                                style={{ fontSize: '12px', padding: '2px 6px' }}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ 
+                                  color: 'var(--navy)',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  padding: '2px 6px'
+                                }}
                               >
                                 Cancel
                               </button>

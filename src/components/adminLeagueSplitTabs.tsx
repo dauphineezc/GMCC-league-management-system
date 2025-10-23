@@ -364,7 +364,7 @@ function StandingsPane({ standings }: { standings: any[] }) {
                           <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
                         </div>
                         <div>
-                          <strong style={{ color: "var(--navy)" }}>Win Percentage:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
+                          <strong style={{ color: "var(--navy)" }}>Win Rate:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
