@@ -457,8 +457,11 @@ export default function ScheduleClient({
         {games.length === 0 ? (
           <div className="p-4 text-sm text-gray-500">No games yet.</div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border">
-            <table className="schedule-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+          <>
+            {/* Desktop Table */}
+            <div className="schedule-desktop">
+              <div className="overflow-x-auto rounded-2xl border">
+                <table className="schedule-table" style={{ width: "100%", borderCollapse: "collapse" }}>
               <colgroup>
                 <col style={{ width: "12%" }} />  {/* Date */}
                 <col style={{ width: "12%" }} />  {/* Time */}
@@ -614,6 +617,7 @@ export default function ScheduleClient({
                               onClick={saveGame}
                               disabled={saving}
                               className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                              style={{ fontSize: '14px', padding: '2px 6px' }}
                             >
                               {saving ? 'Saving...' : 'Save'}
                             </button>
@@ -621,6 +625,7 @@ export default function ScheduleClient({
                               onClick={cancelEditing}
                               disabled={saving}
                               className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                              style={{ fontSize: '14px', padding: '2px 6px' }}
                             >
                               Cancel
                             </button>
@@ -629,7 +634,7 @@ export default function ScheduleClient({
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              className="icon-btn icon-btn--edit"
                               onClick={() => startEditing(g)}
                               aria-label={`Edit ${d.home} vs ${d.away}`}
                               title="Edit game"
@@ -662,6 +667,114 @@ export default function ScheduleClient({
               </tbody>
             </table>
           </div>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="schedule-mobile">
+              <ul className="roster-list">
+                {games.map(g => {
+                  const d = toDisplay(g);
+                  const isEditing = editingGame?.id === g.id;
+                  
+                  return (
+                    <li key={g.id}>
+                      <div className="player-card" style={{ padding: "10px 12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
+                              {d.dateText} at {d.timeText}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
+                              {d.court}
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "var(--navy)",
+                            background: d.status === 'final' || d.status.includes('final') ? "var(--light-blue)" : "var(--gray-100)",
+                            padding: "4px 8px",
+                            borderRadius: "4px"
+                          }}>
+                            {d.status}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontSize: "14px", gap: "50px" }}>
+                          <div style={{ textAlign: "center" }}>
+                            <div style={{ fontWeight: 800, color: "var(--navy)" }}>
+                              {d.home}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Home</div>
+                          </div>
+                          <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)" }}>vs</div>
+                          <div style={{ textAlign: "center" }}>
+                            <div style={{ fontWeight: 800, color: "var(--navy)" }}>
+                              {d.away}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Away</div>
+                          </div>
+                        </div>
+
+                        {/* Mobile Actions */}
+                        <div style={{ display: "flex", justifyContent: "end", gap: "4px", marginTop: "2px" }}>
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={saveGame}
+                                disabled={saving}
+                                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                                style={{ fontSize: '12px', padding: '2px 6px' }}
+                              >
+                                {saving ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                disabled={saving}
+                                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                                style={{ fontSize: '12px', padding: '2px 6px' }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="icon-btn icon-btn--edit"
+                                onClick={() => startEditing(g)}
+                                aria-label={`Edit ${d.home} vs ${d.away}`}
+                                title="Edit game"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="m18.5 2.5 3 3L12 15l-4 1 1-4Z" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="icon-btn icon-btn--danger"
+                                onClick={() => delGame(g.id)}
+                                aria-label={`Delete ${d.home} vs ${d.away}`}
+                                title="Delete game"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                                  <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                                  <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </>
         )}
         <button
           className="link-danger"

@@ -279,32 +279,82 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
                       <div className="text-gray-500">No standings yet.</div>
                     </div>
                   ) : (
-                    <div className="standings-container">
-                      <table className="standings-table" style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr>
-                            <th style={th}>Team</th>
-                            <th style={thCenter}>Wins</th>
-                            <th style={thCenter}>Losses</th>
-                            <th style={thCenter}>Win %</th>
-                            <th style={thCenter}>Points For</th>
-                            <th style={thCenter}>Points Against</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                    <>
+                      {/* Desktop table */}
+                      <div className="standings-desktop">
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr>
+                                <th style={th}>Team</th>
+                                <th style={thCenter}>Wins</th>
+                                <th style={thCenter}>Losses</th>
+                                <th style={thCenter}>Win %</th>
+                                <th style={thCenter}>Points For</th>
+                                <th style={thCenter}>Points Against</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {standings.map((s: any) => (
+                                <tr key={s.teamId}>
+                                  <td style={td}>{s.teamName || s.name || s.teamId}</td>
+                                  <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
+                                  <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
+                                  <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
+                                  <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
+                                  <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      
+                      {/* Mobile cards */}
+                      <div className="standings-mobile">
+                        <ul className="roster-list">
                           {standings.map((s: any) => (
-                            <tr key={s.teamId}>
-                              <td style={td}>{s.teamName || s.name || s.teamId}</td>
-                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.wins : "--"}</td>
-                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.losses : "--"}</td>
-                              <td style={tdCenter}>{s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}</td>
-                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsFor : "--"}</td>
-                              <td style={tdCenter}>{s.gamesPlayed > 0 ? s.pointsAgainst : "--"}</td>
-                            </tr>
+                            <li key={s.teamId}>
+                              <div style={{
+                                backgroundColor: 'var(--card)',
+                                padding: "10px 10px",
+                              }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                                  <h3 style={{ 
+                                    margin: 0, 
+                                    fontSize: "22px", 
+                                    fontWeight: 400, 
+                                    color: "var(--navy)",
+                                    fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                                  }}>
+                                    {s.teamName || s.name || s.teamId}
+                                  </h3>
+                                </div>
+                                
+                                <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", marginBottom: "4px" }}>
+                                    <div>
+                                      <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                                    </div>
+                                    <div>
+                                      <strong style={{ color: "var(--navy)" }}>Win Percentage:</strong> {(s.winPercentage * 100).toFixed(1)}%
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                                    <div>
+                                      <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                                    </div>
+                                    <div>
+                                      <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </li>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </ul>
+                      </div>
+                    </>
                   )}
                 </div>
               ),

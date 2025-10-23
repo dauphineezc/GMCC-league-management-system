@@ -81,7 +81,7 @@ export default async function AdminsPage({
         </div>
       </form>
 
-        <SuperAdminsList roster={roster} adminTeamsByUser={playerTeamsByUser} />
+        <SuperAdminsList roster={uniqByUser} adminTeamsByUser={playerTeamsByUser} />
       </main>
   );  
 }

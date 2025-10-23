@@ -206,14 +206,14 @@ export default async function LeaguesListPage({
                 placeholder="Search by league name…"
                 defaultValue={q}
                 className="input"
-                style={{ marginBottom: 12, ...CONTROL }}
+                style={{ marginBottom: 12, minWidth: 160 }}
               />
 
               <div
-                className="filter-grid"
+                className="leagues-filters-grid"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "160px 160px 160px max-content",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
                   gap: 8,
                   alignItems: "center",
                 }}
@@ -244,10 +244,19 @@ export default async function LeaguesListPage({
                     </option>
                   ))}
                 </select>
+              </div>
 
-                <div style={{ justifySelf: "end" }}>
+              {/* Results and buttons row */}
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between", 
+                marginTop: 12 
+              }}>
+                <div className="subtle-text">{rows.length} results</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {hasFilters && (
-                    <Link href="/leagues" className="btn btn--light" style={{ marginRight: 8 }}>
+                    <Link href="/leagues" className="btn btn--light">
                       Reset
                     </Link>
                   )}
@@ -256,8 +265,6 @@ export default async function LeaguesListPage({
                   </button>
                 </div>
               </div>
-
-              <div className="subtle-text" style={{ marginTop: 10 }}>{rows.length} results</div>
             </>
           );
         })()}

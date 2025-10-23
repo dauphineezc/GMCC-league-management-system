@@ -179,9 +179,9 @@ export default async function TeamsPage({
             placeholder="Search by team name…"
             defaultValue={q}
             className="input"
-            style={{ marginBottom: 12, ...CONTROL }}
+            style={{ marginBottom: 12, minWidth: 160 }}
           />
-          <div style={{ display: "grid", gridTemplateColumns: "160px 160px 160px 160px 160px max-content", gap: 8, alignItems: "center" }}>
+          <div className="teams-filters-grid">
             <select name="sport" defaultValue={sportFilter ?? ""} className="input" style={CONTROL}>
               <option value="">All sports</option>
               {CANONICAL_SPORTS.map((s) => (
@@ -242,20 +242,53 @@ export default async function TeamsPage({
               {rows.map((t) => {
                 return (
                   <li key={t.teamId}>
-                    <div className="player-card" style={{ display: "grid", gridTemplateColumns: "minmax(220px,1fr) 120px minmax(220px, 1fr) max-content", columnGap: 32, alignItems: "center" }}>
-                      <div className="item-name" title={t.name} style={{ fontWeight: 500, fontSize: 24, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingLeft: 15 }}>
-                        {t.name}
+                    <div className="player-card teams-card-layout">
+                      {/* Top row: Team name and badge inline */}
+                      <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "space-between",
+                        gap: "12px"
+                      }}>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-sport), var(--font-body), system-ui",
+                            fontWeight: 500,
+                            letterSpacing: ".3px",
+                            fontSize: 24,
+                            lineHeight: 1.2,
+                            color: "var(--navy)",
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {t.name}
+                        </span>
+                        
+                        {/* Badge inline with team name */}
+                        <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
+                          fontSize: "12px",
+                          padding: "4px 8px",
+                          fontWeight: 700,
+                          lineHeight: 1.2,
+                          flexShrink: 0,
+                        }}>
+                          {t.approved ? "APPROVED" : "PENDING"}
+                        </span>
                       </div>
 
-                      <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{ whiteSpace: "nowrap", justifySelf: "center", marginLeft: "-90px" }}>
-                        {t.approved ? "APPROVED" : "PENDING"}
-                      </span>
-
-                      <div className="col-league" style={{ minWidth: 180, maxWidth: 450, justifySelf: "start" }}>
+                      <div className="teams-card-league">
                         <EditableLeagueAssignment teamId={t.teamId} current={t.leagueId ?? undefined} leagues={leagues} />
                       </div>
 
-                      <div className="col-view" style={{ justifySelf: "end", marginRight: 0 }}>
+                      {/* Bottom row: View link aligned right */}
+                      <div style={{ 
+                        display: "flex", 
+                        justifyContent: "flex-end" 
+                      }}>
                         <Link href={`/team/${t.teamId}`} className="card-cta">VIEW TEAM →</Link>
                       </div>
                     </div>

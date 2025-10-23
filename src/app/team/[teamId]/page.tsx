@@ -201,7 +201,7 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
       <header className="team-header">
         <div className="team-title-wrap">
           <h1 className="page-title">{team.name}</h1>
-          {!permissions.isAdmin() && <div className="team-subtle">{record}</div>}
+          {/* {!permissions.isAdmin() && <div className="team-subtle">{record}</div>} */}
         </div>
 
         <div className="chip-group" style={{ display: "flex", gap: 8 }}>

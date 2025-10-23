@@ -149,8 +149,8 @@ export default function ResultsClient({
   const handleScoreChange = (field: 'homeScore' | 'awayScore', value: string) => {
     if (!editingGame) return;
     
-    // Only allow numbers
-    if (value === '' || /^\d+$/.test(value)) {
+    // Only allow numbers - allow up to 3 digits
+    if (value === '' || /^\d{1,3}$/.test(value)) {
       setEditingGame({
         ...editingGame,
         [field]: value
@@ -195,103 +195,218 @@ export default function ResultsClient({
             <div className="text-gray-500">No completed games yet.</div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border">
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Date</th>
-                  <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Time</th>
-                  <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Home Team</th>
-                  <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Away Team</th>
-                  <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Results</th>
-                  <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee", width: "100px" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {games.map((game) => (
-                  <tr key={game.id}>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
-                      {formatDate(game.dateTimeISO ?? "")}
-                    </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
-                      {formatTime(game.dateTimeISO ?? "")}
-                    </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
-                      {game.homeTeamName}
-                    </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
-                      {game.awayTeamName}
-                    </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center", marginLeft: "-30px" }}>
-                      {editingGame?.id === game.id ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <input
-                            type="text"
-                            value={editingGame.homeScore}
-                            onChange={(e) => handleScoreChange('homeScore', e.target.value)}
-                            className="w-12 px-2 py-1 border rounded text-center text-sm"
-                            placeholder="0"
-                            maxLength={3}
-                          />
-                          <span>-</span>
-                          <input
-                            type="text"
-                            value={editingGame.awayScore}
-                            onChange={(e) => handleScoreChange('awayScore', e.target.value)}
-                            className="w-12 px-2 py-1 border rounded text-center text-sm"
-                            placeholder="0"
-                            maxLength={3}
-                          />
+          <>
+            {/* Desktop table */}
+            <div className="results-desktop">
+              <div className="overflow-x-auto rounded-2xl border">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Date</th>
+                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Time</th>
+                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Home Team</th>
+                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Away Team</th>
+                      <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Results</th>
+                      <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee", width: "100px" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {games.map((game) => (
+                      <tr key={game.id}>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
+                          {formatDate(game.dateTimeISO ?? "")}
+                        </td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
+                          {formatTime(game.dateTimeISO ?? "")}
+                        </td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
+                          {game.homeTeamName}
+                        </td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
+                          {game.awayTeamName}
+                        </td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center", marginLeft: "-30px" }}>
+                          {editingGame?.id === game.id ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <input
+                                type="text"
+                                value={editingGame.homeScore}
+                                onChange={(e) => handleScoreChange('homeScore', e.target.value)}
+                                className="w-12 px-2 py-1 border rounded text-center text-sm"
+                                placeholder="0"
+                                maxLength={3}
+                              />
+                              <span>-</span>
+                              <input
+                                type="text"
+                                value={editingGame.awayScore}
+                                onChange={(e) => handleScoreChange('awayScore', e.target.value)}
+                                className="w-12 px-2 py-1 border rounded text-center text-sm"
+                                placeholder="0"
+                                maxLength={3}
+                              />
+                            </div>
+                          ) : (
+                            formatResult(game)
+                          )}
+                        </td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center" }}>
+                          {editingGame?.id === game.id ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={saveResult}
+                                disabled={saving}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ 
+                                  color: 'var(--navy)',
+                                  border: 'none'
+                                }}
+                              >
+                                {saving ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                disabled={saving}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ 
+                                  color: 'var(--navy)',
+                                  border: 'none'
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startEditing(game)}
+                              className="p-1 rounded transition-colors"
+                              style={{ color: 'var(--navy)', backgroundColor: 'transparent' }}
+                              title="Edit result"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4Z" />
+                              </svg>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            {/* Mobile cards */}
+            <div className="results-mobile">
+              <ul className="roster-list">
+                {games.map((game, index) => (
+                  <li key={game.id} style={{ borderBottom: index < games.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+                    <div className="player-card" style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
+                            {formatDate(game.dateTimeISO ?? "")} at {formatTime(game.dateTimeISO ?? "")}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
+                            {game.location || "Location TBD"}
+                          </div>
                         </div>
-                      ) : (
-                        formatResult(game)
-                      )}
-                    </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center" }}>
-                      {editingGame?.id === game.id ? (
-                        <div className="flex items-center justify-center gap-1">
+                        {editingGame?.id === game.id ? (
+                          <div style={{ display: "flex", maxWidth: "100px", gap: "2px", alignItems: "center", flexWrap: "wrap" }}>
+                            <button
+                              onClick={saveResult}
+                              disabled={saving}
+                              className="px-1 py-1 text-xs rounded disabled:opacity-50"
+                              style={{ 
+                                color: 'var(--navy)',
+                                border: '1px solid var(--navy)',
+                                backgroundColor: 'transparent',
+                                fontSize: '10px',
+                                padding: '2px 4px',
+                                minWidth: 'auto'
+                              }}
+                            >
+                              {saving ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              disabled={saving}
+                              className="px-1 py-1 text-xs rounded disabled:opacity-50"
+                              style={{ 
+                                color: 'var(--navy)',
+                                border: '1px solid var(--navy)',
+                                backgroundColor: 'transparent',
+                                fontSize: '10px',
+                                padding: '2px 4px',
+                                minWidth: 'auto'
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={saveResult}
-                            disabled={saving}
-                            className="px-2 py-1 text-xs rounded disabled:opacity-50"
-                            style={{ 
-                              color: 'var(--navy)',
-                              border: 'none'
-                            }}
+                            onClick={() => startEditing(game)}
+                            className="p-1 rounded transition-colors"
+                            style={{ color: 'var(--navy)', backgroundColor: 'transparent' }}
+                            title="Edit result"
                           >
-                            {saving ? 'Saving...' : 'Save'}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="m18.5 2.5 3 3L12 15l-4 1 1-4Z" />
+                            </svg>
                           </button>
-                          <button
-                            onClick={cancelEditing}
-                            disabled={saving}
-                            className="px-2 py-1 text-xs rounded disabled:opacity-50"
-                            style={{ 
-                              color: 'var(--navy)',
-                              border: 'none'
-                            }}
-                          >
-                            Cancel
-                          </button>
+                        )}
+                      </div>
+                      
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px", marginTop: "8px" }}>
+                        <div style={{ flex: 1, textAlign: "center" }}>
+                          <div style={{ fontWeight: 800, color: "var(--navy)" }}>
+                            {game.homeTeamName}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Home</div>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => startEditing(game)}
-                          className="p-1 rounded transition-colors"
-                          style={{ color: 'var(--navy)', backgroundColor: 'transparent' }}
-                          title="Edit result"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="m18.5 2.5 3 3L12 15l-4 1 1-4Z" />
-                          </svg>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                        <div style={{ fontWeight: 800, color: "var(--navy)", display: "flex", alignItems: "center", gap: "8px" }}>
+                          {editingGame?.id === game.id ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: "4px", padding: "2px 4px" }}>
+                              <input
+                                type="text"
+                                value={editingGame.homeScore}
+                                onChange={(e) => handleScoreChange('homeScore', e.target.value)}
+                                placeholder="0"
+                                maxLength={3}
+                                className="score-input-mobile"
+                              />
+                              <span style={{ fontSize: "10px" }}>-</span>
+                              <input
+                                type="text"
+                                value={editingGame.awayScore}
+                                onChange={(e) => handleScoreChange('awayScore', e.target.value)}
+                                placeholder="0"
+                                maxLength={3}
+                                className="score-input-mobile"
+                              />
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: "16px", fontWeight: "800" }}>
+                              {formatResult(game)}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, textAlign: "center" }}>
+                          <div style={{ fontWeight: 800, color: "var(--navy)" }}>
+                            {game.awayTeamName}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Away</div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </ul>
+            </div>
+          </>
         )}
       </section>
     </main>

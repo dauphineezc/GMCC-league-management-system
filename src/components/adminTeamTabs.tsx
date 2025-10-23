@@ -199,30 +199,40 @@ export default function AdminTeamTabs({
                           paddingRight: 10,
                         }}
                       >
-                      {/* Mobile: Top row - player name, manager badge, trash icon */}
+                      {/* Mobile: New 3-4 line layout */}
                       {isMobile ? (
                         <div style={{ 
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          gap: "8px",
+                          width: "100%",
                           paddingLeft: 15,
                           paddingRight: 15
                         }}>
-                          <div style={{
-                            fontFamily: "var(--font-sport), var(--font-body), system-ui", 
-                            fontSize: 24, 
-                            fontWeight: 500,
-                            letterSpacing: ".3px",
-                            lineHeight: 1.1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            flex: 1
-                          }}>
-                            {p.displayName}
+                          {/* Line 1: Player name only */}
+                          <div style={{ width: "100%" }}>
+                            <div style={{
+                              fontFamily: "var(--font-sport), var(--font-body), system-ui", 
+                              fontSize: 24, 
+                              fontWeight: 500,
+                              letterSpacing: ".3px",
+                              lineHeight: 1.1,
+                              wordBreak: "break-word"
+                            }}>
+                              {p.displayName}
+                            </div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            {p.isManager && (
+
+                          {/* Line 2: Manager badge (if manager) OR Payment info (if not manager) */}
+                          <div style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "12px",
+                            width: "100%",
+                            flexWrap: "wrap"
+                          }}>
+                            {p.isManager ? (
                               <span className="player-meta" title="Team Manager" style={{ 
                                 fontSize: "12px", 
                                 display: "flex", 
@@ -235,24 +245,118 @@ export default function AdminTeamTabs({
                                 </svg>
                                 Manager
                               </span>
+                            ) : (
+                              <>
+                                <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
+                                  {p.paid ? "PAID" : "UNPAID"}
+                                </span>
+                                <form action={onTogglePaid}>
+                                  <input type="hidden" name="userId" value={p.userId} />
+                                  <button className="btn btn--light btn--sm" type="submit">
+                                    {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
+                                  </button>
+                                </form>
+                              </>
                             )}
-                            <button
-                              type="button"
-                              className="icon-btn icon-btn--danger"
-                              onClick={() => handleRemovePlayer(p.userId, p.displayName)}
-                              disabled={removingPlayer === p.userId}
-                              aria-label={`Remove ${p.displayName}`}
-                              title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
-                              style={{ padding: "4px" }}
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
-                                <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
-                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
-                                <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
-                                <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
-                              </svg>
-                            </button>
                           </div>
+
+                          {/* Line 3: Payment info (if manager) OR Actions (if not manager) */}
+                          <div style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "space-between",
+                            width: "100%"
+                          }}>
+                            {p.isManager ? (
+                              <>
+                                <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
+                                  {p.paid ? "PAID" : "UNPAID"}
+                                </span>
+                                <form action={onTogglePaid}>
+                                  <input type="hidden" name="userId" value={p.userId} />
+                                  <button className="btn btn--light btn--sm" type="submit">
+                                    {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
+                                  </button>
+                                </form>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className="icon-btn icon-btn--danger"
+                                  onClick={() => handleRemovePlayer(p.userId, p.displayName)}
+                                  disabled={removingPlayer === p.userId}
+                                  aria-label={`Remove ${p.displayName}`}
+                                  title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
+                                  style={{ padding: "4px" }}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
+                                    <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                                    <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                                    <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="card-cta"
+                                  aria-label={`View ${p.displayName}`}
+                                  onClick={() => openPopupFor(p)}
+                                  title={`View ${p.displayName}`}
+                                  style={{
+                                    whiteSpace: "nowrap",
+                                    overflowWrap: "normal",
+                                    wordBreak: "normal",
+                                    display: "inline-block"
+                                  }}
+                                >
+                                  VIEW PLAYER →
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Line 4: Actions (only if manager) */}
+                          {p.isManager && (
+                            <div style={{ 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "space-between",
+                              width: "100%"
+                            }}>
+                              <button
+                                type="button"
+                                className="icon-btn icon-btn--danger"
+                                onClick={() => handleRemovePlayer(p.userId, p.displayName)}
+                                disabled={removingPlayer === p.userId}
+                                aria-label={`Remove ${p.displayName}`}
+                                title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
+                                style={{ padding: "4px" }}
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
+                                  <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                                  <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                                  <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="card-cta"
+                                aria-label={`View ${p.displayName}`}
+                                onClick={() => openPopupFor(p)}
+                                title={`View ${p.displayName}`}
+                                style={{
+                                  whiteSpace: "nowrap",
+                                  overflowWrap: "normal",
+                                  wordBreak: "normal",
+                                  display: "inline-block"
+                                }}
+                              >
+                                VIEW PLAYER →
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         /* Desktop: Player name only */
@@ -292,41 +396,8 @@ export default function AdminTeamTabs({
                         </div>
                       )}
 
-                      {/* Mobile: Payment group and view player inline */}
-                      {isMobile ? (
-                        <div style={{ 
-                          display: "flex", 
-                          alignItems: "center", 
-                          justifyContent: "space-between",
-                          paddingLeft: 15,
-                          paddingRight: 15
-                        }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: PAYGROUP_GAP }}>
-                            <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>{p.paid ? "PAID" : "UNPAID"}</span>
-                            <form action={onTogglePaid}>
-                              <input type="hidden" name="userId" value={p.userId} />
-                              <button className="btn btn--light btn--sm" type="submit">
-                                {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
-                              </button>
-                            </form>
-                          </div>
-                          <button
-                            type="button"
-                            className="card-cta"
-                            aria-label={`View ${p.displayName}`}
-                            onClick={() => openPopupFor(p)}
-                            title={`View ${p.displayName}`}
-                            style={{
-                              whiteSpace: "nowrap",
-                              overflowWrap: "normal",
-                              wordBreak: "normal",
-                              display: "inline-block"
-                            }}
-                          >
-                            VIEW PLAYER →
-                          </button>
-                        </div>
-                      ) : (
+                      {/* Desktop: Payment group only */}
+                      {!isMobile && (
                         /* Desktop: Payment group only */
                         <div className="paygroup" style={{ display: "inline-flex", alignItems: "center", gap: PAYGROUP_GAP, alignSelf: "center" }}>
                           <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>{p.paid ? "PAID" : "UNPAID"}</span>
@@ -450,6 +521,7 @@ export default function AdminTeamTabs({
                       return (
                         <li key={s.teamId}>
                           <div 
+                            className={isCurrentTeam ? 'current-team-highlight' : ''}
                             style={{
                               backgroundColor: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
                               padding: "10px 10px",
@@ -482,7 +554,7 @@ export default function AdminTeamTabs({
                             </div>
                             
                             <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
-                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "4px" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", marginBottom: "4px" }}>
                                 <div>
                                   <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
                                 </div>
@@ -490,7 +562,7 @@ export default function AdminTeamTabs({
                                   <strong style={{ color: "var(--navy)" }}>Win Percentage:</strong> {(s.winPercentage * 100).toFixed(1)}%
                                 </div>
                               </div>
-                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                                 <div>
                                   <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
                                 </div>

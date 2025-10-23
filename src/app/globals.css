@@ -679,6 +679,10 @@ button.card-cta {
 .icon-btn--danger{ color:#dc2626; }
 .icon-btn--danger:hover{ background:rgba(220,38,38,.08); }
 
+/* Edit variant */
+.icon-btn--edit{ color: var(--navy); }
+.icon-btn--edit:hover{ background:rgba(37,99,235,.08); }
+
 /* For keyboard users: visible focus */
 .icon-btn:focus-visible{
   outline: 2px solid var(--link); outline-offset:2px; border-radius:8px;
@@ -1004,6 +1008,119 @@ button.card-cta {
 .teamrow-badge .badge{ font-size: .75rem; }
 
 
+/* =============== TEAMS PAGE MOBILE FIXES =============== */
+
+/* Teams filters - responsive grid */
+.teams-filters-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Mobile: Two columns for better space usage */
+@media (max-width: 768px) {
+  .teams-filters-grid,
+  .leagues-filters-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  
+  /* Ensure filter inputs are full width on mobile */
+  .teams-filters-grid .input,
+  .leagues-filters-grid .input {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  
+  /* Override any inline styles on mobile */
+  .teams-filters-grid select[style*="minWidth"],
+  .leagues-filters-grid select[style*="minWidth"] {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+}
+
+/* Teams card layout - responsive */
+.teams-card-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 15px;
+}
+
+/* Desktop: Single row layout for team cards */
+@media (min-width: 769px) {
+  .teams-card-layout {
+    display: grid !important;
+    grid-template-columns: 1fr auto minmax(220px, 1fr) max-content !important;
+    column-gap: 32px !important;
+    align-items: center !important;
+    gap: 0 !important;
+    padding: 15px !important;
+  }
+  
+  /* Add extra space between badge and league assignment */
+  .teams-card-layout > div:nth-child(2) {
+    margin-left: 80px !important;
+  }
+  
+  /* Desktop: Team name and badge in first column */
+  .teams-card-layout > div:first-child {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+  }
+  
+  /* Desktop: League assignment in third column */
+  .teams-card-layout > div:nth-child(2) {
+    justify-self: start !important;
+    min-width: 180px !important;
+    max-width: 450px !important;
+  }
+  
+  /* Desktop: View link in fourth column */
+  .teams-card-layout > div:last-child {
+    justify-self: end !important;
+    text-align: right !important;
+  }
+}
+
+.teams-card-league {
+  min-width: 180px;
+  max-width: 450px;
+  justify-self: start;
+}
+
+.teams-card-view {
+  justify-self: end;
+  margin-right: 0;
+  text-align: right;
+}
+
+/* Mobile: Stack team cards vertically */
+@media (max-width: 768px) {
+  .teams-card-layout {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  
+  .teams-card-league {
+    min-width: unset;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* Extra small screens - further optimizations */
+@media (max-width: 480px) {
+  .teams-card-layout {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+}
+
 /* =============== NAVBAR =============== */
 
 /* Background bar */
@@ -1279,8 +1396,35 @@ button.card-cta {
   }
   
   .form-grid.thirds {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .form-grid.thirds .field:last-child {
+    grid-column: 1 / -1 !important;
+  }
+  
+  /* MOBILE-FIRST: Versus row stacks on mobile */
+  .versus-row {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+    align-items: stretch !important;
+  }
+  
+  .versus-row .field:first-child {
+    order: 1 !important;
+  }
+  
+  .vs-pill {
+    margin-top: 0 !important;
+    align-self: center !important;
+    justify-self: center !important;
+    order: 2 !important;
+    margin: 8px 0 !important;
+  }
+  
+  .versus-row .field:last-child {
+    order: 3 !important;
   }
   
   /* MOBILE-FIRST: Admin layouts stack */
@@ -1474,13 +1618,22 @@ button.card-cta {
 /* MOBILE-FIRST: League roster - component now has correct structure built-in */
 
 
-/* MOBILE-FIRST: Team roster - compact mobile layout */
+/* MOBILE-FIRST: Team roster - NEW 3-4 line layout */
 @media (max-width: 768px) {
   .roster-list .player-card--team-roster {
     display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
     padding: 12px 16px !important;
+  }
+  
+  /* Override old mobile layout rules for new structure */
+  .roster-list .player-card--team-roster > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
   }
   
   /* MOBILE: Top row - name, manager badge, and trash icon inline */
@@ -1743,6 +1896,155 @@ button.card-cta {
     margin-bottom: 8px !important;
     padding-bottom: 8px !important;
   }
+  
+  /* Standings mobile - no borders between items, cards handle their own styling */
+  .standings-mobile .roster-list li {
+    border: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* Override roster-list grid styling for standings */
+  .standings-mobile .roster-list {
+    display: block !important;
+    gap: 0 !important;
+  }
+  
+  .standings-mobile .roster-list li {
+    margin-bottom: 8px !important;
+  }
+  
+  /* Remove card-like styling from standings */
+  .standings-mobile .roster-list li > div {
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Standings list - clean styling without cards */
+.standings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+.standings-list li {
+  margin-bottom: 8px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.standings-list li > div {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* Player roster responsive layout */
+.player-card-content {
+  width: 100%;
+}
+
+/* Desktop: Show desktop layout, hide mobile */
+.player-card-desktop {
+  display: block;
+}
+
+.player-card-mobile {
+  display: none;
+}
+
+/* Mobile: Show mobile layout, hide desktop */
+@media (max-width: 768px) {
+  .player-card-desktop {
+    display: none;
+  }
+  
+  .player-card-mobile {
+    display: block;
+  }
+}
+
+/* Force standings to not look like cards - high specificity */
+.standings-mobile .roster-list {
+  display: block !important;
+  gap: 0 !important;
+}
+
+.standings-mobile .roster-list li {
+  margin-bottom: 8px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.standings-mobile .roster-list li > div {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.standings-mobile .roster-list li > div[style*="backgroundColor"] {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ULTRA HIGH SPECIFICITY - Force no cards for standings, but allow current team highlighting */
+div.standings-mobile ul.roster-list li > div {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Allow current team highlighting - multiple selectors for maximum coverage */
+div.standings-mobile ul.roster-list li > div[style*="backgroundColor: #F1F8FF"],
+.standings-mobile .roster-list li > div[style*="backgroundColor: #F1F8FF"],
+.standings-mobile .roster-list li > div[style*="backgroundColor: '#F1F8FF'"],
+div.standings-mobile ul.roster-list li > div[style*="backgroundColor: '#F1F8FF'"],
+div.standings-mobile ul.roster-list li > div[style*="backgroundColor: var(--navy)"],
+.standings-mobile .roster-list li > div[style*="backgroundColor: var(--navy)"] {
+  background: var(--navy) !important;
+  background-color: var(--navy) !important;
+}
+
+/* Allow background colors to be inherited from inline styles */
+.standings-mobile .roster-list li > div {
+  background: inherit !important;
+  background-color: inherit !important;
+}
+
+/* ULTIMATE OVERRIDE - Force background colors to work */
+div.standings-mobile ul.roster-list li > div[style*="backgroundColor"] {
+  background: unset !important;
+  background-color: unset !important;
+}
+
+/* Current team highlighting - class-based approach with maximum specificity */
+div.standings-mobile ul.roster-list li > div.current-team-highlight,
+.standings-mobile .roster-list li > div.current-team-highlight {
+  background: #F1F8FF !important;
+  background-color: #F1F8FF !important;
+}
+
+/* Override any card-like styling from roster-list */
+div.standings-mobile ul.roster-list {
+  display: block !important;
+  gap: 0 !important;
+}
+
+div.standings-mobile ul.roster-list li {
+  margin-bottom: 8px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 /* Desktop: Show table, hide mobile cards */
@@ -1760,6 +2062,14 @@ button.card-cta {
   }
   
   .game-history-mobile {
+    display: none !important;
+  }
+  
+  .results-desktop {
+    display: block !important;
+  }
+  
+  .results-mobile {
     display: none !important;
   }
   
@@ -2052,6 +2362,29 @@ button.card-cta {
 
 /* MOBILE: Override desktop layout for smaller screens */
 @media (max-width: 768px) {
+  /* Hide desktop layouts, show mobile */
+  .results-desktop {
+    display: none !important;
+  }
+  
+  .results-mobile {
+    display: block !important;
+  }
+  
+  /* Mobile score input styling */
+  .score-input-mobile {
+    width: 80px !important;
+    min-width: 50px !important;
+    max-width: none !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    padding: 4px 6px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+  
   /* Hide desktop layout */
   .roster-gradient .player-card--mobile-layout > div:nth-child(2) {
     display: none !important;
