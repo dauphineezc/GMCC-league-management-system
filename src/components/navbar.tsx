@@ -7,13 +7,16 @@ import { useState } from "react";
 
 type NavbarProps = {
   user: any;
+  // Add hasAdminLeagues prop that the server can compute
+  hasAdminLeagues?: boolean;
 };
 
-export default function Navbar({ user }: NavbarProps) {
+export default function Navbar({ user, hasAdminLeagues = false }: NavbarProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const isSignedIn = !!user;
   const isSuper = !!user?.superadmin;
-  const isAdmin = isSuper || Array.isArray(user?.leagueAdminOf);
+  // Use the hasAdminLeagues prop from server or fall back to checking leagueAdminOf array
+  const isAdmin = isSuper || hasAdminLeagues || (Array.isArray(user?.leagueAdminOf) && (user?.leagueAdminOf?.length ?? 0) > 0);
 
   return (
     <nav className="nav-court-bg">
