@@ -120,7 +120,7 @@ export default function LoginPage() {
     <main style={{ padding: 20, display: "grid", gap: 10 }}>
       <section />
       <section className="auth-card w-full" style={{ justifySelf: "center", justifyItems: "center", minHeight: "500px", padding: "32px", maxWidth: "600px", width: "100%" }}>
-        <h2 className="content-title" style={{ marginBottom: "35px" }}>
+        <h2 className="content-title" style={{ marginBottom: "35px", textAlign: "center" }}>
           {forgotPasswordMode ? "Reset your password" : "Welcome back! Please enter your details."}
         </h2>
 
@@ -243,7 +243,7 @@ export default function LoginPage() {
 
         {!forgotPasswordMode && !resetEmailSent && (
           <>
-            <div className="mt-6 mb-4">
+            <div className="mt-6 mb-4" style={{ textAlign: "center" }}>
               <p className="text-center text-slate-600">or continue with</p>
             </div>
 
@@ -282,7 +282,7 @@ export default function LoginPage() {
         {err && <p role="alert" className="mt-4 text-sm text-red-600">{err}</p>}
 
         {!forgotPasswordMode && !resetEmailSent && (
-          <p className="mt-6 text-center text-sm text-slate-600" style={{ marginTop: "50px" }}>
+          <p className="mt-6 text-center text-sm text-slate-600" style={{ marginTop: "50px", textAlign: "center" }}>
             Don't have an account?{" "}
             <a href="/create-account" className="text-blue-700 hover:underline">Create one here</a>
           </p>
