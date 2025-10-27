@@ -68,8 +68,8 @@ button{
 /* =============== BUTTONS =============== */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
-  font-family: var(--font-sport), var(--font-body), system-ui;
-  text-transform: uppercase; letter-spacing:.6px; font-weight: 500;
+  font-family: var(--font-body), system-ui;
+  text-transform: uppercase; letter-spacing:.6px; font-weight: 600;
   padding:.5rem 1rem;
   border-radius:14px;
   background: var(--card);
@@ -257,7 +257,8 @@ button{
 .badge{
   display:inline-flex; gap:.5rem; align-items:center;
   padding:.25rem .6rem; border-radius:999px;
-  font-weight:700; font-size:.85rem;
+  font-family: var(--font-body), system-ui;
+  font-weight: 600; font-size: 14px;
 }
 .badge--ok{background:#EAF7EE; color:#05bc51}
 .badge--pending{background:#FFF3E6; color:#ec720e}
@@ -380,14 +381,14 @@ h1.page-title{
   background: linear-gradient( 135deg, var(--green-soft) 0%, var(--brand-soft) 50%, var(--navy-soft) 100% );
   border-radius: 14px;
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 10px;
 }
 
 /* White inset surface inside gradient card */
 .card-inner{
   background: var(--card);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 10px;
 }
 
 /* Big sporty title centered inside a card (team name) */
@@ -416,8 +417,9 @@ h1.page-title{
 /* Status pills */
 .status{
   display:inline-flex; align-items:center; gap:.5rem;
-  font-weight: 700; text-transform: uppercase;
-  padding:.15rem .4rem; border-radius: 999px; font-size: .65rem;
+  font-family: var(--font-body), system-ui;
+  font-weight: 600; text-transform: uppercase;
+  padding:.15rem .4rem; border-radius: 999px; font-size: 12px;
 }
 .status--ok{ background:#EAF7EE; color:#05bc51; }
 .status--pending{ background:#FFF3E6; color:#ec720e; }
@@ -426,8 +428,9 @@ h1.page-title{
 .card-cta{
   position: relative;
   display: inline-flex; align-items: center; gap: .35rem;
-  font-weight: 700; text-transform: uppercase;
-  font-size: .8rem; letter-spacing: .3px;
+  font-family: var(--font-body), system-ui;
+  font-weight: 600; text-transform: uppercase;
+  font-size: 13px; letter-spacing: .3px;
   color: var(--navy);
 
   /* underline that reads clearly */
@@ -761,7 +764,8 @@ button.card-cta {
 .chip{
   display:inline-flex; align-items:center; gap:.45rem;
   padding:.35rem .6rem; border-radius:999px;
-  font-weight:800; font-size:.9rem;
+  font-family: var(--font-body), system-ui;
+  font-weight: 600; font-size: 14px;
   box-shadow: 0 1px 0 rgba(0,0,0,.06);
 }
 .chip--ok{ background:#EAF7EE; color:#05bc51; }
@@ -818,7 +822,7 @@ button.card-cta {
 /* outer gradient frame like your home cards */
 .roster-gradient{
   background: linear-gradient(135deg, var(--green-soft) 0%, var(--brand-soft) 55%, var(--navy-soft) 100%);
-  border-radius: 18px;
+  border-radius: 10px;
   border: 1px solid rgba(0,0,0,.06);
   box-shadow: var(--shadow);
   padding: 14px;
@@ -845,7 +849,8 @@ button.card-cta {
 /* manager badge on the right */
 .player-meta{
   display:inline-flex; align-items:center; gap:.35rem;
-  font-weight:700; font-size:.85rem; color: var(--navy);
+  font-family: var(--font-body), system-ui;
+  font-weight: 600; font-size: 14px; color: var(--navy);
 }
 .player-meta svg{ width:16px; height:16px }
 
@@ -1190,9 +1195,9 @@ button.card-cta {
 
 /* Pill */
 .account .account-trigger{
-  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-family: var(--font-body), system-ui;
   font-size: var(--nav-link-size);
-  letter-spacing: .7px;
+  letter-spacing: .3px;
 
   /* match hover chip exactly */
   padding: var(--nav-chip-y) var(--nav-chip-x);
@@ -1246,8 +1251,8 @@ button.card-cta {
 
 /* regular links: use the same chip box as the pill */
 .nav-link{
-  font-family: var(--font-sport), var(--font-body), system-ui;
-  letter-spacing:.7px;
+  font-family: var(--font-body), system-ui;
+  letter-spacing:.3px;
   font-size: var(--nav-link-size);
   color: var(--navy);
   display: inline-flex;            /* match the pill's layout */
@@ -2288,7 +2293,7 @@ div.standings-mobile ul.roster-list li {
   }
   
   .gradient-card {
-    padding: 12px !important;
+    padding: 10px !important;
   }
   
   .card-inner {

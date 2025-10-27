@@ -3,6 +3,7 @@
 import { kv } from "@vercel/kv";
 import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/serverUser";
+import { adminAuth } from "@/lib/firebaseAdmin";
 
 type LeaguePlayerRow = {
   userId: string;
@@ -88,19 +89,51 @@ export async function sendAnnouncementAction(formData: FormData) {
 
   // dedupe by userId then join to user profiles for emails
   const uniqueUserIds = Array.from(new Set(filtered.map((p) => p.userId)));
+  
+  // Debug logging
+  console.log("Filtered players:", filtered.length, "Unique user IDs:", uniqueUserIds.length);
+  
   const userProfiles = await Promise.all(
     uniqueUserIds.map(async (uid) => {
-      const profile = await kv.get<UserProfile>(`user:${uid}`);
-      return profile && profile.email ? profile : null;
+      try {
+        // Try to get user from Firebase Auth first
+        const firebaseUser = await adminAuth.getUser(uid);
+        if (firebaseUser.email) {
+          return {
+            email: firebaseUser.email,
+            name: firebaseUser.displayName || firebaseUser.email
+          };
+        }
+      } catch (e: any) {
+        // Only log if it's not a "user-not-found" error (expected for mock users)
+        if (e.code !== "auth/user-not-found") {
+          console.error(`Failed to get Firebase user for ${uid}:`, e.code);
+        }
+      }
+      
+      // Fallback to KV store
+      const profile = await kv.get<any>(`user:${uid}`);
+      if (profile?.email) {
+        return {
+          email: profile.email,
+          name: profile.displayName || profile.name || profile.email
+        };
+      }
+      
+      return null;
     })
   );
 
   const recipients = userProfiles
     .filter(Boolean)
     .map((u) => ({
-      Email: (u as UserProfile).email,
-      Name: (u as UserProfile).name || (u as UserProfile).email,
+      Email: u!.email,
+      Name: u!.name || u!.email,
     }));
+
+  // Debug logging
+  console.log("Recipients found:", recipients.length);
+  console.log("Recipients:", recipients.map(r => `${r.Name} (${r.Email})`));
 
   if (recipients.length === 0) {
     throw new Error("No recipients found for the selected filters.");
@@ -115,12 +148,14 @@ export async function sendAnnouncementAction(formData: FormData) {
     throw new Error("Mail configuration missing (MAILJET_API_KEY, MAILJET_API_SECRET, MAILJET_SENDER_EMAIL).");
   }
 
+  console.log("Mailjet config:", { FROM_EMAIL, FROM_NAME, API_KEY: API_KEY ? "***" : "missing", API_SECRET: API_SECRET ? "***" : "missing" });
+
   const endpoint = "https://api.mailjet.com/v3.1/send";
   const batches = chunk(recipients, 50);
   const results: { batch: number; status: number; error?: any }[] = [];
 
   const textPart = message;
-  const htmlPart = `<div style="font-family:Arial,Helvetica,sans-serif; line-height:1.5; white-space:pre-wrap">
+  const htmlPart = `<div style="font-family:'Montserrat','Segoe UI','Helvetica Neue',Arial,Helvetica,sans-serif; line-height:1.5; white-space:pre-wrap">
 <p>${message
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -144,6 +179,8 @@ export async function sendAnnouncementAction(formData: FormData) {
       ],
     };
 
+    console.log(`Sending batch ${i + 1}/${batches.length} to ${batch.length} recipients`);
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -156,8 +193,12 @@ export async function sendAnnouncementAction(formData: FormData) {
     if (!res.ok) {
       let error: any = {};
       try { error = await res.json(); } catch {}
+      console.error(`Mailjet batch ${i + 1} failed:`, res.status, error);
       results.push({ batch: i + 1, status: res.status, error });
     } else {
+      const responseData = await res.json();
+      console.log(`Mailjet batch ${i + 1} succeeded:`, JSON.stringify(responseData, null, 2));
+      console.log("Message URLs:", responseData.Messages?.[0]?.To?.map((t: any) => t.MessageHref));
       results.push({ batch: i + 1, status: res.status });
     }
   }

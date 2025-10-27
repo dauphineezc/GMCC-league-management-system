@@ -74,6 +74,25 @@ export async function addPlayerToTeam(userId: string, teamId: string) {
     leagueName: leagueNameFor(team.leagueId)
   });
   
+  // Update league players list if team has a league
+  if (team.leagueId) {
+    const leaguePlayers = await readArr<any>(`league:${team.leagueId}:players`);
+    const paymentStatus = await kv.get<boolean>(`team:${teamId}:payments:${userId}`) ? "PAID" : "UNPAID";
+    
+    const newPlayerEntry = {
+      userId,
+      displayName,
+      teamId,
+      teamName: team.name,
+      isManager: false,
+      paymentStatus
+    };
+    
+    // Remove existing entry for this user/team combo and add new one
+    const filtered = leaguePlayers.filter((p: any) => !(p.userId === userId && p.teamId === teamId));
+    await kv.set(`league:${team.leagueId}:players`, [...filtered, newPlayerEntry]);
+  }
+  
   return team;
 }
 
@@ -97,6 +116,13 @@ export async function removePlayerFromTeam(userId: string, teamId: string) {
   const memberships = await readArr<Membership>(membershipKey);
   const newMemberships = memberships.filter(m => m.teamId !== teamId);
   await kv.set(membershipKey, newMemberships);
+  
+  // Update league players list if team has a league
+  if (team.leagueId) {
+    const leaguePlayers = await readArr<any>(`league:${team.leagueId}:players`);
+    const filtered = leaguePlayers.filter((p: any) => !(p.userId === userId && p.teamId === teamId));
+    await kv.set(`league:${team.leagueId}:players`, filtered);
+  }
   
   return { team, removedUser: userId };
 }
