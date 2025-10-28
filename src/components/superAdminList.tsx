@@ -109,7 +109,7 @@ export default function SuperAdminsList({ roster, adminTeamsByUser }: Props) {
                         {/* NAME (flexible, left aligned, single line with ellipsis) */}
                         <div
                         style={{
-                            fontFamily: "var(--font-sport), var(--font-body), system-ui",
+                            fontFamily: "var(--font-body), system-ui",
                             fontWeight: 500,
                             fontSize: 24,
                             lineHeight: 1.1,

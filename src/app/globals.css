@@ -34,14 +34,36 @@ html, body {
 html,body{height:100%}
 body{
   margin:0;
-  background:var(--bg);
+  /* Subtle gradient background - very light blue to white */
+  /* background: linear-gradient(
+    to bottom,
+    #f0f9ff 0%,
+    #faffff 15%,
+    #ffffff 40%,
+    #faffff 100%
+  ); */
+  background: linear-gradient(
+    to bottom,
+    #faffff 0%,
+    #003a7010 90%,
+    #003a7021 97%,
+    #003a703d 100%
+  );
+  background-attachment: fixed;
   color:var(--text);
   font-family: var(--font-body), system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
   font-size:18px;
   line-height:1.6;
 }
-a{ color:inherit; text-decoration:none; }
-a:hover{ text-decoration: underline; }
+a{ 
+  color:inherit; 
+  text-decoration:none;
+  transition: color 0.2s ease;
+}
+a:hover{ 
+  text-decoration: underline;
+  color: var(--green);
+}
 
 button{
   border:none; background:transparent; padding:0;
@@ -63,6 +85,13 @@ button{
   border:1px solid rgba(0,0,0,.06);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,58,112,.12);
+  border-color: rgba(75,139,43,.3);
 }
 
 /* =============== BUTTONS =============== */
@@ -86,18 +115,17 @@ button{
 .btn--md { padding: 9px 14px; font-size: 15px; }     /* default-ish */
 .btn--lg { padding: 12px 18px; font-size: 17px; }
 
-/* Primary = navy */
+/* Primary = green gradient */
 .btn--primary{
-  background: linear-gradient( 
-    135deg, 
-    color-mix(in srgb, var(--navy-soft) 45%, #fff) 0%, 
-    color-mix(in srgb, var(--brand-soft) 20%, #fff) 50%, 
-    color-mix(in srgb, var(--green-soft) 40%, #fff) 100% 
-  );
-  border: 1px solid var(--navy);
-  color: var(--navy);
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-700) 100%);
+  border: 1px solid var(--green-700);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(75,139,43,.2);
 }
-.btn--primary:hover{ filter: brightness(1.01); }
+.btn--primary:hover{ 
+  background: linear-gradient(135deg, var(--green-700) 0%, var(--green) 100%);
+  box-shadow: 0 4px 12px rgba(75,139,43,.35);
+}
 
 /* Outline Navy (great for "Join" / "Sign out") */
 .btn--outline{
@@ -260,12 +288,21 @@ button{
   font-family: var(--font-body), system-ui;
   font-weight: 600; font-size: 14px;
 }
-.badge--ok{background:#EAF7EE; color:#05bc51}
-.badge--pending{background:#FFF3E6; color:#ec720e}
+.badge--ok{background:#EAF7EE; color: var(--green)}
+.badge--pending{background:#FFF3E6; color:#e0761f}
 
 /* Headings */
-h1{font-size:clamp(32px,4vw,44px); line-height:1.15; margin:0 0 16px;}
-h2{font-size:clamp(22px,2.5vw,28px); margin:0 0 12px;}
+h1{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-size:clamp(32px,4vw,44px); 
+  line-height:1.15; 
+  margin:0 0 16px;
+}
+h2{
+  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-size:clamp(22px,2.5vw,28px); 
+  margin:0 0 12px;
+}
 
 
 
@@ -310,11 +347,24 @@ h1.page-title{
   letter-spacing: 1px;
   line-height: 1.2;
   margin: 24px 0 16px;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.section-title::after{
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--green) 0%, var(--green-light) 100%);
+  border-radius: 2px;
 }
 
 /* Content titles - sport font */
 .content-title {
-  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-family: var(--font-body), system-ui;
   color: var(--navy);
   font-size: clamp(20px, 2.2vw, 26px);
   font-weight: 500;
@@ -325,7 +375,7 @@ h1.page-title{
 
 /* Item names - sport font */
 .item-name {
-  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-family: var(--font-body), system-ui;
   color: var(--navy);
   font-size: clamp(18px, 2vw, 22px);
   font-weight: 500;
@@ -376,19 +426,40 @@ h1.page-title{
 }
 
 /* === gradient panel (navbar-matching) === */
+/* COMMENTED OUT - gradient borders look dated, keeping clean cards instead
 .gradient-card{
-  /* green → brand → navy with soft tints */
   background: linear-gradient( 135deg, var(--green-soft) 0%, var(--brand-soft) 50%, var(--navy-soft) 100% );
   border-radius: 14px;
   box-shadow: var(--shadow);
-  padding: 10px;
+  padding: 4px;
 }
 
-/* White inset surface inside gradient card */
 .card-inner{
   background: var(--card);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 10px 10px;
+}
+*/
+
+/* Clean card replacement for gradient-card */
+.gradient-card{
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.gradient-card:hover{
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 8px 24px rgba(0,58,112,.12);
+  border-color: rgba(75,139,43,.3);
+}
+
+.card-inner{
+  /* No longer needed but keeping for backwards compatibility */
+  padding: 0;
 }
 
 /* Big sporty title centered inside a card (team name) */
@@ -420,9 +491,21 @@ h1.page-title{
   font-family: var(--font-body), system-ui;
   font-weight: 600; text-transform: uppercase;
   padding:.15rem .4rem; border-radius: 999px; font-size: 12px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.status--ok{ background:#EAF7EE; color:#05bc51; }
-.status--pending{ background:#FFF3E6; color:#ec720e; }
+.status:hover{
+  transform: scale(1.05);
+}
+.status--ok{ 
+  background: linear-gradient(135deg, #EAF7EE 0%, #d4f4dd 100%);
+  color:#05bc51;
+  border: 1px solid rgba(5,188,81,.2);
+}
+.status--pending{ 
+  background: linear-gradient(135deg, #FFF3E6 0%, #ffe9cc 100%);
+  color:#ec720e;
+  border: 1px solid rgba(236,114,14,.2);
+}
 
 /* Clear, underlined CTA links used in cards */
 .card-cta{
@@ -437,15 +520,18 @@ h1.page-title{
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
+  text-decoration-color: var(--navy);
 
-  transition: text-decoration-thickness .12s ease, text-underline-offset .12s ease, transform .12s ease;
+  transition: color .2s ease, text-decoration-color .2s ease, text-decoration-thickness .12s ease, text-underline-offset .12s ease, transform .12s ease;
 }
 
-/* hover: thicker underline + tiny nudge to the right */
+/* hover: green color, thicker underline + tiny nudge to the right */
 .card-cta:hover{
+  color: var(--green);
+  text-decoration-color: var(--green);
   text-decoration-thickness: 3px;
   text-underline-offset: 4px;
-  transform: translateX(1px);
+  transform: translateX(2px);
 }
 
 /* keyboard focus ring for accessibility */
@@ -474,7 +560,7 @@ button.card-cta {
 .league-row + .league-row{ margin-top: 10px; }
 
 .league-name{
-  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-family: var(--font-body), system-ui;
   color: var(--navy);
   font-size: clamp(18px, 2vw, 22px);
   font-weight: 500;
@@ -766,9 +852,10 @@ button.card-cta {
   padding:.35rem .6rem; border-radius:999px;
   font-family: var(--font-body), system-ui;
   font-weight: 600; font-size: 14px;
+  text-transform: uppercase;
   box-shadow: 0 1px 0 rgba(0,0,0,.06);
 }
-.chip--ok{ background:#EAF7EE; color:#05bc51; }
+.chip--ok{ background:#EAF7EE; color:  var(--green); }
 .chip--pending{ background:#FFF3E6; color:#ec720e; }
 
 /* === Sub-nav tabs with underline + green highlight === */
@@ -791,6 +878,11 @@ button.card-cta {
   font-size: clamp(16px, 2.0vw, 22px);
   letter-spacing:.4px;
   cursor: pointer;
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+.team-tab:hover{
+  color: var(--green);
+  transform: translateY(-1px);
 }
 .team-tab::after{
   content: "";
@@ -799,13 +891,18 @@ button.card-cta {
   right: 8px; 
   bottom: -1px;
   height: 2px; border-radius: 2px;
-  background: var(--navy);
+  background: var(--green);
   transform: scaleX(0); transform-origin: left;
-  transition: transform .15s ease, opacity .15s ease;
+  transition: transform .2s ease, opacity .2s ease, height .2s ease;
   opacity: .0;
 }
 .team-tab:hover::after{ transform: scaleX(1); opacity: .65; }
-.team-tab.is-active::after{ transform: scaleX(1); opacity: 1; height: 4px; }
+.team-tab.is-active::after{ 
+  transform: scaleX(1); 
+  opacity: 1; 
+  height: 4px;
+  background: linear-gradient(90deg, var(--green) 0%, var(--green-light) 100%);
+}
 
 /* tables inside tabs */
 .team-table{ width:100%; border-collapse:collapse; }
@@ -820,12 +917,23 @@ button.card-cta {
 }
 
 /* outer gradient frame like your home cards */
+/* COMMENTED OUT - gradient borders look dated, keeping clean cards instead
 .roster-gradient{
   background: linear-gradient(135deg, var(--green-soft) 0%, var(--brand-soft) 55%, var(--navy-soft) 100%);
   border-radius: 10px;
   border: 1px solid rgba(0,0,0,.06);
   box-shadow: var(--shadow);
-  padding: 14px;
+  padding: 4px;
+}
+*/
+
+/* Clean card replacement for roster-gradient */
+.roster-gradient{
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
 }
 
 /* grid of "little cards" */
@@ -857,7 +965,7 @@ button.card-cta {
 /* invite buttons row under the list */
 .roster-actions{ margin-top: 12px; display:flex; gap:10px; flex-wrap:wrap; }
 
-.pad-card-sides { padding-top:20px; padding-left:20px; padding-right:20px; padding-bottom:20px; }
+.pad-card-sides { padding-top:10px; padding-left:10px; padding-right:10px; padding-bottom:10px; }
 .muted { color: var(--muted); }
 
 
@@ -977,7 +1085,7 @@ button.card-cta {
 }
 .player-popup__name{
   margin: 0;
-  font-family: var(--font-sport), var(--font-body), system-ui;
+  font-family: var(--font-body), system-ui;
   font-size: 24px; color: var(--navy); font-weight: 500;
 }
 .player-popup__close{
@@ -1262,10 +1370,14 @@ button.card-cta {
   line-height: 1;                  /* consistent line metrics */
   vertical-align: middle;          /* <- keeps baseline consistent */
   white-space: nowrap;
-  transition: transform .06s ease, background-color .12s ease;
+  transition: transform .06s ease, background-color .12s ease, color .2s ease;
   text-decoration:none;
 }
-.nav-link:hover{ transform: translateY(-1px); background: rgba(255,255,255,.22); }
+.nav-link:hover{ 
+  transform: translateY(-1px); 
+  background: rgba(255,255,255,.3);
+  color: var(--green);
+}
 
 /* summary behaves differently across browsers; normalize it */
 .account summary{
@@ -2192,7 +2304,7 @@ div.standings-mobile ul.roster-list li {
     padding-left: 15px !important;
     line-height: 1.1 !important;
     color: var(--navy) !important;
-    font-family: var(--font-sport), var(--font-body), system-ui !important;
+    font-family: var(--font-body), system-ui !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;

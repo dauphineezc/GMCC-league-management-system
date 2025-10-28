@@ -206,7 +206,7 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
 
         <div className="chip-group" style={{ display: "flex", gap: 8 }}>
           <span className={team.approved ? "chip chip--ok" : "chip chip--pending"}>
-            {team.approved ? "✅ Approved" : "⏳ Pending Approval"}
+            {team.approved ? "Approved" : "Pending"}
           </span>
           
           {/* Admin-only: Approval toggle */}

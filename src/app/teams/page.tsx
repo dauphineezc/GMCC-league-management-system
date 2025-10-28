@@ -234,68 +234,69 @@ export default async function TeamsPage({
         </form>
 
         {/* Results list */}
-        <div className="roster-gradient">
+        <div>
           {rows.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>No teams found.</p>
           ) : (
-            <ul className="roster-list">
-              {rows.map((t) => {
+            <div>
+              {rows.map((t, idx) => {
                 return (
-                  <li key={t.teamId}>
-                    <div className="player-card teams-card-layout">
-                      {/* Top row: Team name and badge inline */}
-                      <div style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "space-between",
-                        gap: "12px"
-                      }}>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                            fontWeight: 500,
-                            letterSpacing: ".3px",
-                            fontSize: 24,
-                            lineHeight: 1.2,
-                            color: "var(--navy)",
-                            flex: 1,
-                            minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {t.name}
-                        </span>
-                        
-                        {/* Badge inline with team name */}
-                        <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
-                          fontSize: "12px",
-                          padding: "4px 8px",
-                          fontWeight: 700,
+                  <div key={t.teamId} className="teams-card-layout" style={{
+                    padding: "12px 8px",
+                    borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                  }}>
+                    {/* Top row: Team name and badge inline */}
+                    <div style={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "space-between",
+                      gap: "12px"
+                    }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-body)",
+                          fontWeight: 500,
+                          letterSpacing: ".3px",
+                          fontSize: 20,
                           lineHeight: 1.2,
-                          flexShrink: 0,
-                        }}>
-                          {t.approved ? "APPROVED" : "PENDING"}
-                        </span>
-                      </div>
-
-                      <div className="teams-card-league">
-                        <EditableLeagueAssignment teamId={t.teamId} current={t.leagueId ?? undefined} leagues={leagues} />
-                      </div>
-
-                      {/* Bottom row: View link aligned right */}
-                      <div style={{ 
-                        display: "flex", 
-                        justifyContent: "flex-end" 
+                          color: "var(--navy)",
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.name}
+                      </span>
+                      
+                      {/* Badge inline with team name */}
+                      <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
+                        fontSize: "12px",
+                        padding: "4px 8px",
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                        flexShrink: 0,
                       }}>
-                        <Link href={`/team/${t.teamId}`} className="card-cta">VIEW TEAM →</Link>
-                      </div>
+                        {t.approved ? "APPROVED" : "PENDING"}
+                      </span>
                     </div>
-                  </li>
+
+                    <div className="teams-card-league">
+                      <EditableLeagueAssignment teamId={t.teamId} current={t.leagueId ?? undefined} leagues={leagues} />
+                    </div>
+
+                    {/* Bottom row: View link aligned right */}
+                    <div style={{ 
+                      display: "flex", 
+                      justifyContent: "flex-end" 
+                    }}>
+                      <Link href={`/team/${t.teamId}`} className="card-cta">VIEW TEAM →</Link>
+                    </div>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           )}
         </div>
       </main>

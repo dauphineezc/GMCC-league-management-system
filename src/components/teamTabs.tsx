@@ -117,26 +117,30 @@ export default function TeamTabs(props: {
           <Tab id="standings" current={tab} setTab={setTab}>Standings</Tab>
         </div>
 
-      {/* Everything below the tabs sits in a padded panel so bullets/tables don’t hug the edge */}
+      {/* Everything below the tabs sits in a padded panel so bullets/tables don't hug the edge */}
       <div className="team-panel" style={{ paddingTop: 20, paddingLeft: 20, paddingRight: 20, paddingBottom: 20 }}>
         {tab === "roster" && (
           <>
             {sortedRoster.length === 0 ? (
               <p>No players yet.</p>
             ) : (
-              <div className="roster-gradient">
-                <ul className="roster-list">
-                  {sortedRoster.map((p) => (
-                    <li key={p.userId} className="player-card">
+              <div className="card--soft rounded-2xl border overflow-hidden">
+                <div style={{ padding: "0px 0px" }}>
+                  {sortedRoster.map((p, idx) => (
+                    <div key={p.userId} style={{
+                      padding: "12px 8px",
+                      borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                    }}>
                       <div className="player-card-content">
                         {/* Desktop: Name and manager badge on same line */}
                         <div className="player-card-desktop">
                           <span style={{
-                            fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                            fontSize: 24,
-                            fontWeight: 400,
+                            // fontFamily: "var(--font-body), system-ui",
+                            fontSize: 20,
+                            fontWeight: 500,
                             display: "inline-block",
-                            marginRight: "300px"
+                            marginRight: "300px",
+                            color: "var(--navy)",
                           }}>
                             {p.displayName || p.userId}
                           </span>
@@ -166,11 +170,12 @@ export default function TeamTabs(props: {
                         <div className="player-card-mobile">
                           <div style={{ width: "100%" }}>
                             <span style={{
-                              fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                              fontSize: 24,
-                              fontWeight: 400,
+                              fontFamily: "var(--font-body), system-ui",
+                              fontSize: 20,
+                              fontWeight: 500,
                               display: "block",
-                              wordBreak: "break-word"
+                              wordBreak: "break-word",
+                              color: "var(--navy)",
                             }}>
                               {p.displayName || p.userId}
                             </span>
@@ -204,11 +209,11 @@ export default function TeamTabs(props: {
                           )}
                         </div>
                       </div>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
 
-                <div className="roster-actions">
+                <div className="roster-actions" style={{ marginTop: "16px" }}>
                   {isManager && (
                     <>
                       <button 
@@ -238,7 +243,9 @@ export default function TeamTabs(props: {
         )}
 
         {tab === "schedule" && (
-          <ScheduleViewer leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+            <ScheduleViewer leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          </div>
         )}
 
         {tab === "history" && (
@@ -246,7 +253,7 @@ export default function TeamTabs(props: {
         )}
 
         {tab === "standings" && (
-          <div>
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
             {loadingStandings ? (
               <p style={{ textAlign: 'center', color: '#666' }}>Loading standings...</p>
             ) : standings.length === 0 ? (
@@ -274,8 +281,11 @@ export default function TeamTabs(props: {
                             <tr 
                               key={s.teamId}
                               style={{ 
-                                background: isCurrentTeam ? '#F1F8FF' : 'transparent',
-                                fontWeight: isCurrentTeam ? 600 : 400,
+                                // background: isCurrentTeam ? '#F1F4F9' : 'transparent',
+                                background: isCurrentTeam ? 'rgba(75,139,43,.05)' : 'transparent',
+                                fontWeight: isCurrentTeam ? 500 : 400,
+                                borderLeft: isCurrentTeam ? '3.5px solid rgba(75,139,43,.3)' : '3px solid transparent',
+                                // borderRight: isCurrentTeam ? '2px solid rgba(0,58,112,.08)' : '1px solid transparent',
                               }}
                             >
                               <td style={td}>{s.teamName || s.name || s.teamId}</td>
@@ -304,6 +314,10 @@ export default function TeamTabs(props: {
                             style={{
                               backgroundColor: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
                               padding: "10px 10px",
+                              border: isCurrentTeam ? '1px solid rgba(0,58,112,.12)' : '1px solid transparent',
+                              borderLeft: isCurrentTeam ? '3px solid rgba(75,139,43,.35)' : '3px solid transparent',
+                              borderRadius: isCurrentTeam ? '8px' : '0',
+                              boxShadow: isCurrentTeam ? '0 2px 8px rgba(0,58,112,.06)' : 'none',
                             }}
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
@@ -312,7 +326,7 @@ export default function TeamTabs(props: {
                                 fontSize: "22px", 
                                 fontWeight: 400, 
                                 color: "var(--navy)",
-                                fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                                fontFamily: "var(--font-body), system-ui"
                               }}>
                                 {s.teamName || s.name || s.teamId}
                               </h3>

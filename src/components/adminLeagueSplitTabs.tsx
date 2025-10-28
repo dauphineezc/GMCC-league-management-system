@@ -173,7 +173,11 @@ export default function AdminLeagueSplitTabs({
       <div className="pad-card-sides" style={{ paddingTop: 14 }}>
         {tab === "teams" && <TeamsPane leagueId={leagueId} teams={teams} />}
         {tab === "roster" && <RosterPane roster={roster} onView={handleView} />}
-        {tab === "schedule" && <ScheduleViewer leagueId={leagueId} />}
+        {tab === "schedule" && (
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+            <ScheduleViewer leagueId={leagueId} />
+          </div>
+        )}
         {tab === "history" && <GameHistory leagueId={leagueId} />}
         {tab === "standings" && <StandingsPane standings={standings} />}
       </div>
@@ -203,86 +207,77 @@ function TeamsPane({
   const COL_GAP = 100;
 
   return (
-    <div
-      className="admin-league-layout"
-    >
-      <div className="roster-gradient">
+    <div className="admin-league-layout">
+      <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
         {teams.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
             No teams yet.
           </p>
         ) : (
-          <ul className="roster-list">
-            {teams.map((t) => (
-              <li key={t.teamId}>
-                <div
-                  className="player-card admin-team-card"
+          <div>
+          {teams.map((t, idx) => (
+            <div
+              key={t.teamId}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                padding: "12px 8px",
+                borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+              }}
+            >
+              {/* Top row: Team name and badge inline */}
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between",
+                gap: "12px"
+              }}>
+                <span
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    padding: "12px 16px",
-                    minHeight: "auto",
-                    height: "auto",
+                    fontFamily: "var(--font-body), system-ui",
+                    fontWeight: 500,
+                    letterSpacing: ".3px",
+                    fontSize: 20,
+                    lineHeight: 1.2,
+                    color: "var(--navy)",
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {/* Top row: Team name and badge inline */}
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "space-between",
-                    gap: "12px"
-                  }}>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-sport), var(--font-body), system-ui",
-                        fontWeight: 500,
-                        letterSpacing: ".3px",
-                        fontSize: 22,
-                        lineHeight: 1.2,
-                        color: "var(--navy)",
-                        flex: 1,
-                        minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {t.name}
-                    </span>
-                    
-                    {/* Badge inline with team name */}
-                    <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
-                      fontSize: "12px",
-                      padding: "4px 8px",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                      flexShrink: 0,
-                    }}>
-                      {t.approved ? "APPROVED" : "PENDING"}
-                    </span>
-                  </div>
-                  
-                  {/* Bottom row: View link aligned right */}
-                  <div style={{ 
-                    display: "flex", 
-                    justifyContent: "flex-end" 
-                  }}>
-                    <Link href={`/admin/team/${t.teamId}`} className="card-cta" style={{
-                      fontSize: "12px",
-                      textDecoration: "underline",
-                      color: "var(--navy)",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                    }}>
-                      VIEW TEAM →
-                    </Link>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                  {t.name}
+                </span>
+                
+                {/* Badge inline with team name */}
+                <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
+                  fontSize: "12px",
+                  padding: "4px 8px",
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  flexShrink: 0,
+                }}>
+                  {t.approved ? "APPROVED" : "PENDING"}
+                </span>
+              </div>
+              
+              {/* Bottom row: View link aligned right */}
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "flex-end" 
+              }}>
+                <Link href={`/admin/team/${t.teamId}`} className="card-cta" style={{
+                  fontSize: "12px",
+                }}>
+                  VIEW TEAM →
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       </div>
     </div>
   );
@@ -291,7 +286,7 @@ function TeamsPane({
 /* ========= Standings tab ========= */
 function StandingsPane({ standings }: { standings: any[] }) {
   return (
-    <div>
+    <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
       {standings.length === 0 ? (
         <div className="p-4 text-center">
           <div className="text-gray-500">No standings yet.</div>
@@ -338,7 +333,7 @@ function StandingsPane({ standings }: { standings: any[] }) {
                         fontSize: "22px", 
                         fontWeight: 500, 
                         color: "var(--navy)",
-                        fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                        fontFamily: "var(--font-body), system-ui"
                       }}>
                         {s.teamName || s.name || s.teamId}
                       </h3>
@@ -422,7 +417,7 @@ function RosterPane({
       return Math.ceil(ctx.measureText(txt).width);
     };
 
-    const nameFont = "700 24px var(--font-sport), var(--font-body), system-ui";
+    const nameFont = "700 24px var(--font-body), system-ui";
     const teamFont = "800 16px var(--font-body), system-ui";
     const metaFont = "700 14px var(--font-body), system-ui";
     const badgeFont = "700 14px var(--font-body), system-ui";
@@ -442,25 +437,27 @@ function RosterPane({
   }, [sortedRoster]);
 
   return (
-    <div className="roster-gradient" style={{ marginTop: 8 }}>
-      {sortedRoster.length === 0 ? (
-        <p className="muted" style={{ margin: 0 }}>
-          No players yet.
-        </p>
-      ) : (
-        <ul className="roster-list">
-          {sortedRoster.map((p) => (
-            <li key={`${p.teamId}:${p.userId}`}>
-              <div
-                className="player-card player-card--aligned player-card--mobile-layout"
-                style={{
-                  padding: "10px 16px",
-                }}
-              >
+    <div style={{ marginTop: 8 }}>
+      <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+        {sortedRoster.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            No players yet.
+          </p>
+        ) : (
+          <div>
+          {sortedRoster.map((p, idx) => (
+            <div
+              key={`${p.teamId}:${p.userId}`}
+              className="player-card--aligned player-card--mobile-layout"
+              style={{
+                padding: "10px 8px",
+                borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+              }}
+            >
                 {/* Line 1: Player name only */}
                 <div
                   style={{
-                    fontFamily: "var(--font-sport), var(--font-body), system-ui",
+                    fontFamily: "var(--font-body), system-ui",
                     fontSize: 20,
                     fontWeight: 500,
                     lineHeight: 1.1,
@@ -598,10 +595,10 @@ function RosterPane({
                   </button>
                 </div>
               </div>
-            </li>
           ))}
-        </ul>
+        </div>
       )}
+      </div>
     </div>
   );
 }

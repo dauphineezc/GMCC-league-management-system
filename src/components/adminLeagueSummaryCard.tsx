@@ -20,7 +20,7 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
     .filter(Boolean) as Array<{ teamId: string; name: string; approved: boolean }>;
 
     return (
-    <div className="gradient-card" style={{ padding: 14 }}>
+    <div className="gradient-card">
       <h3 className="card-title" style={{ margin: "4px 0 14px" }}>{leagueName}</h3>
 
       {cleanTeams.length === 0 ? (
@@ -52,7 +52,7 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
                     <span
                       title={t.name}
                       style={{
-                        fontFamily: "var(--font-sport), var(--font-body), system-ui",
+                        fontFamily: "var(--font-body), system-ui",
                         fontWeight: 500,
                         fontSize: 22,
                         lineHeight: 1.2,
@@ -87,10 +87,6 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
                   }}>
                     <Link className="card-cta" href={`/admin/team/${safeId}`} prefetch={false} style={{
                       fontSize: "12px",
-                      textDecoration: "underline",
-                      color: "var(--navy)",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
                     }}>
                       VIEW TEAM →
                     </Link>
@@ -103,8 +99,8 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
       )}
 
       <div style={{ textAlign: "right", marginTop: 12 }}>
-        <Link href={`/leagues/${encodeURIComponent(leagueId)}`} prefetch={false}>
-          <span className="card-cta" style={{ fontSize: "12px" }}>VIEW LEAGUE →</span>
+        <Link className="card-cta" href={`/leagues/${encodeURIComponent(leagueId)}`} prefetch={false} style={{ fontSize: "12px" }}>
+          VIEW LEAGUE →
         </Link>
       </div>
     </div>

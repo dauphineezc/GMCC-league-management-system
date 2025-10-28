@@ -1,3 +1,5 @@
+// src/app/leagues/[leagueId]/sendAnnouncement/page.tsx
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 

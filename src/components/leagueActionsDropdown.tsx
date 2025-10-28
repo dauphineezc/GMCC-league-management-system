@@ -72,8 +72,8 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
       <div
         style={{
           maxHeight: open ? "450px" : "0",
-          maxWidth: "400px",
-          overflow: "hidden",
+          maxWidth: "420px",
+          overflow: open ? "visible" : "hidden",
           transition: "max-height 0.3s ease, opacity 0.3s ease",
           opacity: open ? 1 : 0,
         }}
@@ -82,7 +82,6 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
           className="gradient-card"
           style={{
             marginTop: "12px",
-            padding: "20px",
           }}
         >
           <div
@@ -94,7 +93,7 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
           >
             <Link
               href={`/leagues/${leagueId}/schedule`}
-              className="btn btn--primary"
+              className="btn btn--secondary btn--md"
               style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -104,7 +103,7 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
             </Link>
             <Link
               href={`/leagues/${leagueId}/results`}
-              className="btn btn--primary"
+              className="btn btn--secondary btn--md"
               style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
             >
               <svg width="20" height="20" viewBox="0 -960 960 960" fill="currentColor">
@@ -114,7 +113,7 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
             </Link>
             <Link
               href={`/leagues/${leagueId}/sendAnnouncement`}
-              className="btn btn--primary"
+              className="btn btn--secondary btn--md"
               style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
             >
               <svg width="20" height="20" viewBox="0 -960 960 960" fill="currentColor">
@@ -123,7 +122,7 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
               Send Announcement
             </Link>
             <a
-              className="btn btn--primary"
+              className="btn btn--secondary btn--md"
               href={`/leagues/${encodeURIComponent(leagueId)}/export.csv`}
               style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
             >

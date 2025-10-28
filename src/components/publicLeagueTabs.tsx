@@ -66,62 +66,51 @@ export default function PublicLeagueTabs({
       </div>
 
       <div className="pad-card-sides" style={{ paddingTop: 14 }}>
-        <div className="roster-gradient">
-          {!mounted ? (
-            <p className="muted" style={{ margin: 0 }}>Loading leagues...</p>
-          ) : list.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>No leagues available yet.</p>
-          ) : (
-            <ul className="roster-list" style={{ gap: "6px" }}>
-              {list.map(lg => (
-                <li key={lg.id}>
-                  <div
-                    className="player-card"
-                    style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "space-between", 
-                      padding: "8px 12px",
-                      minHeight: "auto",
-                      height: "auto",
-                    }}
-                  >
-                    <span className="item-name" style={{ 
-                      fontWeight: 500,
-                      fontSize: 22,
-                      lineHeight: 1.1,
-                      color: "var(--navy)",
-                      flex: 1,
-                      minWidth: 0,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {lg.name}
-                    </span>
-                    <Link 
-                      href={`/leagues/${lg.id}`} 
-                      className="card-cta"
-                      style={{
-                        fontSize: "12px",
-                        textDecoration: "underline",
-                        color: "var(--navy)",
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        marginLeft: "12px",
-                        lineHeight: 1.2,
-                        justifyContent: "flex-end",
-                        paddingRight: "12px",
-                      }}
-                    >
-                      VIEW LEAGUE →
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {!mounted ? (
+          <p className="muted" style={{ margin: 0 }}>Loading leagues...</p>
+        ) : list.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>No leagues available yet.</p>
+        ) : (
+          <div>
+            {list.map((lg, idx) => (
+              <div
+                key={lg.id}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between", 
+                  padding: "12px 8px",
+                  borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                }}
+              >
+                <span style={{ 
+                  fontWeight: 500,
+                  fontSize: 20,
+                  lineHeight: 1.2,
+                  color: "var(--navy)",
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}>
+                  {lg.name}
+                </span>
+                <Link 
+                  href={`/leagues/${lg.id}`} 
+                  className="card-cta"
+                  style={{
+                    fontSize: "12px",
+                    flexShrink: 0,
+                    marginLeft: "12px",
+                  }}
+                >
+                  VIEW LEAGUE →
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

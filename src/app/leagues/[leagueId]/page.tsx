@@ -250,23 +250,27 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
             labels={{ teams: "Teams", schedule: "Schedule", history: "Game History", standings: "Standings" }}
             tabs={{
               teams: (
-                <div className="roster-gradient">
+                <div>
                   {teams.length === 0 ? (
                     <div className="p-4 text-center">
                       <div className="text-gray-500">No teams yet.</div>
                     </div>
                   ) : (
-                    <ul className="roster-list">
-                      {teams.map((t) => (
-                        <li key={t.teamId}>
-                          <div className="player-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                            <span style={{ fontFamily: "var(--font-sport), var(--font-body), system-ui", fontWeight: 500, letterSpacing: ".3px", fontSize: 24 }}>
-                              {t.name}
-                            </span>
-                          </div>
-                        </li>
+                    <div>
+                      {teams.map((t, idx) => (
+                        <div key={t.teamId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 8px", borderTop: idx === 0 ? "none" : "1px solid #f3f4f6" }}>
+                          <span style={{ 
+                            fontFamily: "var(--font-body), system-ui", 
+                            fontWeight: 500, 
+                            letterSpacing: ".3px", 
+                            fontSize: 20, 
+                            color: "var(--navy)" 
+                          }}>
+                            {t.name}
+                          </span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               ),
@@ -325,7 +329,7 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
                                     fontSize: "22px", 
                                     fontWeight: 400, 
                                     color: "var(--navy)",
-                                    fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                                    fontFamily: "var(--font-body), system-ui"
                                   }}>
                                     {s.teamName || s.name || s.teamId}
                                   </h3>

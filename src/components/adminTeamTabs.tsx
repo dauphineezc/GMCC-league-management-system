@@ -181,24 +181,26 @@ export default function AdminTeamTabs({
 
       <div className="pad-card-sides" style={{ paddingTop: 14 }}>
         {tab === "roster" && (
-          <div className="roster-gradient">
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "10px 10px" }}>
             {sortedRoster.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>No players yet.</p>
             ) : (
-              <ul className="roster-list">
-                {sortedRoster.map((p) => (
-                  <li key={p.userId}>
-                    <div
-                        className="player-card player-card--team-roster"
-                        style={{
-                          display: "grid",
-                          alignItems: "center",
-                          columnGap: COL_GAP,
-                          gridTemplateColumns: "minmax(240px,1fr) max-content max-content max-content max-content",
-                          justifyItems: "start",
-                          paddingRight: 10,
-                        }}
-                      >
+              <div>
+                {sortedRoster.map((p, idx) => (
+                  <div
+                      key={p.userId}
+                      className="player-card--team-roster"
+                      style={{
+                        display: "grid",
+                        alignItems: "center",
+                        columnGap: COL_GAP,
+                        gridTemplateColumns: "minmax(240px,1fr) max-content max-content max-content max-content",
+                        justifyItems: "start",
+                        paddingRight: 10,
+                        padding: "12px 8px",
+                        borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                      }}
+                    >
                       {/* Mobile: New 3-4 line layout */}
                       {isMobile ? (
                         <div style={{ 
@@ -213,12 +215,13 @@ export default function AdminTeamTabs({
                           {/* Line 1: Player name only */}
                           <div style={{ width: "100%" }}>
                             <div style={{
-                              fontFamily: "var(--font-sport), var(--font-body), system-ui", 
-                              fontSize: 24, 
+                              fontFamily: "var(--font-body), system-ui", 
+                              fontSize: 20, 
                               fontWeight: 500,
                               letterSpacing: ".3px",
-                              lineHeight: 1.1,
-                              wordBreak: "break-word"
+                              lineHeight: 1.2,
+                              wordBreak: "break-word",
+                              color: "var(--navy)",
                             }}>
                               {p.displayName}
                             </div>
@@ -361,15 +364,16 @@ export default function AdminTeamTabs({
                       ) : (
                         /* Desktop: Player name only */
                         <div style={{ 
-                          fontFamily: "var(--font-sport), var(--font-body), system-ui", 
-                          fontSize: 24, 
+                          fontFamily: "var(--font-body), system-ui", 
+                          fontSize: 20, 
                           fontWeight: 500,
                           paddingLeft: 15,
                           letterSpacing: ".3px",
-                          lineHeight: 1.1,
+                          lineHeight: 1.2,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
+                          color: "var(--navy)",
                         }}>
                           {p.displayName}
                         </div>
@@ -451,15 +455,16 @@ export default function AdminTeamTabs({
                         </button>
                       )}
                     </div>
-                  </li>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         )}
 
         {tab === "schedule" && (
-          <ScheduleViewer leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+            <ScheduleViewer leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          </div>
         )}
 
         {tab === "history" && (
@@ -467,7 +472,7 @@ export default function AdminTeamTabs({
         )}
 
         {tab === "standings" && (
-          <div>
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
             {loadingStandings ? (
               <p style={{ textAlign: 'center', color: '#666' }}>Loading standings...</p>
             ) : standings.length === 0 ? (
@@ -495,8 +500,11 @@ export default function AdminTeamTabs({
                             <tr 
                               key={s.teamId}
                               style={{ 
-                                background: isCurrentTeam ? '#F1F8FF' : 'transparent',
-                                fontWeight: isCurrentTeam ? 600 : 400,
+                                // background: isCurrentTeam ? '#F1F4F9' : 'transparent',
+                                background: isCurrentTeam ? 'rgba(75,139,43,.05)' : 'transparent',
+                                fontWeight: isCurrentTeam ? 500 : 400,
+                                borderLeft: isCurrentTeam ? '3.5px solid rgba(75,139,43,.3)' : '3px solid transparent',
+                                // borderRight: isCurrentTeam ? '2px solid rgba(0,58,112,.08)' : '1px solid transparent',
                               }}
                             >
                               <td style={td}>{s.teamName || s.name || s.teamId}</td>
@@ -525,6 +533,10 @@ export default function AdminTeamTabs({
                             style={{
                               backgroundColor: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
                               padding: "10px 10px",
+                              border: isCurrentTeam ? '1px solid rgba(0,58,112,.12)' : '1px solid transparent',
+                              borderLeft: isCurrentTeam ? '3px solid rgba(75,139,43,.35)' : '3px solid transparent',
+                              borderRadius: isCurrentTeam ? '8px' : '0',
+                              boxShadow: isCurrentTeam ? '0 2px 8px rgba(0,58,112,.06)' : 'none',
                             }}
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
@@ -533,7 +545,7 @@ export default function AdminTeamTabs({
                                 fontSize: "22px", 
                                 fontWeight: 400, 
                                 color: "var(--navy)",
-                                fontFamily: "var(--font-sport), var(--font-body), system-ui"
+                                fontFamily: "var(--font-body), system-ui"
                               }}>
                                 {s.teamName || s.name || s.teamId}
                               </h3>

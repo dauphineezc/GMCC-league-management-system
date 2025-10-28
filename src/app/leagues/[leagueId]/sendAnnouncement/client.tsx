@@ -1,3 +1,5 @@
+// src/app/leagues/[leagueId]/sendAnnouncement/client.tsx
+
 "use client";
 
 import { useState } from "react";

@@ -93,7 +93,7 @@ export default function DirectoryRosterClient({
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
     const measure = (txt: string, font: string) => { ctx.font = font; return Math.ceil(ctx.measureText(txt).width); };
-    const nameFont = "700 24px var(--font-sport), var(--font-body), system-ui";
+    const nameFont = "700 24px var(--font-body), system-ui";
     const teamFont = "800 16px var(--font-body), system-ui";
     const metaFont = "700 14px var(--font-body), system-ui";
     const badgeFont = "700 14px var(--font-body), system-ui";
@@ -124,7 +124,7 @@ export default function DirectoryRosterClient({
                       ["--col-gap" as any]: `${COL_GAP}px`,
                     }}
                   >
-                    <div style={{ fontFamily: "var(--font-sport), var(--font-body), system-ui", fontSize: 24, fontWeight: 500 }}>
+                    <div style={{ fontFamily: "var(--font-body), system-ui", fontSize: 24, fontWeight: 500 }}>
                       {p.displayName}
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "var(--navy)", textTransform: "uppercase" }}>

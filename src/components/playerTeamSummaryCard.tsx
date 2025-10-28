@@ -23,11 +23,11 @@ export default function TeamSummaryCard({
       <h3 id={headingId} className="card-title">{name}</h3>
       <div className="card-subtitle">{league}</div>
 
-      <div className="card-inner" style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 10 }}>
         {/* Status */}
         <div>
           <span className={`status ${approved ? "status--ok" : "status--pending"}`}>
-            {approved ? "Approved" : "Pending Approval"}
+            {approved ? "Approved" : "Pending"}
           </span>
         </div>
 

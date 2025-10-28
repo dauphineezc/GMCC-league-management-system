@@ -24,29 +24,27 @@ export default function TeamCard({
         </p>
       )}
 
-      <div className="card-inner">
-        <div>
-          <span className={`status ${approved ? "status--ok" : "status--pending"}`}>
-            {approved ? "Approved" : "Pending Approval"}
-          </span>
-        </div>
-
-        <p style={{ margin: "10px 0 6px", color: "var(--text)" }}>
-          {nextGame ? (
-            <>
-              <strong>Next Game:</strong> {nextGame}
-            </>
-          ) : (
-            <em>No upcoming game.</em>
-          )}
-        </p>
-
-        {href && (
-          <div style={{ textAlign: "right" }}>
-            <a className="card-cta" href={href}>View Team →</a>
-          </div>
-        )}
+      <div>
+        <span className={`status ${approved ? "status--ok" : "status--pending"}`}>
+          {approved ? "Approved" : "Pending"}
+        </span>
       </div>
+
+      <p style={{ margin: "10px 0 6px", color: "var(--text)" }}>
+        {nextGame ? (
+          <>
+            <strong>Next Game:</strong> {nextGame}
+          </>
+        ) : (
+          <em>No upcoming game.</em>
+        )}
+      </p>
+
+      {href && (
+        <div style={{ textAlign: "right" }}>
+          <a className="card-cta" href={href}>View Team →</a>
+        </div>
+      )}
     </article>
   );
 }
