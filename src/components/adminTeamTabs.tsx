@@ -30,11 +30,11 @@ function hashCode(str: string) {
 function fakeContact(displayName: string) {
   const slug = slugify(displayName || "player");
   return {
-    email: `${slug}@example.com`,
-    phone: "(989) 555-" + String(Math.abs(hashCode(slug)) % 9000 + 1000),
-    dob: "1990-05-21",
-    emergencyName: "Spouse",
-    emergencyPhone: "(989) 888-9988",
+    email: "",           // ← blank (falsy) so popup won’t render @example.com first
+    phone: "",
+    dob: "",
+    emergencyName: "",
+    emergencyPhone: "",
   };
 }
 
@@ -181,109 +181,79 @@ export default function AdminTeamTabs({
 
       <div className="pad-card-sides" style={{ paddingTop: 14 }}>
         {tab === "roster" && (
-          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "10px 10px" }}>
+          <>
             {sortedRoster.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>No players yet.</p>
             ) : (
-              <div>
-                {sortedRoster.map((p, idx) => (
-                  <div
-                      key={p.userId}
-                      className="player-card--team-roster"
-                      style={{
-                        display: "grid",
-                        alignItems: "center",
-                        columnGap: COL_GAP,
-                        gridTemplateColumns: "minmax(240px,1fr) max-content max-content max-content max-content",
-                        justifyItems: "start",
-                        paddingRight: 10,
-                        padding: "12px 8px",
-                        borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
-                      }}
-                    >
-                      {/* Mobile: New 3-4 line layout */}
-                      {isMobile ? (
-                        <div style={{ 
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          gap: "8px",
-                          width: "100%",
-                          paddingLeft: 15,
-                          paddingRight: 15
-                        }}>
-                          {/* Line 1: Player name only */}
-                          <div style={{ width: "100%" }}>
-                            <div style={{
-                              fontFamily: "var(--font-body), system-ui", 
-                              fontSize: 20, 
-                              fontWeight: 500,
-                              letterSpacing: ".3px",
-                              lineHeight: 1.2,
-                              wordBreak: "break-word",
-                              color: "var(--navy)",
-                            }}>
-                              {p.displayName}
-                            </div>
-                          </div>
-
-                          {/* Line 2: Manager badge (if manager) OR Payment info (if not manager) */}
-                          <div style={{ 
-                            display: "flex", 
-                            alignItems: "center", 
-                            gap: "12px",
-                            width: "100%",
-                            flexWrap: "wrap"
-                          }}>
-                            {p.isManager ? (
-                              <span className="player-meta" title="Team Manager" style={{ 
-                                fontSize: "12px", 
-                                display: "flex", 
-                                alignItems: "center", 
-                                gap: "4px",
-                                fontFamily: "var(--font-body), system-ui"
-                              }}>
-                                <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
-                                  <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                                </svg>
-                                Manager
-                              </span>
-                            ) : (
-                              <>
-                                <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
-                                  {p.paid ? "PAID" : "UNPAID"}
-                                </span>
-                                <form action={onTogglePaid}>
-                                  <input type="hidden" name="userId" value={p.userId} />
-                                  <button className="btn btn--light btn--sm" type="submit">
-                                    {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
-                                  </button>
-                                </form>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Line 3: Payment info (if manager) OR Actions (if not manager) */}
-                          <div style={{ 
-                            display: "flex", 
-                            alignItems: "center", 
-                            justifyContent: "space-between",
-                            width: "100%"
-                          }}>
-                            {p.isManager ? (
-                              <>
-                                <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
-                                  {p.paid ? "PAID" : "UNPAID"}
-                                </span>
-                                <form action={onTogglePaid}>
-                                  <input type="hidden" name="userId" value={p.userId} />
-                                  <button className="btn btn--light btn--sm" type="submit">
-                                    {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
-                                  </button>
-                                </form>
-                              </>
-                            ) : (
-                              <>
+              <>
+                {/* Desktop table */}
+                <div className="admin-team-roster-desktop">
+                  <div className="card--soft rounded-2xl border overflow-hidden">
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr>
+                            <th style={th}>Player Name</th>
+                            <th style={thCenter}>Role</th>
+                            <th style={thCenter}>Payment Status</th>
+                            <th style={thCenter}>View</th>
+                            <th style={thCenter}>Remove</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedRoster.map((p) => (
+                            <tr key={p.userId}>
+                              <td style={td}>{p.displayName}</td>
+                              <td style={tdCenter}>
+                                {p.isManager && (
+                                  <span className="player-meta" title="Team Manager" style={{ 
+                                    whiteSpace: "nowrap",
+                                    fontSize: "12px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}>
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                                      <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                                    </svg>
+                                    Manager
+                                  </span>
+                                )}
+                              </td>
+                              <td style={tdCenter}>
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
+                                    {p.paid ? "PAID" : "UNPAID"}
+                                  </span>
+                                  <form action={onTogglePaid} style={{ display: "inline" }}>
+                                    <input type="hidden" name="userId" value={p.userId} />
+                                    <button 
+                                      className="icon-btn icon-btn--light" 
+                                      type="submit"
+                                      aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
+                                      title={p.paid ? "Mark as unpaid" : "Mark as paid"}
+                                    >
+                                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </button>
+                                  </form>
+                                </div>
+                              </td>
+                              <td style={tdCenter}>
+                                <button
+                                  type="button"
+                                  className="card-cta"
+                                  aria-label={`View ${p.displayName}`}
+                                  onClick={() => openPopupFor(p)}
+                                  title={`View ${p.displayName}`}
+                                  style={{ whiteSpace: "nowrap" }}
+                                >
+                                  VIEW PLAYER →
+                                </button>
+                              </td>
+                              <td style={tdCenter}>
                                 <button
                                   type="button"
                                   className="icon-btn icon-btn--danger"
@@ -291,174 +261,111 @@ export default function AdminTeamTabs({
                                   disabled={removingPlayer === p.userId}
                                   aria-label={`Remove ${p.displayName}`}
                                   title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
-                                  style={{ padding: "4px" }}
                                 >
-                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
+                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
                                     <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
                                     <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
                                     <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
                                     <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
                                   </svg>
                                 </button>
-                                <button
-                                  type="button"
-                                  className="card-cta"
-                                  aria-label={`View ${p.displayName}`}
-                                  onClick={() => openPopupFor(p)}
-                                  title={`View ${p.displayName}`}
-                                  style={{
-                                    whiteSpace: "nowrap",
-                                    overflowWrap: "normal",
-                                    wordBreak: "normal",
-                                    display: "inline-block"
-                                  }}
-                                >
-                                  VIEW PLAYER →
-                                </button>
-                              </>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mobile cards */}
+                <div className="admin-team-roster-mobile">
+                  <ul className="roster-list">
+                    {sortedRoster.map((p) => (
+                      <li key={p.userId}>
+                        <div className="player-card" style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                            <h3 style={{ 
+                              margin: 0, 
+                              fontSize: "20px", 
+                              fontWeight: 500, 
+                              color: "var(--navy)",
+                              fontFamily: "var(--font-body), system-ui"
+                            }}>
+                              {p.displayName}
+                            </h3>
+                            {p.isManager && (
+                              <span className="player-meta" title="Team Manager" style={{ 
+                                whiteSpace: "nowrap",
+                                fontSize: "12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}>
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                                  <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                                </svg>
+                                Manager
+                              </span>
                             )}
                           </div>
-
-                          {/* Line 4: Actions (only if manager) */}
-                          {p.isManager && (
-                            <div style={{ 
-                              display: "flex", 
-                              alignItems: "center", 
-                              justifyContent: "space-between",
-                              width: "100%"
-                            }}>
-                              <button
-                                type="button"
-                                className="icon-btn icon-btn--danger"
-                                onClick={() => handleRemovePlayer(p.userId, p.displayName)}
-                                disabled={removingPlayer === p.userId}
-                                aria-label={`Remove ${p.displayName}`}
-                                title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
-                                style={{ padding: "4px" }}
+                          
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                            <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
+                              {p.paid ? "PAID" : "UNPAID"}
+                            </span>
+                            <form action={onTogglePaid} style={{ display: "inline" }}>
+                              <input type="hidden" name="userId" value={p.userId} />
+                              <button 
+                                className="icon-btn icon-btn--light" 
+                                type="submit"
+                                aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
+                                title={p.paid ? "Mark as unpaid" : "Mark as paid"}
                               >
                                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
-                                  <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
-                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
-                                  <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
-                                  <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                               </button>
-                              <button
-                                type="button"
-                                className="card-cta"
-                                aria-label={`View ${p.displayName}`}
-                                onClick={() => openPopupFor(p)}
-                                title={`View ${p.displayName}`}
-                                style={{
-                                  whiteSpace: "nowrap",
-                                  overflowWrap: "normal",
-                                  wordBreak: "normal",
-                                  display: "inline-block"
-                                }}
-                              >
-                                VIEW PLAYER →
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        /* Desktop: Player name only */
-                        <div style={{ 
-                          fontFamily: "var(--font-body), system-ui", 
-                          fontSize: 20, 
-                          fontWeight: 500,
-                          paddingLeft: 15,
-                          letterSpacing: ".3px",
-                          lineHeight: 1.2,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          color: "var(--navy)",
-                        }}>
-                          {p.displayName}
-                        </div>
-                      )}
-
-                      {/* Desktop: Manager badge column */}
-                      {!isMobile && (
-                        <div className="player-card__manager-desktop">
-                          {p.isManager ? (
-                            <span className="player-meta" title="Team Manager">
-                              <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4, alignSelf: "center" }}>
-                                <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                              </svg>
-                              Team Manager
-                            </span>
-                          ) : (
-                            <span className="player-meta" style={{ opacity: 0 }}>
-                              <svg viewBox="0 0 24 24" width="16" height="16" fill="navy" aria-hidden="true" style={{ marginRight: 4, alignSelf: "center" }}>
-                                <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                              </svg>
-                              Team Manager
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Desktop: Payment group only */}
-                      {!isMobile && (
-                        /* Desktop: Payment group only */
-                        <div className="paygroup" style={{ display: "inline-flex", alignItems: "center", gap: PAYGROUP_GAP, alignSelf: "center" }}>
-                          <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>{p.paid ? "PAID" : "UNPAID"}</span>
-                          <form action={onTogglePaid}>
-                            <input type="hidden" name="userId" value={p.userId} />
-                            <button className="btn btn--light btn--sm" type="submit">
-                              {p.paid ? "MARK AS UNPAID" : "MARK AS PAID"}
+                            </form>
+                          </div>
+                          
+                          <div style={{ display: "flex", gap: "8px", justifyContent: "space-between" }}>
+                            <button
+                              type="button"
+                              className="card-cta"
+                              aria-label={`View ${p.displayName}`}
+                              onClick={() => openPopupFor(p)}
+                              title={`View ${p.displayName}`}
+                              style={{ flex: 1 }}
+                            >
+                              VIEW PLAYER →
                             </button>
-                          </form>
+                            <button
+                              type="button"
+                              className="icon-btn icon-btn--danger"
+                              onClick={() => handleRemovePlayer(p.userId, p.displayName)}
+                              disabled={removingPlayer === p.userId}
+                              aria-label={`Remove ${p.displayName}`}
+                              title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
+                              style={{ padding: "8px" }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
+                                <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                                <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                                <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
-                      )}
-
-                      {/* Desktop: Separate view player button */}
-                      {!isMobile && (
-                        <button
-                          type="button"
-                          className="card-cta player-card__view-desktop"
-                          aria-label={`View ${p.displayName}`}
-                          onClick={() => openPopupFor(p)}
-                          title={`View ${p.displayName}`}
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflowWrap: "normal",
-                            wordBreak: "normal",
-                            display: "inline-block"
-                          }}
-                        >
-                          VIEW PLAYER →
-                        </button>
-                      )}
-
-                      {/* Desktop: Trash icon column */}
-                      {!isMobile && (
-                        <button
-                          type="button"
-                          className="icon-btn icon-btn--danger player-card__trash-desktop"
-                          onClick={() => handleRemovePlayer(p.userId, p.displayName)}
-                          disabled={removingPlayer === p.userId}
-                          aria-label={`Remove ${p.displayName}`}
-                          title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
-                          style={{
-                            justifySelf: "end",
-                          }}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
-                            <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
-                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
-                            <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
-                            <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                ))}
-              </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
             )}
-          </div>
+          </>
         )}
 
         {tab === "schedule" && (

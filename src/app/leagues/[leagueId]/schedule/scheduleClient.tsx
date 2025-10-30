@@ -320,7 +320,7 @@ export default function ScheduleClient({
             onChange={handlePdfChange}
             style={{ display: "none" }}
           />
-          <label htmlFor="pdf-file" className="btn btn--light btn-file">
+          <label htmlFor="pdf-file" className="btn btn--light btn-file btn--md">
             Upload PDF
           </label>
 
@@ -431,14 +431,14 @@ export default function ScheduleClient({
 
             {/* Actions (Add first for keyboard flow) */}
             <div className="form-actions">
-              <button type="submit" className="btn btn--primary" disabled={!canSubmit || busy}>
+              <button type="submit" className="btn btn--primary btn--md" disabled={!canSubmit || busy}>
                 {busy ? "Adding…" : "Add Game"}
               </button>
               <div className="actions-left">
-                <button type="button" className="btn" onClick={() => setForm((f) => ({ ...f, homeTeamName: f.awayTeamName, awayTeamName: f.homeTeamName }))} disabled={busy}>
+                <button type="button" className="btn btn--md" onClick={() => setForm((f) => ({ ...f, homeTeamName: f.awayTeamName, awayTeamName: f.homeTeamName }))} disabled={busy}>
                   Swap Teams
                 </button>
-                <button type="button" className="btn" onClick={() => setForm({ homeTeamName: "", awayTeamName: "", date: "", time: "", location: "Court A", customLocation: "", timezone: "America/New_York" })} disabled={busy}>
+                <button type="button" className="btn btn--md" onClick={() => setForm({ homeTeamName: "", awayTeamName: "", date: "", time: "", location: "Court A", customLocation: "", timezone: "America/New_York" })} disabled={busy}>
                   Clear
                 </button>
               </div>

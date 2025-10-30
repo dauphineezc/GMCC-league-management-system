@@ -87,6 +87,12 @@ async function isAdminOfLeague(userId: string, leagueId: string) {
   return false;
 }
 
+// authoritative payments: team:{teamId}:payments => { [uid]: boolean }
+async function getPaymentStatus(userId: string, teamId: string) {
+  const m = await kv.get<Record<string, boolean>>(`team:${teamId}:payments`);
+  return m && m[userId] ? "PAID" as const : "UNPAID" as const;
+}
+
 /** ================== Core Action ================== */
 export async function sendAnnouncementAction(formData: FormData) {
   const subject = (formData.get("subject") as string)?.trim();
@@ -215,26 +221,41 @@ export async function sendAnnouncementAction(formData: FormData) {
   const batches = chunk(recipients, 50);
   const results: { batch: number; status: number; error?: any }[] = [];
 
+  // BCC recipients
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
-    const payload = {
-      Messages: [
-        {
-          From: { Email: FROM_EMAIL, Name: FROM_NAME },
-          To: batch,
-          Subject: subject,
-          TextPart: textPart,
-          HTMLPart: htmlPart,
-          // Tracking hints help surface events sooner in history
-          TrackOpens: "enabled" as const,
-          TrackClicks: "enabled" as const,
-          CustomID: `league_${leagueId}_announcement_${Date.now()}_${i}`,
-          SandboxMode: false,
-        },
-      ],
-    };
 
-    const endpoint = `${MJ_BASE}/v3.1/send`;
+    const payload = {
+      Messages: recipients.map((r, idx) => ({
+        From: { Email: FROM_EMAIL, Name: FROM_NAME },
+        To: [{ Email: r.Email, Name: r.Name }],
+        Subject: subject,
+        TextPart: textPart,
+        HTMLPart: htmlPart,
+        TrackOpens: "enabled" as const,
+        TrackClicks: "enabled" as const,
+        CustomID: `league_${leagueId}_announcement_${Date.now()}_${idx}`,
+        SandboxMode: false,
+      })),
+    };
+    
+    // const payload = {
+    //   Messages: [
+    //     {
+    //       From: { Email: FROM_EMAIL, Name: FROM_NAME },
+    //       To: [{ Email: FROM_EMAIL, Name: FROM_NAME }], // visible header
+    //       Bcc: recipients, // all hidden
+    //       Subject: subject,
+    //       TextPart: textPart,
+    //       HTMLPart: htmlPart,
+    //       TrackOpens: "enabled" as const,
+    //       TrackClicks: "enabled" as const,
+    //       SandboxMode: false,
+    //     },
+    //   ],
+    // };      
+
+    const endpoint = `${MJ_BASE}/v8.1/send`;
     console.log(
       `Sending batch ${i + 1}/${batches.length} to ${batch.length} recipients`
     );

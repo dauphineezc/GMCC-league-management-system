@@ -1,7 +1,7 @@
 // /src/app/api/users/profile/route.ts
 import { kv } from "@vercel/kv";
 import { NextResponse } from "next/server";
-import { getServerUser } from "@/lib/serverUser"; // your existing helper
+import { getServerUser } from "@/lib/serverUser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

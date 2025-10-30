@@ -42,11 +42,11 @@ function hashCode(str: string) {
 function fakeContact(displayName: string) {
   const slug = slugify(displayName || "player");
   return {
-    email: `${slug}@example.com`,
-    phone: "(989) 555-" + String(Math.abs(hashCode(slug)) % 9000 + 1000),
-    dob: "05/21/1990",
-    emergencyName: "Spouse",
-    emergencyPhone: "(989) 888-9988",
+    email: "",           // ← blank (falsy) so popup won’t render @example.com first
+    phone: "",
+    dob: "",
+    emergencyName: "",
+    emergencyPhone: "",
   };
 }
 
@@ -202,82 +202,78 @@ function TeamsPane({
   leagueId: string;
   teams: TeamLite[];
 }) {
-  const ACTIONS_WIDTH = 420;
-  const ACTIONS_MIN_H = 260;
-  const COL_GAP = 100;
+  if (teams.length === 0) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-gray-500">No teams yet.</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="admin-league-layout">
-      <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
-        {teams.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            No teams yet.
-          </p>
-        ) : (
-          <div>
-          {teams.map((t, idx) => (
-            <div
-              key={t.teamId}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                padding: "12px 8px",
-                borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
-              }}
-            >
-              {/* Top row: Team name and badge inline */}
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "space-between",
-                gap: "12px"
-              }}>
-                <span
-                  style={{
-                    fontFamily: "var(--font-body), system-ui",
-                    fontWeight: 500,
-                    letterSpacing: ".3px",
-                    fontSize: 20,
-                    lineHeight: 1.2,
+    <div>
+      {/* Desktop table */}
+      <div className="teams-desktop">
+        <div className="card--soft rounded-2xl border overflow-hidden">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Team Name</th>
+                  <th style={thCenter}>Status</th>
+                  <th style={thCenter}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((t) => (
+                  <tr key={t.teamId}>
+                    <td style={td}>{t.name}</td>
+                    <td style={tdCenter}>
+                      <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`}>
+                        {t.approved ? "APPROVED" : "PENDING"}
+                      </span>
+                    </td>
+                    <td style={tdCenter}>
+                      <Link href={`/admin/team/${t.teamId}`} className="card-cta">
+                        VIEW TEAM →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile cards */}
+      <div className="teams-mobile">
+        <ul className="roster-list">
+          {teams.map((t) => (
+            <li key={t.teamId}>
+              <div className="player-card" style={{ padding: "12px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <h3 style={{ 
+                    margin: 0, 
+                    fontSize: "20px", 
+                    fontWeight: 500, 
                     color: "var(--navy)",
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {t.name}
-                </span>
+                    fontFamily: "var(--font-body), system-ui"
+                  }}>
+                    {t.name}
+                  </h3>
+                  <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`}>
+                    {t.approved ? "APPROVED" : "PENDING"}
+                  </span>
+                </div>
                 
-                {/* Badge inline with team name */}
-                <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
-                  fontSize: "12px",
-                  padding: "4px 8px",
-                  fontWeight: 700,
-                  lineHeight: 1.2,
-                  flexShrink: 0,
-                }}>
-                  {t.approved ? "APPROVED" : "PENDING"}
-                </span>
-              </div>
-              
-              {/* Bottom row: View link aligned right */}
-              <div style={{ 
-                display: "flex", 
-                justifyContent: "flex-end" 
-              }}>
-                <Link href={`/admin/team/${t.teamId}`} className="card-cta" style={{
-                  fontSize: "12px",
-                }}>
+                <Link href={`/admin/team/${t.teamId}`} className="card-cta" style={{ width: "100%", display: "block", textAlign: "center" }}>
                   VIEW TEAM →
                 </Link>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
-      )}
+        </ul>
       </div>
     </div>
   );
@@ -396,8 +392,6 @@ function RosterPane({
   roster: RosterRow[];
   onView: (row: RosterRow) => void;
 }) {
-  const COL_GAP = 70;
-
   // Sort roster alphabetically by display name
   const sortedRoster = useMemo(() => {
     return [...roster].sort((a, b) => 
@@ -405,199 +399,136 @@ function RosterPane({
     );
   }, [roster]);
 
-  const col = useMemo(() => {
-    if (typeof document === "undefined") {
-      return { namePx: 200, teamPx: 160, managerPx: 140, paidPx: 110 };
-    }
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d")!;
-
-    const measure = (txt: string, font: string) => {
-      ctx.font = font;
-      return Math.ceil(ctx.measureText(txt).width);
-    };
-
-    const nameFont = "700 24px var(--font-body), system-ui";
-    const teamFont = "800 16px var(--font-body), system-ui";
-    const metaFont = "700 14px var(--font-body), system-ui";
-    const badgeFont = "700 14px var(--font-body), system-ui";
-
-    let namePx = 160;
-    let teamPx = 140;
-
-    for (const r of sortedRoster) {
-      namePx = Math.max(namePx, measure(r.displayName || "", nameFont));
-      teamPx = Math.max(teamPx, measure((r.teamName || "").toUpperCase(), teamFont));
-    }
-
-    const managerPx = measure("Team Manager", metaFont) + 24;
-    const paidPx = Math.max(measure("PAID", badgeFont), measure("UNPAID", badgeFont)) + 28;
-
-    return { namePx, teamPx, managerPx, paidPx };
-  }, [sortedRoster]);
+  if (sortedRoster.length === 0) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-gray-500">No players yet.</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ marginTop: 8 }}>
-      <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
-        {sortedRoster.length === 0 ? (
-          <p className="muted" style={{ margin: 0 }}>
-            No players yet.
-          </p>
-        ) : (
-          <div>
-          {sortedRoster.map((p, idx) => (
-            <div
-              key={`${p.teamId}:${p.userId}`}
-              className="player-card--aligned player-card--mobile-layout"
-              style={{
-                padding: "10px 8px",
-                borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
-              }}
-            >
-                {/* Line 1: Player name only */}
-                <div
-                  style={{
-                    fontFamily: "var(--font-body), system-ui",
-                    fontSize: 20,
-                    fontWeight: 500,
-                    lineHeight: 1.1,
+    <div>
+      {/* Desktop table */}
+      <div className="roster-desktop">
+        <div className="card--soft rounded-2xl border overflow-hidden">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Player Name</th>
+                  <th style={th}>Team Name</th>
+                  <th style={thCenter}>Manager</th>
+                  <th style={thCenter}>Status</th>
+                  <th style={thCenter}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRoster.map((p) => (
+                  <tr key={`${p.teamId}:${p.userId}`}>
+                    <td style={td}>{p.displayName}</td>
+                    <td style={td}>{p.teamName}</td>
+                    <td style={tdCenter}>
+                      {p.isManager && (
+                        <span className="player-meta" title="Team Manager" style={{ 
+                          whiteSpace: "nowrap",
+                          fontSize: "12px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                            <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                          </svg>
+                          Manager
+                        </span>
+                      )}
+                    </td>
+                    <td style={tdCenter}>
+                      <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
+                        {p.paid ? "PAID" : "UNPAID"}
+                      </span>
+                    </td>
+                    <td style={tdCenter}>
+                      <button
+                        type="button"
+                        className="card-cta"
+                        aria-label={`View ${p.displayName}`}
+                        onClick={() => onView(p)}
+                        title={`View ${p.displayName}`}
+                        style={{ 
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        VIEW PLAYER →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile cards */}
+      <div className="roster-mobile">
+        <ul className="roster-list">
+          {sortedRoster.map((p) => (
+            <li key={`${p.teamId}:${p.userId}`}>
+              <div className="player-card" style={{ padding: "12px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <h3 style={{ 
+                    margin: 0, 
+                    fontSize: "20px", 
+                    fontWeight: 500, 
                     color: "var(--navy)",
-                  }}
-                >
-                  {p.displayName}
-                </div>
-
-                {/* Desktop layout: Team name, Manager badge, Paid badge, and View Player link */}
-                <div
-                  className={p.isManager ? "has-manager-badge" : "no-manager-badge"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    width: "100%",
-                    gap: "12px",
-                  }}
-                >
-                  {/* Team name - takes available space */}
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      color: "var(--navy)",
-                      flex: 1,
-                      minWidth: 0,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {p.teamName}
-                  </div>
-                  
-                  {/* Manager badge - fixed width */}
-                  {p.isManager && (
-                    <span className="player-meta" title="Team Manager" style={{ 
-                      whiteSpace: "nowrap",
-                      fontSize: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      flexShrink: 0,
-                      width: "80px",
-                    }}>
-                      <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
-                        <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                      </svg>
-                      Manager
-                    </span>
-                  )}
-                  
-                  {/* Paid badge - auto width */}
-                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`} style={{ 
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    textAlign: "center",
+                    fontFamily: "var(--font-body), system-ui"
                   }}>
+                    {p.displayName}
+                  </h3>
+                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
                     {p.paid ? "PAID" : "UNPAID"}
                   </span>
-
-                  {/* Spacer to push View Player to the right */}
-                  <div style={{ flex: 1, minWidth: "20px" }} />
-
-                  {/* View Player link - anchored to right */}
-                  <button
-                    type="button"
-                    className="card-cta"
-                    aria-label={`View ${p.displayName}`}
-                    onClick={() => onView(p)}
-                    title={`View ${p.displayName}`}
-                    style={{ 
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    VIEW PLAYER →
-                  </button>
-                </div>
-
-                {/* Mobile layout: Team name and manager badge on same line */}
-                <div className="mobile-team-name" style={{ display: "none" }}>
-                  <span style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "var(--navy)",
-                    fontFamily: "var(--font-body), system-ui",
-                  }}>
-                    {p.teamName}
-                  </span>
-                  
-                  {p.isManager && (
-                    <span className="player-meta" title="Team Manager" style={{ 
-                      whiteSpace: "nowrap",
-                      fontSize: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      flexShrink: 0,
-                      marginLeft: "8px",
-                    }}>
-                      <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
-                        <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                      </svg>
-                      Manager
-                    </span>
-                  )}
                 </div>
                 
-                <div className="mobile-badges-row" style={{ display: "none" }}>
-                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`} style={{ 
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    textAlign: "center",
-                    marginRight: "12px",
-                  }}>
-                    {p.paid ? "PAID" : "UNPAID"}
-                  </span>
-                  
-                  <button
-                    type="button"
-                    className="card-cta"
-                    aria-label={`View ${p.displayName}`}
-                    onClick={() => onView(p)}
-                    title={`View ${p.displayName}`}
-                    style={{ 
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    VIEW PLAYER →
-                  </button>
+                <div style={{ fontSize: "14px", color: "var(--gray-600)", marginBottom: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <strong style={{ color: "var(--navy)" }}>Team:</strong> 
+                    <span style={{ fontWeight: 600, textTransform: "uppercase" }}>{p.teamName}</span>
+                    {p.isManager && (
+                      <span className="player-meta" title="Team Manager" style={{ 
+                        whiteSpace: "nowrap",
+                        fontSize: "12px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}>
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                          <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                        </svg>
+                        Manager
+                      </span>
+                    )}
+                  </div>
                 </div>
+                
+                <button
+                  type="button"
+                  className="card-cta"
+                  aria-label={`View ${p.displayName}`}
+                  onClick={() => onView(p)}
+                  title={`View ${p.displayName}`}
+                  style={{ 
+                    width: "100%",
+                  }}
+                >
+                  VIEW PLAYER →
+                </button>
               </div>
+            </li>
           ))}
-        </div>
-      )}
+        </ul>
       </div>
     </div>
   );

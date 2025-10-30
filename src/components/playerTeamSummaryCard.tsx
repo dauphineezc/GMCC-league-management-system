@@ -26,8 +26,8 @@ export default function TeamSummaryCard({
       <div style={{ display: "grid", gap: 10 }}>
         {/* Status */}
         <div>
-          <span className={`status ${approved ? "status--ok" : "status--pending"}`}>
-            {approved ? "Approved" : "Pending"}
+          <span className={`badge ${approved ? "badge--ok" : "badge--pending"}`}>
+            {approved ? "APPROVED" : "PENDING"}
           </span>
         </div>
 

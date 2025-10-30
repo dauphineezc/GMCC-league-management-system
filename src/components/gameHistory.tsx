@@ -72,9 +72,9 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
   const getWinnerInfo = (game: Game) => {
     if (game.homeScore != null && game.awayScore != null) {
       if (game.homeScore > game.awayScore) {
-        return { winner: 'home', homeColor: '#10B981', awayColor: 'var(--navy)' };
+        return { winner: 'home', homeColor: 'var(--green)', awayColor: 'var(--navy)' };
       } else if (game.awayScore > game.homeScore) {
-        return { winner: 'away', homeColor: 'var(--navy)', awayColor: '#10B981' };
+        return { winner: 'away', homeColor: 'var(--navy)', awayColor: 'var(--green)' };
       } else {
         return { winner: 'tie', homeColor: 'var(--navy)', awayColor: 'var(--navy)' };
       }

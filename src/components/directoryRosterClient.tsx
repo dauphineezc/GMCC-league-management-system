@@ -5,25 +5,6 @@ import { useCallback, useMemo, useState } from "react";
 import PlayerInfoPopup from "@/components/playerInfoPopup";
 import type { RosterRow, PlayerTeam, PlayerInfo } from "@/types/domain";
 
-function slugify(s: string) {
-  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
-}
-function hashCode(str: string) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
-  return h;
-}
-function fakeContact(displayName: string) {
-  const slug = slugify(displayName || "player");
-  return {
-    email: `${slug}@example.com`,
-    phone: "(989) 555-" + String(Math.abs(hashCode(slug)) % 9000 + 1000),
-    dob: "05/21/1990",
-    emergencyName: "Spouse",
-    emergencyPhone: "(989) 888-9988",
-  };
-}
-
 export default function DirectoryRosterClient({
   roster,
   playerTeamsByUser,
@@ -48,8 +29,7 @@ export default function DirectoryRosterClient({
 
   const handleView = useCallback(
     (row: RosterRow) => {
-      const contact = fakeContact(row.displayName);
-
+      // Build teams list for the popup
       const teamsForUser: PlayerTeam[] = (playerTeamsByUser?.[row.userId] ?? []).map(t => ({
         teamId: t.teamId,
         teamName: t.teamName,
@@ -71,10 +51,20 @@ export default function DirectoryRosterClient({
         });
       }
 
+      // IMPORTANT: do NOT provide a fake placeholder email here.
+      // Leave email blank so the popup fetch can show the canonical Firebase/KV email without flicker.
+      const emptyContact = {
+        email: "",           // ← blank (falsy) so popup won’t render @example.com first
+        phone: "",
+        dob: "",
+        emergencyName: "",
+        emergencyPhone: "",
+      };
+
       setPlayer({
         userId: row.userId,
         displayName: row.displayName,
-        contact,
+        contact: emptyContact,
         teams: teamsForUser,
       });
       setContextTeamId(row.teamId);
@@ -84,7 +74,7 @@ export default function DirectoryRosterClient({
     [playerTeamsByUser, contextLeagueId]
   );
 
-  // === This is the same layout calculation as your RosterPane ===
+  // === Same layout calc as your RosterPane ===
   const COL_GAP = 70;
   const col = useMemo(() => {
     if (typeof document === "undefined") {

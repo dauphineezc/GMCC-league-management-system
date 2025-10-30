@@ -38,7 +38,7 @@ export function ScheduleViewerShared({ pdfInfo, scheduledGames, leagueId, onDown
       return (
         <button
           onClick={onDownloadPDF}
-          className="btn btn--secondary text-sm"
+          className="btn btn--secondary text-sm btn--sm"
         >
           Download Schedule PDF
         </button>
@@ -51,7 +51,7 @@ export function ScheduleViewerShared({ pdfInfo, scheduledGames, leagueId, onDown
           href={downloadHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn btn--secondary text-sm"
+          className="btn btn--secondary text-sm btn--sm"
         >
           Download Schedule PDF
         </a>

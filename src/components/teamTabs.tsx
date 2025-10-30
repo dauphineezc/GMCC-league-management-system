@@ -124,120 +124,136 @@ export default function TeamTabs(props: {
             {sortedRoster.length === 0 ? (
               <p>No players yet.</p>
             ) : (
-              <div className="card--soft rounded-2xl border overflow-hidden">
-                <div style={{ padding: "0px 0px" }}>
-                  {sortedRoster.map((p, idx) => (
-                    <div key={p.userId} style={{
-                      padding: "12px 8px",
-                      borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
-                    }}>
-                      <div className="player-card-content">
-                        {/* Desktop: Name and manager badge on same line */}
-                        <div className="player-card-desktop">
-                          <span style={{
-                            // fontFamily: "var(--font-body), system-ui",
-                            fontSize: 20,
-                            fontWeight: 500,
-                            display: "inline-block",
-                            marginRight: "300px",
-                            color: "var(--navy)",
-                          }}>
-                            {p.displayName || p.userId}
-                          </span>
-                          {p.isManager && (
-                            <span className="player-meta" title="Team Manager" style={{
-                              fontSize: "12px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              justifyContent: "flex-end"
-                            }}>
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="14"
-                                height="14"
-                                fill="navy"
-                                aria-hidden="true"
-                              >
-                                <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                              </svg>
-                              Team Manager
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Mobile: Name and manager badge on separate lines */}
-                        <div className="player-card-mobile">
-                          <div style={{ width: "100%" }}>
-                            <span style={{
-                              fontFamily: "var(--font-body), system-ui",
-                              fontSize: 20,
-                              fontWeight: 500,
-                              display: "block",
-                              wordBreak: "break-word",
-                              color: "var(--navy)",
-                            }}>
-                              {p.displayName || p.userId}
-                            </span>
-                          </div>
-
-                          {p.isManager && (
-                            <div style={{ 
-                              display: "flex", 
-                              alignItems: "center", 
-                              gap: "12px",
-                              width: "100%"
-                            }}>
-                              <span className="player-meta" title="Team Manager" style={{
-                                fontSize: "12px",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px"
-                              }}>
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  width="14"
-                                  height="14"
-                                  fill="navy"
-                                  aria-hidden="true"
-                                >
-                                  <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                                </svg>
-                                Team Manager
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+              <>
+                {/* Desktop table */}
+                <div className="team-roster-desktop">
+                  <div className="card--soft rounded-2xl border overflow-hidden">
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr>
+                            <th style={th}>Player Name</th>
+                            <th style={thCenter}>Role</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedRoster.map((p) => (
+                            <tr key={p.userId}>
+                              <td style={td}>{p.displayName || p.userId}</td>
+                              <td style={tdCenter}>
+                                {p.isManager && (
+                                  <span className="player-meta" title="Team Manager" style={{ 
+                                    whiteSpace: "nowrap",
+                                    fontSize: "12px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}>
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                                      <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                                    </svg>
+                                    Manager
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <div className="roster-actions" style={{ marginTop: "16px" }}>
-                  {isManager && (
-                    <>
-                      <button 
-                        type="button" 
-                        className="btn btn--outline btn--sm"
-                        onClick={() => setInviteModal('code')}
-                      >
-                        Invite via Code
-                      </button>
-                    </>
-                  )}
-                  {isMember && (
-                    <button
-                      type="button"
-                      className="btn btn--outline btn--sm"
-                      onClick={handleLeaveTeam}
-                      disabled={leaving}
-                      style={{ marginLeft: isManager ? 'auto' : 0 }}
-                    >
-                      {leaving ? 'Leaving...' : 'Leave Team'}
-                    </button>
-                  )}
+                  <div className="roster-actions" style={{ marginTop: "16px" }}>
+                      {isManager && (
+                        <>
+                          <button 
+                            type="button" 
+                            className="btn btn--outline btn--sm"
+                            onClick={() => setInviteModal('code')}
+                          >
+                            Invite via Code
+                          </button>
+                        </>
+                      )}
+                      {isMember && (
+                        <button
+                          type="button"
+                          className="btn btn--outline btn--sm"
+                          onClick={handleLeaveTeam}
+                          disabled={leaving}
+                          style={{ marginLeft: isManager ? 'auto' : 0 }}
+                        >
+                          {leaving ? 'Leaving...' : 'Leave Team'}
+                        </button>
+                      )}
+                    </div>
+
                 </div>
-              </div>
+                
+                {/* Mobile table */}
+                <div className="team-roster-mobile">
+                  <div className="card--soft rounded-2xl border overflow-hidden">
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr>
+                            <th style={th}>Player Name</th>
+                            <th style={thCenter}>Role</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedRoster.map((p) => (
+                            <tr key={p.userId}>
+                              <td style={td}>{p.displayName || p.userId}</td>
+                              <td style={tdCenter}>
+                                {p.isManager && (
+                                  <span className="player-meta" title="Team Manager" style={{ 
+                                    whiteSpace: "nowrap",
+                                    fontSize: "12px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}>
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                                      <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                                    </svg>
+                                    Manager
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div className="roster-actions" style={{ marginTop: "16px" }}>
+                    {isManager && (
+                      <>
+                        <button 
+                          type="button" 
+                          className="btn btn--outline btn--sm"
+                          onClick={() => setInviteModal('code')}
+                        >
+                          Invite via Code
+                        </button>
+                      </>
+                    )}
+                    {isMember && (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        onClick={handleLeaveTeam}
+                        disabled={leaving}
+                        style={{ marginLeft: isManager ? 'auto' : 0 }}
+                      >
+                        {leaving ? 'Leaving...' : 'Leave Team'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </>
         )}
@@ -281,11 +297,9 @@ export default function TeamTabs(props: {
                             <tr 
                               key={s.teamId}
                               style={{ 
-                                // background: isCurrentTeam ? '#F1F4F9' : 'transparent',
                                 background: isCurrentTeam ? 'rgba(75,139,43,.05)' : 'transparent',
                                 fontWeight: isCurrentTeam ? 500 : 400,
                                 borderLeft: isCurrentTeam ? '3.5px solid rgba(75,139,43,.3)' : '3px solid transparent',
-                                // borderRight: isCurrentTeam ? '2px solid rgba(0,58,112,.08)' : '1px solid transparent',
                               }}
                             >
                               <td style={td}>{s.teamName || s.name || s.teamId}</td>
@@ -312,12 +326,9 @@ export default function TeamTabs(props: {
                           <div 
                             className={isCurrentTeam ? 'current-team-highlight' : ''}
                             style={{
-                              backgroundColor: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
+                              backgroundColor: isCurrentTeam ? 'rgba(75,139,43,.05)' : 'transparent',
                               padding: "10px 10px",
-                              border: isCurrentTeam ? '1px solid rgba(0,58,112,.12)' : '1px solid transparent',
                               borderLeft: isCurrentTeam ? '3px solid rgba(75,139,43,.35)' : '3px solid transparent',
-                              borderRadius: isCurrentTeam ? '8px' : '0',
-                              boxShadow: isCurrentTeam ? '0 2px 8px rgba(0,58,112,.06)' : 'none',
                             }}
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>

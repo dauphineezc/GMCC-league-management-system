@@ -321,7 +321,7 @@ export default async function UnifiedHome() {
               <p style={{ color: "var(--muted)" }}>No teams yet.</p>
             )}
           </div>
-          <div className="btn-row" style={{ marginTop: 12 }}>
+          <div className="btn-row" style={{ marginTop: 20 }}>
             <Link href="/create-team" className="btn btn--outline">Create Team</Link>
             <Link href="/join" className="btn btn--outline">Join with Code</Link>
           </div>

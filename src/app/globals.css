@@ -1,5 +1,10 @@
 /* ======= app/globals.css ======= */
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
 /* Colors, radius, shadows */
 :root{
   --brand:#0374dd;                /* light blue */
@@ -124,6 +129,7 @@ button{
 }
 .btn--primary:hover{ 
   background: linear-gradient(135deg, var(--green-700) 0%, var(--green) 100%);
+  color: #fff;
   box-shadow: 0 4px 12px rgba(75,139,43,.35);
 }
 
@@ -234,7 +240,7 @@ button{
   margin: 10px auto 0;    /* centers the button */
 }
 
-/* OAuth buttons - square, icon-only buttons */
+/* OAuth buttons - square, icon-only buttons
 .oauth-btn{
   display: flex !important;
   align-items: center;
@@ -249,8 +255,8 @@ button{
   transition: background-color .12s ease, transform .05s ease, box-shadow .12s ease;
   color: var(--navy);
   flex-shrink: 0; /* Prevent buttons from shrinking */
-  margin: 0; /* Remove any default margins */
-}
+  /* margin: 0; /* Remove any default margins */
+/* }
 .oauth-btn:hover{
   background: #f8fafc;
   transform: translateY(-1px);
@@ -270,7 +276,7 @@ button{
 }
 
 /* OAuth button container */
-.oauth-buttons-container{
+/* .oauth-buttons-container{
   display: flex !important;
   flex-direction: row !important;
   justify-content: center;
@@ -278,8 +284,7 @@ button{
   gap: 12px;
   margin-top: 8px;
   width: 100%;
-}
-
+} */ */ */ */
 
 
 .badge{
@@ -766,6 +771,10 @@ button.card-cta {
 /* Edit variant */
 .icon-btn--edit{ color: var(--navy); }
 .icon-btn--edit:hover{ background:rgba(37,99,235,.08); }
+
+/* Light variant */
+.icon-btn--light{ color: var(--navy); }
+.icon-btn--light:hover{ background:rgba(0,0,0,.05); }
 
 /* For keyboard users: visible focus */
 .icon-btn:focus-visible{
@@ -1987,6 +1996,42 @@ button.card-cta {
     display: block !important;
   }
   
+  /* MOBILE-FIRST: Roster - show mobile cards, hide desktop table */
+  .roster-desktop {
+    display: none !important;
+  }
+  
+  .roster-mobile {
+    display: block !important;
+  }
+  
+  /* MOBILE-FIRST: Teams - show mobile cards, hide desktop table */
+  .teams-desktop {
+    display: none !important;
+  }
+  
+  .teams-mobile {
+    display: block !important;
+  }
+  
+  /* MOBILE-FIRST: Team Roster - show mobile cards, hide desktop table */
+  .team-roster-desktop {
+    display: none !important;
+  }
+  
+  .team-roster-mobile {
+    display: block !important;
+  }
+  
+  /* MOBILE-FIRST: Admin Team Roster - show mobile cards, hide desktop table */
+  .admin-team-roster-desktop {
+    display: none !important;
+  }
+  
+  .admin-team-roster-mobile {
+    display: block !important;
+  }
+  
   /* MOBILE-FIRST: Schedule - show mobile cards, hide desktop table */
   .schedule-desktop {
     display: none !important;
@@ -2028,8 +2073,6 @@ button.card-cta {
   
   /* Remove card-like styling from standings */
   .standings-mobile .roster-list li > div {
-    border-radius: 0 !important;
-    border: none !important;
     box-shadow: none !important;
   }
 }
@@ -2096,34 +2139,26 @@ button.card-cta {
 }
 
 .standings-mobile .roster-list li > div {
-  border-radius: 0 !important;
-  border: none !important;
   box-shadow: none !important;
   background: transparent !important;
 }
 
 .standings-mobile .roster-list li > div[style*="backgroundColor"] {
-  border-radius: 0 !important;
-  border: none !important;
   box-shadow: none !important;
 }
 
 /* ULTRA HIGH SPECIFICITY - Force no cards for standings, but allow current team highlighting */
 div.standings-mobile ul.roster-list li > div {
-  border-radius: 0 !important;
-  border: none !important;
   box-shadow: none !important;
 }
 
 /* Allow current team highlighting - multiple selectors for maximum coverage */
-div.standings-mobile ul.roster-list li > div[style*="backgroundColor: #F1F8FF"],
-.standings-mobile .roster-list li > div[style*="backgroundColor: #F1F8FF"],
-.standings-mobile .roster-list li > div[style*="backgroundColor: '#F1F8FF'"],
-div.standings-mobile ul.roster-list li > div[style*="backgroundColor: '#F1F8FF'"],
+div.standings-mobile ul.roster-list li > div[style*="backgroundColor: rgba(75,139,43,.05)"],
+.standings-mobile .roster-list li > div[style*="backgroundColor: rgba(75,139,43,.05)"],
 div.standings-mobile ul.roster-list li > div[style*="backgroundColor: var(--navy)"],
 .standings-mobile .roster-list li > div[style*="backgroundColor: var(--navy)"] {
-  background: var(--navy) !important;
-  background-color: var(--navy) !important;
+  background: rgba(75,139,43,.05) !important;
+  background-color: rgba(75,139,43,.05) !important;
 }
 
 /* Allow background colors to be inherited from inline styles */
@@ -2141,8 +2176,8 @@ div.standings-mobile ul.roster-list li > div[style*="backgroundColor"] {
 /* Current team highlighting - class-based approach with maximum specificity */
 div.standings-mobile ul.roster-list li > div.current-team-highlight,
 .standings-mobile .roster-list li > div.current-team-highlight {
-  background: #F1F8FF !important;
-  background-color: #F1F8FF !important;
+  background: rgba(75,139,43,.05) !important;
+  background-color: rgba(75,139,43,.05) !important;
 }
 
 /* Override any card-like styling from roster-list */
@@ -2174,6 +2209,38 @@ div.standings-mobile ul.roster-list li {
   }
   
   .game-history-mobile {
+    display: none !important;
+  }
+  
+  .roster-desktop {
+    display: block !important;
+  }
+  
+  .roster-mobile {
+    display: none !important;
+  }
+  
+  .teams-desktop {
+    display: block !important;
+  }
+  
+  .teams-mobile {
+    display: none !important;
+  }
+  
+  .team-roster-desktop {
+    display: block !important;
+  }
+  
+  .team-roster-mobile {
+    display: none !important;
+  }
+  
+  .admin-team-roster-desktop {
+    display: block !important;
+  }
+  
+  .admin-team-roster-mobile {
     display: none !important;
   }
   
