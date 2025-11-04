@@ -24,7 +24,7 @@ type Props = {
   downloadHref?: string; // For server-side
 };
 
-export function ScheduleViewerShared({ pdfInfo, scheduledGames, leagueId, onDownloadPDF, downloadHref }: Props) {
+export function ScheduleViewerShared({ pdfInfo, scheduledGames, onDownloadPDF, downloadHref }: Props) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   };

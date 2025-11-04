@@ -7,17 +7,6 @@ async function smembers(key: string): Promise<string[]> {
   return Array.isArray(val) ? (val as string[]) : [];
 }
 
-async function readArr<T = any>(key: string): Promise<T[]> {
-  const raw = await kv.get(key);
-  if (Array.isArray(raw)) return raw as T[];
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw) as T[];
-    } catch {}
-  }
-  return [];
-}
-
 async function writeArr<T>(key: string, arr: T[]) {
   await kv.set(key, arr);
 }

@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import type { LMSUser } from "@/lib/authTypes";
 import { kv } from "@vercel/kv";
 
 export type ServerUser = {
@@ -9,8 +8,6 @@ export type ServerUser = {
   superadmin: boolean;
   leagueAdminOf?: string[]; // <- optional
 };
-
-const COOKIE = "fb:session"; // <-- keep consistent with your /api/auth/session
 
 type MinimalUser = {
   id?: string;
@@ -68,10 +65,10 @@ export async function getServerUser(): Promise<ServerUser | null> {
 }
 
 /* optional helpers, unchanged */
-export function isLeagueAdmin(user: ServerUser | null, leagueId: string) {
+export function isLeagueAdmin(user: ServerUser | null, _leagueId: string) {
   return !!user?.superadmin; // or your own logic
 }
-export function isTeamManager(user: ServerUser | null, teamId: string) {
+export function isTeamManager(user: ServerUser | null, _teamId: string) {
   return !!user?.superadmin; // or your own logic
 }
 export async function isSuperAdmin(user: ServerUser | null) {

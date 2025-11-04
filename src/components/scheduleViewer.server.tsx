@@ -123,7 +123,7 @@ export default async function ScheduleViewerServer({ leagueId, teamId, teamName 
             style={{ border: 'none' }}
             title={`Schedule: ${pdfInfo.filename}`}
           >
-            <p>Your browser doesn't support PDF viewing. 
+            <p>Your browser doesn&apos;t support PDF viewing. 
               <a href={`/api/leagues/${leagueId}/schedule/pdf`} className="text-blue-600 underline ml-1">
                 Download the PDF
               </a>

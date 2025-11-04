@@ -1,6 +1,5 @@
 // src/app/api/superadmin/leagues/[leagueId]/assign-admin/route.ts
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
 import { getAuth } from "firebase-admin/auth";
 import { getServerUser, isSuperAdmin } from "@/lib/serverUser";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";

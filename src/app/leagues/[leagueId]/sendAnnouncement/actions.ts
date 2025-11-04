@@ -22,8 +22,6 @@ type UserProfile = {
   name: string;
 };
 
-type MailjetRecipient = { Email: string; Name?: string };
-
 /** ================== Config ================== */
 // US as default (your account is US). You can override with MAILJET_BASE_URL if needed.
 const MJ_BASE =
@@ -85,12 +83,6 @@ async function isAdminOfLeague(userId: string, leagueId: string) {
   } catch {}
 
   return false;
-}
-
-// authoritative payments: team:{teamId}:payments => { [uid]: boolean }
-async function getPaymentStatus(userId: string, teamId: string) {
-  const m = await kv.get<Record<string, boolean>>(`team:${teamId}:payments`);
-  return m && m[userId] ? "PAID" as const : "UNPAID" as const;
 }
 
 /** ================== Core Action ================== */

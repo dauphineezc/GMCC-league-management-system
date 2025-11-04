@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const user = await getServerUser();
   if (!user?.id) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });

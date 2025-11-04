@@ -6,12 +6,11 @@ import Link from "next/link";
 import { kv } from "@vercel/kv";
 import { DIVISIONS } from "@/lib/divisions";
 import { getServerUser } from "@/lib/serverUser";
-import { getUserLeagueRole } from "@/lib/permissions";
 import TeamSummaryCard from "@/components/playerTeamSummaryCard";
 import AdminLeagueCard from "@/components/adminLeagueSummaryCard";
 import PublicLeagueTabsServer from "@/components/publicLeagueTabs.server";
-import { readMembershipsForUid, readArr } from "@/lib/kvread";
-import type { Team, Game } from "@/types/domain";
+import { readMembershipsForUid } from "@/lib/kvread";
+import type { Game } from "@/types/domain";
 import { batchGetTeams, batchGetTeamNames, batchGet } from "@/lib/kvBatch";
 
 /* ---------------- helpers ---------------- */
@@ -111,7 +110,6 @@ export default async function UnifiedHome() {
 
       if (managed.length) {
         homeRole = "admin";
-        isAnyLeagueAdmin = true;
         // Normalize back to set
         await kv.del(adminKey);
         await kv.sadd(adminKey, ...managed);
@@ -294,7 +292,7 @@ export default async function UnifiedHome() {
           </>
         ) : (
           <>
-            <p>You're signed in as <code>{user?.email ?? user?.id}</code>.</p>
+            <p>You&apos;re signed in as <code>{user?.email ?? user?.id}</code>.</p>
             <Link className="btn btn--outline" href="/logout">Sign out</Link>
           </>
         )}

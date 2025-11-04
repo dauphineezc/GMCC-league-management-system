@@ -1,5 +1,11 @@
+import { isOrgEmail, isSuperadminEmail } from '../orgAccess';
+
 describe('isOrgEmail', () => {
   const originalEnv = process.env.ORG_EMAIL_DOMAINS;
+
+  beforeEach(() => {
+    jest.resetModules();
+  });
 
   afterEach(() => {
     process.env.ORG_EMAIL_DOMAINS = originalEnv;
@@ -7,7 +13,6 @@ describe('isOrgEmail', () => {
 
   it('should return true for emails matching org domains', () => {
     process.env.ORG_EMAIL_DOMAINS = 'example.com,test.org';
-    const { isOrgEmail } = require('../orgAccess');
     
     expect(isOrgEmail('user@example.com')).toBe(true);
     expect(isOrgEmail('user@test.org')).toBe(true);
@@ -15,7 +20,6 @@ describe('isOrgEmail', () => {
 
   it('should return false for emails not matching org domains', () => {
     process.env.ORG_EMAIL_DOMAINS = 'example.com,test.org';
-    const { isOrgEmail } = require('../orgAccess');
     
     expect(isOrgEmail('user@gmail.com')).toBe(false);
     expect(isOrgEmail('user@example.org')).toBe(false);
@@ -23,7 +27,6 @@ describe('isOrgEmail', () => {
 
   it('should be case-insensitive', () => {
     process.env.ORG_EMAIL_DOMAINS = 'example.com';
-    const { isOrgEmail } = require('../orgAccess');
     
     expect(isOrgEmail('User@EXAMPLE.COM')).toBe(true);
     expect(isOrgEmail('USER@Example.Com')).toBe(true);
@@ -31,7 +34,6 @@ describe('isOrgEmail', () => {
 
   it('should handle comma-separated domains with spaces', () => {
     process.env.ORG_EMAIL_DOMAINS = 'example.com, test.org , another.co.uk';
-    const { isOrgEmail } = require('../orgAccess');
     
     expect(isOrgEmail('user@test.org')).toBe(true);
     expect(isOrgEmail('user@another.co.uk')).toBe(true);
@@ -39,7 +41,6 @@ describe('isOrgEmail', () => {
 
   it('should return false for null or undefined email', () => {
     process.env.ORG_EMAIL_DOMAINS = 'example.com';
-    const { isOrgEmail } = require('../orgAccess');
     
     expect(isOrgEmail(null)).toBe(false);
     expect(isOrgEmail(undefined)).toBe(false);
@@ -48,7 +49,6 @@ describe('isOrgEmail', () => {
 
   it('should handle empty ORG_EMAIL_DOMAINS env var', () => {
     process.env.ORG_EMAIL_DOMAINS = '';
-    const { isOrgEmail } = require('../orgAccess');
     
     expect(isOrgEmail('user@example.com')).toBe(false);
   });
@@ -57,13 +57,16 @@ describe('isOrgEmail', () => {
 describe('isSuperadminEmail', () => {
   const originalEnv = process.env.SUPERADMIN_EMAILS;
 
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
   afterEach(() => {
     process.env.SUPERADMIN_EMAILS = originalEnv;
   });
 
   it('should return true for emails in superadmin list', () => {
     process.env.SUPERADMIN_EMAILS = 'admin@example.com,super@test.org';
-    const { isSuperadminEmail } = require('../orgAccess');
     
     expect(isSuperadminEmail('admin@example.com')).toBe(true);
     expect(isSuperadminEmail('super@test.org')).toBe(true);
@@ -71,7 +74,6 @@ describe('isSuperadminEmail', () => {
 
   it('should return false for emails not in superadmin list', () => {
     process.env.SUPERADMIN_EMAILS = 'admin@example.com';
-    const { isSuperadminEmail } = require('../orgAccess');
     
     expect(isSuperadminEmail('user@example.com')).toBe(false);
     expect(isSuperadminEmail('admin@test.org')).toBe(false);
@@ -79,7 +81,6 @@ describe('isSuperadminEmail', () => {
 
   it('should be case-insensitive', () => {
     process.env.SUPERADMIN_EMAILS = 'admin@example.com';
-    const { isSuperadminEmail } = require('../orgAccess');
     
     expect(isSuperadminEmail('Admin@Example.Com')).toBe(true);
     expect(isSuperadminEmail('ADMIN@EXAMPLE.COM')).toBe(true);
@@ -87,7 +88,6 @@ describe('isSuperadminEmail', () => {
 
   it('should handle comma-separated emails with spaces', () => {
     process.env.SUPERADMIN_EMAILS = 'admin@example.com, super@test.org , another@another.com';
-    const { isSuperadminEmail } = require('../orgAccess');
     
     expect(isSuperadminEmail('super@test.org')).toBe(true);
     expect(isSuperadminEmail('another@another.com')).toBe(true);
@@ -95,7 +95,6 @@ describe('isSuperadminEmail', () => {
 
   it('should return false for null or undefined email', () => {
     process.env.SUPERADMIN_EMAILS = 'admin@example.com';
-    const { isSuperadminEmail } = require('../orgAccess');
     
     expect(isSuperadminEmail(null)).toBe(false);
     expect(isSuperadminEmail(undefined)).toBe(false);
@@ -104,7 +103,6 @@ describe('isSuperadminEmail', () => {
 
   it('should handle empty SUPERADMIN_EMAILS env var', () => {
     process.env.SUPERADMIN_EMAILS = '';
-    const { isSuperadminEmail } = require('../orgAccess');
     
     expect(isSuperadminEmail('admin@example.com')).toBe(false);
   });

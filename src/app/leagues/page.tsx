@@ -6,10 +6,8 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
-import { DIVISIONS } from "@/lib/divisions";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import CreateLeagueClient from "../(superadmin)/superadmin/leagues/createLeagueClient";
-import { createLeagueAction } from "../(superadmin)/superadmin/leagues/createLeagueAction";
 import Collapsible from "@/components/collapsible";
 
 

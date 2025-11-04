@@ -12,10 +12,6 @@ async function smembers(key: string): Promise<string[]> {
     const val = (await kv.smembers(key)) as unknown;
     return Array.isArray(val) ? (val as string[]) : [];
 }
-async function hgetall<T extends Record<string, any>>(key: string): Promise<T | null> {
-    const val = (await kv.hgetall(key)) as unknown;
-    return val && typeof val === "object" ? (val as T) : null;
-}
   
 /** read array from KV (stringified or array) */
 async function readArr<T = any>(key: string): Promise<T[]> {

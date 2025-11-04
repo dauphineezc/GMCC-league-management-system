@@ -45,7 +45,6 @@ async function writeUserCacheMerged(uid: string, patch: Partial<UserDoc>) {
 
   try {
     await kv.hset(key, next);
-    // @ts-ignore optional expire if supported
     if ((kv as any).expire) await (kv as any).expire(key, CACHE_TTL_SECONDS);
   } catch {
     await kv.set(key, next as any, { ex: CACHE_TTL_SECONDS } as any);

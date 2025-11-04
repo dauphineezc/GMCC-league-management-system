@@ -177,7 +177,7 @@ export async function POST(req: Request, { params }: { params: { leagueId: strin
           const timeStr = row.time;
           
           // Try to parse date in various formats (including 2-digit years)
-          let parsedDate = dayjs(dateStr, [
+          const parsedDate = dayjs(dateStr, [
             'MM/DD/YYYY', 
             'M/D/YYYY', 
             'MM-DD-YYYY',
@@ -196,7 +196,7 @@ export async function POST(req: Request, { params }: { params: { leagueId: strin
 
 
           // Parse time (HH:mm or H:mm AM/PM)
-          let parsedTime = dayjs(timeStr, ['HH:mm', 'H:mm', 'h:mm A', 'h:mm a', 'HH:mm:ss'], true);
+          const parsedTime = dayjs(timeStr, ['HH:mm', 'H:mm', 'h:mm A', 'h:mm a', 'HH:mm:ss'], true);
           
           if (!parsedTime.isValid()) {
             errors.push(`Row ${i + 2}: Invalid time format "${timeStr}". Use HH:mm (24-hour) or h:mm AM/PM`);

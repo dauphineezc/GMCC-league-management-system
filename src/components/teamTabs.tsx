@@ -17,7 +17,7 @@ export default function TeamTabs(props: {
   isMember: boolean;    // team member
   isManager: boolean;   // team manager
 }) {
-  const { teamId, teamName, leagueId, roster, games, isMember, isManager } = props;
+  const { teamId, teamName, leagueId, roster, isMember, isManager } = props;
   const [tab, setTab] = useState<"roster" | "schedule" | "history" | "standings">("roster");
   const [inviteModal, setInviteModal] = useState<InviteModalType>(null);
   const [leaving, setLeaving] = useState(false);
@@ -45,20 +45,6 @@ export default function TeamTabs(props: {
     // Only re-run when tab or leagueId changes, not when standings or loadingStandings changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, leagueId]);
-
-  const now = Date.now();
-  const { upcoming, history } = useMemo(() => {
-    const u: Game[] = [];
-    const h: Game[] = [];
-    for (const g of games) {
-      const when = Date.parse(g.dateTimeISO);
-      if (isFinite(when) && when >= now) u.push(g);
-      else h.push(g);
-    }
-    u.sort((a, b) => Date.parse(a.dateTimeISO) - Date.parse(b.dateTimeISO));
-    h.sort((a, b) => Date.parse(b.dateTimeISO) - Date.parse(a.dateTimeISO));
-    return { upcoming: u, history: h };
-  }, [games, now]);
 
   const handleLeaveTeam = async () => {
     if (isManager) {
@@ -99,7 +85,7 @@ export default function TeamTabs(props: {
       } else {
         alert(data.error || 'Failed to leave team');
       }
-    } catch (error) {
+    } catch {
       alert('Something went wrong. Please try again.');
     } finally {
       setLeaving(false);
@@ -437,10 +423,6 @@ function Tab({
   );
 }
 
-function fmtDate(iso: string) {
-  try { return new Date(iso).toLocaleString(); } catch { return iso; }
-}
-
 /* Standings table styles */
 const th: React.CSSProperties = { textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" };
 const thCenter: React.CSSProperties = { textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee" };
@@ -452,7 +434,6 @@ const tdCenter: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px s
 function InviteModal({ 
   type, 
   teamId, 
-  teamName, 
   onClose 
 }: { 
   type: 'link' | 'code'; 
@@ -606,7 +587,7 @@ function InviteModal({
                     </button>
                   </div>
                   <small style={{ color: 'var(--muted)', marginTop: 4 }}>
-                    Share this link with the person you want to invite. It's a one-time use link.
+                    Share this link with the person you want to invite. It&apos;s a one-time use link.
                   </small>
                 </div>
               )}

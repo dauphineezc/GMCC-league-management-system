@@ -12,7 +12,7 @@ async function smembers(key: string): Promise<string[]> {
   return Array.isArray(v) ? v as string[] : [];
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   // safeguard: only allow local/dev
   if (process.env.NODE_ENV === "production") {
     return Response.json({ ok:false, error:"Disabled in production" }, { status:403 });

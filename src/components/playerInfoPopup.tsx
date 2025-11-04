@@ -42,9 +42,7 @@ export default function PlayerInfoPopup(props: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  const label = itemsLabel ?? "Teams";
   const showPaidBadge = showPaid !== false;
-  const cols = columns ?? 2;
 
   // --- email fetch state (unchanged logic) ---
   const [resolvedEmail, setResolvedEmail] = useState<string | null>(null);

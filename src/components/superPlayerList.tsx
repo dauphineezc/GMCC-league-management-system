@@ -80,11 +80,6 @@ export default function SuperPlayerList({ roster, playerTeamsByUser }: Props) {
       ) : (
         <div className="roster-gradient" style={{ marginTop: 8 }}>
           {players.map((p, idx) => {
-            // shrink font for long names to avoid multi-line wrapping
-            const len = (p.displayName || "").length;
-            const fontSize =
-              len > 30 ? 18 : len > 22 ? 20 : 24; // tweak thresholds if you like
-
             return (
               <div
                 key={p.userId}

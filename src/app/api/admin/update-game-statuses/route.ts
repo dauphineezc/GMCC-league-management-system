@@ -10,7 +10,7 @@ function parseKV(raw: unknown): any[] {
   return [];
 }
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
   try {
     console.log(`[${new Date().toISOString()}] Starting game status update`);
     
@@ -95,6 +95,6 @@ export async function POST(req: Request) {
 }
 
 // Also allow GET for manual testing
-export async function GET(req: Request) {
-  return POST(req);
+export async function GET(_req: Request) {
+  return POST(_req);
 }

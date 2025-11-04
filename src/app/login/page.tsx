@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth, googleProvider, appleProvider, microsoftProvider } from "@/lib/firebaseClient";
+import { auth, googleProvider } from "@/lib/firebaseClient";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -153,7 +153,7 @@ export default function LoginPage() {
             }}
           >
             <p className="text-sm text-slate-600 mb-4">
-              Enter your email address and we'll send you instructions to reset your password.
+              Enter your email address and we&apos;ll send you instructions to reset your password.
             </p>
             <div className="auth-row">
               <label htmlFor="email" className="auth-label">Email:</label>
@@ -301,7 +301,7 @@ export default function LoginPage() {
 
         {!forgotPasswordMode && !resetEmailSent && (
           <p className="mt-6 text-center text-sm text-slate-600" style={{ marginTop: "50px", textAlign: "center" }}>
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <a href="/create-account" className="text-blue-700 hover:underline">Create one here</a>
           </p>
         )}

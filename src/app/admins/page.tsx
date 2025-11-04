@@ -18,9 +18,7 @@ export default async function AdminsPage({
 
   const { roster, playerTeamsByUser } = await buildAdminRosterLikeRows();
 
-  const uniqueCount = new Set(roster.map((r) => r.userId)).size;
-
-    // Apply search
+  // Apply search
     const q = (searchParams.displayName ?? "").trim().toLowerCase();
     const filteredRows = q
       ? roster.filter((r) => r.displayName.toLowerCase().includes(q))

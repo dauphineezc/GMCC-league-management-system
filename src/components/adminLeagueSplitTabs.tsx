@@ -34,13 +34,7 @@ type TabKey = "teams" | "roster" | "schedule" | "history" | "standings";
 function slugify(s: string) {
   return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
 }
-function hashCode(str: string) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
-  return h;
-}
-function fakeContact(displayName: string) {
-  const slug = slugify(displayName || "player");
+function fakeContact(_displayName: string) {
   return {
     email: "",           // ← blank (falsy) so popup won’t render @example.com first
     phone: "",
@@ -55,7 +49,6 @@ export default function AdminLeagueSplitTabs({
   teams,
   roster,
   playerTeamsByUser,
-  games = [],
   standings = [],
 }: Props) {
   const [tab, setTab] = useState<TabKey>("teams");
@@ -196,7 +189,6 @@ export default function AdminLeagueSplitTabs({
 
 /* ========= Teams tab ========= */
 function TeamsPane({
-  leagueId,
   teams,
 }: {
   leagueId: string;

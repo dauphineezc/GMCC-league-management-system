@@ -1,8 +1,7 @@
 // src/app/(admin)/admin/leagues/[leagueId]/schedule/ScheduleClient.tsx
 'use client';
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import tz from "dayjs/plugin/timezone";
@@ -10,8 +9,6 @@ import cpf from "dayjs/plugin/customParseFormat";
 
 
 dayjs.extend(utc); dayjs.extend(tz); dayjs.extend(cpf);
-
-type Params = { leagueId: string };
 
 type Game = {
   id: string;
@@ -59,7 +56,6 @@ export default function ScheduleClient({
   });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [showUploader, setShowUploader] = useState(false);
   const [editingGame, setEditingGame] = useState<EditingGame | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -76,6 +72,17 @@ export default function ScheduleClient({
       !!finalLocation
     );
   }, [form]);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/leagues/${leagueId}/schedule?t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setGames(sortByTimeAsc(Array.isArray(data) ? data : []));
+    } catch (err) {
+      console.error('Error fetching games:', err);
+    }
+  }, [leagueId]);
 
   const th: React.CSSProperties = { textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #eee" };
   const td: React.CSSProperties = { padding: "8px 10px", borderBottom: "1px solid #f3f4f6" };
@@ -103,7 +110,7 @@ export default function ScheduleClient({
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
 
-  async function loadPdfInfo() {
+  const loadPdfInfo = useCallback(async () => {
     const tryOnce = async () => {
       const r = await fetch(`/api/leagues/${leagueId}/schedule/pdf-info?ts=${Date.now()}`, { cache: 'no-store' });
       if (!r.ok) return null;
@@ -114,9 +121,9 @@ export default function ScheduleClient({
     // one gentle retry to ride out replication
     const second = await new Promise<null | any>(resolve => setTimeout(async () => resolve(await tryOnce()), 400));
     setPdfInfo(second || null);
-  }  
+  }, [leagueId]);
 
-  useEffect(() => { loadPdfInfo(); }, [leagueId]);
+  useEffect(() => { loadPdfInfo(); }, [loadPdfInfo]);
 
   async function handlePdfChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -149,8 +156,7 @@ export default function ScheduleClient({
         const error = await response.json().catch(() => ({ error: 'Remove failed' }));
         setMsg(`Remove failed: ${error.error}`);
       }
-    } catch (error) {
-      console.error('Remove error:', error);
+    } catch {
       setMsg("Remove failed. Please try again.");
     }
   }
@@ -207,19 +213,7 @@ export default function ScheduleClient({
   }
 
   // ---------- data fetch
-  async function refresh() {
-    try {
-      const url = `/api/leagues/${leagueId}/schedule?ts=${Date.now()}`;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      setGames(sortByTimeAsc(Array.isArray(data) ? data : []));
-    } catch (err) {
-      console.error('Error fetching games:', err);
-    }
-  }
-
-  useEffect(() => { if (leagueId) refresh(); }, [leagueId]);
+  useEffect(() => { if (leagueId) refresh(); }, [leagueId, refresh]);
 
   useEffect(() => {
     if (!leagueId) return;

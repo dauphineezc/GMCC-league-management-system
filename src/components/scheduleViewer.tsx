@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ScheduleViewerShared } from './scheduleViewer.shared';
 
 type Props = {
@@ -30,11 +30,7 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchScheduleData();
-  }, [leagueId, teamId]);
-
-  const fetchScheduleData = async () => {
+  const fetchScheduleData = useCallback(async () => {
     try {
       // Fetch both PDF info and manual games
       const [pdfRes, gamesRes] = await Promise.all([
@@ -63,7 +59,11 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [leagueId, teamId, teamName]);
+
+  useEffect(() => {
+    fetchScheduleData();
+  }, [fetchScheduleData]);
 
   const downloadPDF = () => {
     if (pdfInfo) {
@@ -142,7 +142,7 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
             style={{ border: 'none' }}
             title={`Schedule: ${pdfInfo.filename}`}
           >
-            <p>Your browser doesn't support PDF viewing. 
+            <p>Your browser doesn&apos;t support PDF viewing. 
               <button onClick={downloadPDF} className="text-blue-600 underline ml-1">
                 Download the PDF
               </button>

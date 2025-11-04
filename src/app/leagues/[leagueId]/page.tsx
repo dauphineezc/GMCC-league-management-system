@@ -4,7 +4,7 @@ export const revalidate = 30; // Revalidate every 30 seconds
 export const dynamicParams = true;
 
 import { kv } from "@vercel/kv";
-import { getServerUser, isLeagueAdminAsync } from "@/lib/serverUser";
+import { getServerUser } from "@/lib/serverUser";
 import { PermissionChecker } from "@/lib/permissions";
 import { IfAdmin, IfSuperAdmin } from "@/components/conditionalDisplay";
 import AdminLeagueSplitTabs from "@/components/adminLeagueSplitTabs";
@@ -21,7 +21,6 @@ import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { batchGetRosters, batchGetPayments } from "@/lib/kvBatch";
 import { buildPlayerTeamsByUserFromMemberships } from "@/lib/playerTeams";
-import Link from "next/link";
 
 /* ---------------- tolerant helpers ---------------- */
 
@@ -153,7 +152,7 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
   const description = leagueDoc?.description ?? "";
 
   // Admin-specific data (only fetch if needed)
-  let masterRoster: Array<RosterEntry & { teamId: string; teamName: string; paid?: boolean }> = [];
+  const masterRoster: Array<RosterEntry & { teamId: string; teamName: string; paid?: boolean }> = [];
   let adminInfo: { adminUserId: string | null; leagueAdminName: string | null } = {
     adminUserId: null,
     leagueAdminName: null,

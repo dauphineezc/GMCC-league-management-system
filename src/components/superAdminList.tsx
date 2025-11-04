@@ -87,9 +87,6 @@ export default function SuperAdminsList({ roster, adminTeamsByUser }: Props) {
       ) : (
         <div className="roster-gradient" style={{ marginTop: 8 }}>
           {admins.map((p, idx) => {
-            const len = (p.displayName || "").length;
-            const fontSize = len > 30 ? 18 : len > 22 ? 20 : 24;
-
             return (
               <div
                 key={p.userId}

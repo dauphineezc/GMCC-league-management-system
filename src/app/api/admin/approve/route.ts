@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   if (!cookie) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const user = await adminAuth.verifySessionCookie(cookie, true);
 
-  const { leagueId, ...rest } = await req.json();
+  const { leagueId } = await req.json();
   if (!user.leagueAdminOf?.includes(leagueId) && !user.superadmin) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }

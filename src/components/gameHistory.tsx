@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 type Props = {
   leagueId: string;
@@ -24,11 +24,7 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchCompletedGames();
-  }, [leagueId, teamId]);
-
-  const fetchCompletedGames = async () => {
+  const fetchCompletedGames = useCallback(async () => {
     try {
       const res = await fetch(`/api/leagues/${leagueId}/schedule${teamId ? `?team=${teamName || teamId}` : ''}`);
       
@@ -52,7 +48,11 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [leagueId, teamId, teamName]);
+
+  useEffect(() => {
+    fetchCompletedGames();
+  }, [fetchCompletedGames]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });

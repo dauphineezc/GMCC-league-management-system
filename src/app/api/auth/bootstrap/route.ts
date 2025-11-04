@@ -28,9 +28,6 @@ export async function POST() {
       await kv.set(`admin:${uid}:leagues`, JSON.stringify(claims.leagueAdminOf));
     }
 
-    // Player memberships: if missing, rebuild
-    const hasMem = await kv.get(`user:${uid}:memberships`);
-
     return NextResponse.json({
       ok: true,
       roles: {

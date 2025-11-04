@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from "next/link";
 
 type Game = {
   id: string;
@@ -15,8 +14,6 @@ type Game = {
   homeScore?: number;
   awayScore?: number;
 };
-
-const COMPLETION_GRACE_MINUTES = 120;
 
 export default function ResultsClient({ 
   leagueId,

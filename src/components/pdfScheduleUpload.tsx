@@ -11,22 +11,22 @@ export default function PDFScheduleUpload({ leagueId }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [currentPDF, setCurrentPDF] = useState<string | null>(null);
 
-  // Check for existing PDF on component mount
-  React.useEffect(() => {
-    checkForExistingPDF();
-  }, [leagueId]);
-
-  const checkForExistingPDF = async () => {
+  const checkForExistingPDF = React.useCallback(async () => {
     try {
       const res = await fetch(`/api/leagues/${leagueId}/schedule/pdf-info`);
       if (res.ok) {
         const info = await res.json();
         setCurrentPDF(info.filename);
       }
-    } catch (error) {
+    } catch {
       // Ignore errors - just means no PDF exists
     }
-  };
+  }, [leagueId]);
+
+  // Check for existing PDF on component mount
+  React.useEffect(() => {
+    checkForExistingPDF();
+  }, [checkForExistingPDF]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

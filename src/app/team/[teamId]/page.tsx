@@ -76,7 +76,7 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
 
   // Admin-specific data
   let rosterRows: Array<RosterEntry & { teamId: string; teamName: string; paid?: boolean }> = [];
-  let playerTeamsByUser: Record<string, PlayerTeam[]> = {};
+  const playerTeamsByUser: Record<string, PlayerTeam[]> = {};
 
   if (permissions.isAdmin()) {
     // Load payment data
@@ -157,16 +157,6 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
 
   // Standings for record display (public view)
   const standings = ((await kv.get<StandingRow[]>(`league:${team.leagueId}:standings`)) ?? []) as StandingRow[];
-  const standing = standings.find((s) => s.teamId === teamId) || null;
-  
-  const record =
-    standing?.rank != null
-      ? `Rank #${standing.rank}`
-      : standing
-      ? `${standing.wins ?? 0}-${standing.losses ?? 0}${
-          standing.ties ? `-${standing.ties}` : ""
-        }`
-      : "—";
 
   /* ---------------- Server Actions ---------------- */
 

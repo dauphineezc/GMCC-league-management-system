@@ -47,14 +47,6 @@ export default function AnnouncementFilters({ totals, teams = [] }: Props) {
     );
   };
 
-  const handleSelectAll = () => {
-    if (selectedTeams.length === teams.length) {
-      setSelectedTeams([]);
-    } else {
-      setSelectedTeams(teams.map(t => t.id));
-    }
-  };
-
   const filteredCount = React.useMemo(() => {
     if (managersOnly && paymentFilter === "all") return totals.managers;
     if (managersOnly && paymentFilter === "paid") return totals.managersPaid;

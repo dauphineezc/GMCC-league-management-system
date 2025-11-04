@@ -3,8 +3,7 @@
 import { useFormState, useFormStatus } from "react-dom";
 import {
   createLeagueAction,
-  addTeamToLeague,           // still used by the <form> fallback if you prefer
-  addTeamToLeagueDirect,   // <-- new direct action
+  addTeamToLeagueDirect,
 } from "./createLeagueAction";
 import type { CreateLeagueState, UnassignedTeam } from "./createLeagueTypes";
 import { useState, useTransition } from "react";

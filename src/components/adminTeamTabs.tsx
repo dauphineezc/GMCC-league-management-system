@@ -22,13 +22,7 @@ type TabKey = "roster" | "schedule" | "history" | "standings";
 function slugify(s: string) {
   return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
 }
-function hashCode(str: string) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
-  return h;
-}
-function fakeContact(displayName: string) {
-  const slug = slugify(displayName || "player");
+function fakeContact(_displayName: string) {
   return {
     email: "",           // ← blank (falsy) so popup won’t render @example.com first
     phone: "",
@@ -43,12 +37,10 @@ export default function AdminTeamTabs({
   teamName,
   leagueId,
   roster,
-  games,
   onTogglePaid,
   playerTeamsByUser,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("roster");
-  const [isMobile, setIsMobile] = useState(false);
 
   // popup state
   const [open, setOpen] = useState(false);
@@ -57,18 +49,6 @@ export default function AdminTeamTabs({
   
   // remove player state
   const [removingPlayer, setRemovingPlayer] = useState<string | null>(null);
-
-  // Detect screen size
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
   
   // standings state
   const [standings, setStandings] = useState<any[]>([]);
@@ -119,7 +99,7 @@ export default function AdminTeamTabs({
       setContextPaid(row.paid);
       setOpen(true);
     },
-    [playerTeamsByUser, teamId, leagueId]
+    [playerTeamsByUser, teamId, teamName, leagueId]
   );
 
   const handleRemovePlayer = useCallback(
@@ -146,7 +126,7 @@ export default function AdminTeamTabs({
         } else {
           alert(data.error || 'Failed to remove player');
         }
-      } catch (error) {
+      } catch {
         alert('Something went wrong. Please try again.');
       } finally {
         setRemovingPlayer(null);
@@ -154,21 +134,6 @@ export default function AdminTeamTabs({
     },
     [teamId]
   );
-
-  const now = Date.now();
-  const { upcoming, history } = useMemo(() => {
-    const u: Game[] = [], h: Game[] = [];
-    for (const g of games) {
-      const when = Date.parse(g.dateTimeISO);
-      (isFinite(when) && when >= now ? u : h).push(g);
-    }
-    u.sort((a, b) => Date.parse(a.dateTimeISO) - Date.parse(b.dateTimeISO));
-    h.sort((a, b) => Date.parse(b.dateTimeISO) - Date.parse(a.dateTimeISO));
-    return { upcoming: u, history: h };
-  }, [games, now]);
-
-  const COL_GAP = 80;
-  const PAYGROUP_GAP = 14;
 
   return (
     <section className="card">

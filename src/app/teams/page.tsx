@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 import EditableLeagueAssignment from "../(superadmin)/superadmin/teams/editableLeagueAssignment";

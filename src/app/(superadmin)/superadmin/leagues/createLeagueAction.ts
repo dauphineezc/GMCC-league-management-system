@@ -39,9 +39,6 @@ async function writePatch(key: string, patch: Record<string, any>) {
 }
 
 /* ---------- utilities (not exported) ---------- */
-const slug = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
 const normEmail = (e: unknown) => String(e ?? "").trim().toLowerCase();
 
 async function resolveUidByEmail(email: string): Promise<string | null> {

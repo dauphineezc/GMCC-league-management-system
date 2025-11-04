@@ -9,7 +9,7 @@ export default function JoinPage() {
   const searchParams = useSearchParams();
   const token = searchParams?.get('t');
 
-  const [mode, setMode] = useState<'token' | 'code'>(token ? 'token' : 'code');
+  const [mode] = useState<'token' | 'code'>(token ? 'token' : 'code');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -20,6 +20,7 @@ export default function JoinPage() {
     if (token && mode === 'token') {
       handleTokenJoin(token);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, mode]);
 
   const handleTokenJoin = async (t: string) => {
@@ -55,7 +56,7 @@ export default function JoinPage() {
         setError(errorMsg);
         setMessage('');
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
       setMessage('');
     } finally {
@@ -101,7 +102,7 @@ export default function JoinPage() {
         setError(errorMsg);
         setMessage('');
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
       setMessage('');
     } finally {

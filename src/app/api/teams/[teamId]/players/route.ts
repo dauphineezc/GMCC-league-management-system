@@ -26,7 +26,8 @@ export async function DELETE(
 
   const { teamId } = params;
   const body = await req.json();
-  let { userId, newManagerId } = body;
+  let { userId } = body;
+  const { newManagerId } = body;
 
   // Handle 'self' marker for when user removes themselves
   if (userId === 'self') {

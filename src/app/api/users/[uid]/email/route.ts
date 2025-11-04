@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: { uid: string 
       if (fu.email) {
         return NextResponse.json({ email: fu.email, source: "firebase" });
       }
-    } catch (e) {
+    } catch {
       // ignore user-not-found; fall through to KV/profile
     }
 

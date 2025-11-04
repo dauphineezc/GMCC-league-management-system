@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 
 // ---- enums used in form + payload ----
