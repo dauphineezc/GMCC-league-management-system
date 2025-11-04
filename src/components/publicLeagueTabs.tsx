@@ -83,7 +83,7 @@ export default function PublicLeagueTabs({
                   borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
                 }}
               >
-                <span style={{ 
+                <span className="public-league-name" style={{ 
                   fontWeight: 500,
                   fontSize: 20,
                   lineHeight: 1.2,

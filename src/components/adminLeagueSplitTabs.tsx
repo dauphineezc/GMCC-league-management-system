@@ -171,7 +171,11 @@ export default function AdminLeagueSplitTabs({
             <ScheduleViewer leagueId={leagueId} />
           </div>
         )}
-        {tab === "history" && <GameHistory leagueId={leagueId} />}
+        {tab === "history" && (
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+            <GameHistory leagueId={leagueId} />
+          </div>
+        )}
         {tab === "standings" && <StandingsPane standings={standings} />}
       </div>
 
@@ -240,32 +244,40 @@ function TeamsPane({
       
       {/* Mobile cards */}
       <div className="teams-mobile">
-        <ul className="roster-list">
-          {teams.map((t) => (
-            <li key={t.teamId}>
-              <div className="player-card" style={{ padding: "12px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                  <h3 style={{ 
-                    margin: 0, 
-                    fontSize: "20px", 
-                    fontWeight: 500, 
-                    color: "var(--navy)",
-                    fontFamily: "var(--font-body), system-ui"
-                  }}>
-                    {t.name}
-                  </h3>
-                  <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`}>
-                    {t.approved ? "APPROVED" : "PENDING"}
-                  </span>
+        <div className="card--soft rounded-2xl border overflow-hidden">
+          <ul className="roster-list">
+            {teams.map((t, idx) => (
+              <li key={t.teamId}>
+                <div style={{ 
+                  padding: "12px 16px",
+                  borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                    <h3 className="league-team-name-mobile" style={{ 
+                      margin: 0, 
+                      fontSize: "20px", 
+                      fontWeight: 500, 
+                      color: "var(--navy)",
+                      fontFamily: "var(--font-body), system-ui",
+                      flex: "1",
+                      minWidth: 0,
+                    }}>
+                      {t.name}
+                    </h3>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+                      <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`}>
+                        {t.approved ? "APPROVED" : "PENDING"}
+                      </span>
+                      <Link href={`/admin/team/${t.teamId}`} className="card-cta">
+                        VIEW TEAM →
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                
-                <Link href={`/admin/team/${t.teamId}`} className="card-cta" style={{ width: "100%", display: "block", textAlign: "center" }}>
-                  VIEW TEAM →
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -312,50 +324,38 @@ function StandingsPane({ standings }: { standings: any[] }) {
           {/* Mobile cards */}
           <div className="standings-mobile">
             <ul className="roster-list">
-              {standings.map((s: any) => (
+              {standings.map((s: any, idx: number) => (
                 <li key={s.teamId}>
-                  <div className="player-card" style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <h3 style={{ 
-                        margin: 0, 
-                        fontSize: "22px", 
-                        fontWeight: 500, 
-                        color: "var(--navy)",
-                        fontFamily: "var(--font-body), system-ui"
-                      }}>
-                        {s.teamName || s.name || s.teamId}
-                      </h3>
-                      {/* {s.gamesPlayed > 0 && (
-                        <span style={{
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          color: "var(--navy)",
-                          background: "var(--light-blue)",
-                          padding: "4px 8px",
-                          borderRadius: "4px"
-                        }}>
-                          {(s.winPercentage * 100).toFixed(1)}%
-                        </span>
-                      )} */}
-                    </div>
+                  <div style={{ 
+                    padding: "12px 16px",
+                    borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                  }}>
+                    <h3 style={{ 
+                      margin: 0, 
+                      fontSize: "16px", 
+                      fontWeight: 500, 
+                      color: "var(--navy)",
+                      fontFamily: "var(--font-body), system-ui",
+                      marginBottom: "8px",
+                    }}>
+                      {s.teamName || s.name || s.teamId}
+                    </h3>
                     
-                    <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
-
-
+                    <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", marginBottom: "4px" }}>
                         <div>
-                          <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                          <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
                         </div>
                         <div>
-                          <strong style={{ color: "var(--navy)" }}>Win Rate:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
+                          <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Win Rate:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                         <div>
-                          <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                          <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
                         </div>
                         <div>
-                          <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                          <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
                         </div>
                       </div>
                     </div>
@@ -465,62 +465,68 @@ function RosterPane({
       
       {/* Mobile cards */}
       <div className="roster-mobile">
-        <ul className="roster-list">
-          {sortedRoster.map((p) => (
-            <li key={`${p.teamId}:${p.userId}`}>
-              <div className="player-card" style={{ padding: "12px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                  <h3 style={{ 
-                    margin: 0, 
-                    fontSize: "20px", 
-                    fontWeight: 500, 
-                    color: "var(--navy)",
-                    fontFamily: "var(--font-body), system-ui"
-                  }}>
-                    {p.displayName}
-                  </h3>
-                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
-                    {p.paid ? "PAID" : "UNPAID"}
-                  </span>
-                </div>
-                
-                <div style={{ fontSize: "14px", color: "var(--gray-600)", marginBottom: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <strong style={{ color: "var(--navy)" }}>Team:</strong> 
-                    <span style={{ fontWeight: 600, textTransform: "uppercase" }}>{p.teamName}</span>
-                    {p.isManager && (
-                      <span className="player-meta" title="Team Manager" style={{ 
-                        whiteSpace: "nowrap",
-                        fontSize: "12px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}>
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
-                          <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                        </svg>
-                        Manager
-                      </span>
-                    )}
+        <div className="card--soft rounded-2xl border overflow-hidden">
+          <ul className="roster-list">
+            {sortedRoster.map((p, idx) => (
+              <li key={`${p.teamId}:${p.userId}`}>
+                <div style={{ 
+                  padding: "12px 16px",
+                  borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "8px" }}>
+                    <h3 className="league-roster-player-name-mobile" style={{ 
+                      margin: 0, 
+                      fontSize: "20px", 
+                      fontWeight: 500, 
+                      color: "var(--navy)",
+                      fontFamily: "var(--font-body), system-ui",
+                    }}>
+                      {p.displayName}
+                    </h3>
+                    <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
+                      {p.paid ? "PAID" : "UNPAID"}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                    <div className="league-roster-team-info-mobile" style={{ fontSize: "14px", color: "var(--gray-600)", flex: "1", minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                          <strong style={{ color: "var(--navy)" }}>Team:</strong> 
+                          <span style={{ fontWeight: 600, textTransform: "uppercase" }}>{p.teamName}</span>
+                        </div>
+                        {p.isManager && (
+                          <span className="player-meta" title="Team Manager" style={{ 
+                            whiteSpace: "nowrap",
+                            fontSize: "12px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                              <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                            </svg>
+                            Manager
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      className="card-cta"
+                      aria-label={`View ${p.displayName}`}
+                      onClick={() => onView(p)}
+                      title={`View ${p.displayName}`}
+                    >
+                      VIEW PLAYER →
+                    </button>
                   </div>
                 </div>
-                
-                <button
-                  type="button"
-                  className="card-cta"
-                  aria-label={`View ${p.displayName}`}
-                  onClick={() => onView(p)}
-                  title={`View ${p.displayName}`}
-                  style={{ 
-                    width: "100%",
-                  }}
-                >
-                  VIEW PLAYER →
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

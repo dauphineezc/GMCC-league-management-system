@@ -244,11 +244,11 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
         </div>
       </header>
 
-      <div className="team-fee-container" style={{ marginTop: "-30px" }}>
+      <div className="team-fee-container" style={{ marginTop: "-15px" }}>
         {/* Team Fee Badge - Show if fee is required */}
         {team.teamFee?.required && team.teamFee?.amountCents !== undefined && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "end" }}>
-          <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--navy)" }}>
+          <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--navy)", alignSelf: "center" }}>
             Team Fee: ${(team.teamFee.amountCents / 100).toFixed(2)}
           </span>
           {permissions.isAdmin() ? (
@@ -264,7 +264,8 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
                 inactiveBg="#FFF3E6"
                 activeCircleBg="var(--green)"
                 inactiveCircleBg="#ec720e"
-                minWidth="100px"
+                minWidth="80px"
+                variant="paid"
               />
             </form>
           ) : (

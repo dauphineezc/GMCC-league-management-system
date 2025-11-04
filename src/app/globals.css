@@ -327,14 +327,14 @@ h1.page-title{
   color: var(--navy);
 
   /* crisp outline */
-  -webkit-text-stroke: 2px var(--green);     /* Chrome/Safari/Edge */
+  -webkit-text-stroke: 1px var(--green);     /* Chrome/Safari/Edge */
   text-shadow:
     0 0 .02px var(--green);                  /* Firefox fallback: ultra-thin halo */
 }
 
 /* If you want a touch more presence on large screens only */
 @media (min-width: 1100px){
-  h1.page-title{ -webkit-text-stroke: 1.25px var(--green); }
+  h1.page-title{ -webkit-text-stroke: 1.5px var(--green); }
 }
 
 /* Optional smoothing (looks nicer with strokes) */
@@ -821,6 +821,49 @@ button.card-cta {
 }
 
 
+/* === Toggle Button Global Sizing === */
+/* Reduce toggle button sizes on all screen sizes */
+.toggle-button {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+/* Paid/Unpaid toggles are shorter and more compact */
+.toggle-button--paid {
+  width: 95px !important;
+  min-width: 95px !important;
+  max-width: 95px !important;
+}
+
+.toggle-button__circle {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+.toggle-button__label {
+  font-size: 13px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
 /* === Team page header === */
 .team-header{
   display:flex; align-items:flex-start; justify-content:space-between;
@@ -838,6 +881,18 @@ button.card-cta {
   
   .team-title-wrap {
     width: 100%;
+  }
+
+  /* Keep chip-group (with toggle buttons) aligned to the right */
+  .chip-group {
+    width: 100%;
+    display: flex !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Fix team fee container spacing on mobile */
+  .team-fee-container {
+    margin-top: 8px !important;
   }
 }
 
@@ -1827,6 +1882,124 @@ button.card-cta {
     max-width: none !important;
   }
   
+  /* MOBILE-FIRST: Public league tabs - smaller league names */
+  .public-league-name {
+    font-size: 16px !important;
+  }
+
+  /* MOBILE-FIRST: Team summary cards - smaller team names */
+  .card-title {
+    font-size: 18px !important;
+  }
+
+  /* MOBILE-FIRST: Admin league summary cards - smaller team names */
+  .summary-card-team-name {
+    font-size: 16px !important;
+  }
+
+  /* MOBILE-FIRST: Team roster - smaller player names */
+  .team-roster-player-name {
+    font-size: 16px !important;
+  }
+
+  /* MOBILE-FIRST: Teams page - smaller team names */
+  .teams-page-team-name {
+    font-size: 16px !important;
+  }
+
+  /* MOBILE-FIRST: League roster directory - smaller player and team names */
+  .directory-roster-player-name {
+    font-size: 16px !important;
+  }
+
+  .directory-roster-team-name {
+    font-size: 14px !important;
+  }
+
+  /* MOBILE-FIRST: Smaller "VIEW X →" links */
+  .card-cta {
+    font-size: 11px !important;
+    letter-spacing: 0.2px !important;
+  }
+
+  /* MOBILE-FIRST: Smaller badges (approved/pending, paid/unpaid) */
+  .badge,
+  .badge--ok,
+  .badge--pending {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* MOBILE-FIRST: Smaller status pills */
+  .status,
+  .status--ok,
+  .status--pending {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+
+  /* MOBILE-FIRST: Smaller chip badges */
+  .chip,
+  .chip--ok,
+  .chip--pending {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+
+  /* MOBILE-FIRST: Even smaller toggle buttons on mobile */
+  .toggle-button {
+    font-size: 9px !important;
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+    padding: 3px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    gap: 3px !important;
+    margin: 0 !important;
+  }
+
+  /* Paid/Unpaid toggles are even shorter and more compact on mobile */
+  .toggle-button--paid {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+  }
+
+  /* Text labels inside toggle buttons on mobile */
+  .toggle-button__label {
+    font-size: 9px !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  /* Circle indicators inside toggle buttons - make smaller on mobile */
+  .toggle-button__circle {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    max-width: 16px !important;
+    max-height: 16px !important;
+  }
+
+  /* MOBILE-FIRST: Larger icon buttons (especially delete/trash icons) */
+  .icon-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 6px !important;
+  }
+
+  .icon-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+  }
+
   /* MOBILE-FIRST: Smaller fonts on mobile for better fit */
   .admin-league-layout .player-card span[style*="fontSize: 24"] {
     font-size: 18px !important;
@@ -2049,16 +2222,22 @@ button.card-cta {
   }
   
   /* MOBILE-FIRST: Add separators between schedule and game history entries */
+  .schedule-mobile .roster-list {
+    gap: 0 !important;
+  }
+  
   .schedule-mobile .roster-list li:not(:last-child) {
-    border-bottom: 1px solid #e5e7eb !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 8px !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  .game-history-mobile .roster-list {
+    gap: 0 !important;
   }
   
   .game-history-mobile .roster-list li:not(:last-child) {
-    border-bottom: 1px solid #e5e7eb !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 8px !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
   }
   
   /* Standings mobile - no borders between items, cards handle their own styling */
@@ -2147,11 +2326,6 @@ button.card-cta {
 
 .standings-mobile .roster-list li > div {
   box-shadow: none !important;
-  background: transparent !important;
-}
-
-.standings-mobile .roster-list li > div[style*="backgroundColor"] {
-  box-shadow: none !important;
 }
 
 /* ULTRA HIGH SPECIFICITY - Force no cards for standings, but allow current team highlighting */
@@ -2159,33 +2333,7 @@ div.standings-mobile ul.roster-list li > div {
   box-shadow: none !important;
 }
 
-/* Allow current team highlighting - multiple selectors for maximum coverage */
-div.standings-mobile ul.roster-list li > div[style*="backgroundColor: rgba(75,139,43,.05)"],
-.standings-mobile .roster-list li > div[style*="backgroundColor: rgba(75,139,43,.05)"],
-div.standings-mobile ul.roster-list li > div[style*="backgroundColor: var(--navy)"],
-.standings-mobile .roster-list li > div[style*="backgroundColor: var(--navy)"] {
-  background: rgba(75,139,43,.05) !important;
-  background-color: rgba(75,139,43,.05) !important;
-}
-
-/* Allow background colors to be inherited from inline styles */
-.standings-mobile .roster-list li > div {
-  background: inherit !important;
-  background-color: inherit !important;
-}
-
-/* ULTIMATE OVERRIDE - Force background colors to work */
-div.standings-mobile ul.roster-list li > div[style*="backgroundColor"] {
-  background: unset !important;
-  background-color: unset !important;
-}
-
-/* Current team highlighting - class-based approach with maximum specificity */
-div.standings-mobile ul.roster-list li > div.current-team-highlight,
-.standings-mobile .roster-list li > div.current-team-highlight {
-  background: rgba(75,139,43,.05) !important;
-  background-color: rgba(75,139,43,.05) !important;
-}
+/* Allow inline background colors for current team highlighting */
 
 /* Override any card-like styling from roster-list */
 div.standings-mobile ul.roster-list {
@@ -2628,5 +2776,40 @@ div.standings-mobile ul.roster-list li {
   .roster-gradient .mobile-badges-row .card-cta {
     font-size: 12px !important;
     padding: 6px 8px !important;
+  }
+
+  /* Reduce league name font size on mobile */
+  .league-name-display {
+    font-size: 13px !important;
+  }
+
+  /* Reduce font sizes on leagues page for mobile */
+  .league-name-mobile {
+    font-size: 16px !important;
+  }
+
+  .league-sport-mobile,
+  .league-admin-mobile {
+    font-size: 12px !important;
+  }
+
+  /* Reduce font sizes on players and admins pages for mobile */
+  .player-name-display,
+  .admin-name-display {
+    font-size: 16px !important;
+  }
+
+  /* Reduce team name font size on league teams tab for mobile */
+  .league-team-name-mobile {
+    font-size: 16px !important;
+  }
+
+  /* Reduce font sizes on league roster tab for mobile */
+  .league-roster-player-name-mobile {
+    font-size: 16px !important;
+  }
+
+  .league-roster-team-info-mobile {
+    font-size: 12px !important;
   }
 }

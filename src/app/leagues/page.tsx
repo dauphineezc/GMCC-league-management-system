@@ -364,7 +364,7 @@ export default async function LeaguesListPage({
                   >
                     {/* Line 1: League name */}
                     <div
-                      className="item-name"
+                      className="item-name league-name-mobile"
                       title={l.name}
                       style={{
                         fontWeight: 500,
@@ -393,10 +393,10 @@ export default async function LeaguesListPage({
                         marginBottom: "0px",
                       }}
                     >
-                      <span title={l.sport ?? ""}>
+                      <span className="league-sport-mobile" title={l.sport ?? ""}>
                         {l.sport ?? "—"}
                       </span>
-                      <span title={l.adminName ?? ""}>
+                      <span className="league-admin-mobile" title={l.adminName ?? ""}>
                         {l.adminName ?? "Unassigned"}
                       </span>
                     </div>

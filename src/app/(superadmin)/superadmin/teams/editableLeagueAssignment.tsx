@@ -98,7 +98,8 @@ export default function EditableLeagueAssignment({
           className="px-2 py-1 text-xs rounded disabled:opacity-50"
           style={{ 
             color: 'var(--navy)',
-            border: 'none'
+            border: 'none',
+            fontSize: '14px'
           }}
           disabled={isPending}
           onClick={handleSave}
@@ -111,7 +112,8 @@ export default function EditableLeagueAssignment({
           className="px-2 py-1 text-xs rounded disabled:opacity-50"
           style={{ 
             color: 'var(--navy)',
-            border: 'none'
+            border: 'none',
+            fontSize: '14px'
           }}
           disabled={isPending}
           onClick={handleCancel}
@@ -130,7 +132,8 @@ export default function EditableLeagueAssignment({
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span       
+      <span
+      className="league-name-display"
       style={{
         justifySelf: "center",
         overflow: "hidden",

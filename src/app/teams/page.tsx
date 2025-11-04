@@ -248,6 +248,7 @@ export default async function TeamsPage({
                   }}>
                     {/* Team name */}
                     <span
+                      className="teams-page-team-name"
                       style={{
                         fontFamily: "var(--font-body)",
                         fontWeight: 500,

@@ -138,9 +138,12 @@ export function ScheduleViewerShared({ pdfInfo, scheduledGames, onDownloadPDF, d
         )}
         
         <ul className="roster-list">
-          {scheduledGames.map((game) => (
+          {scheduledGames.map((game, idx) => (
             <li key={game.id}>
-              <div className="player-card" style={{ padding: "12px 16px" }}>
+              <div style={{ 
+                padding: "12px 16px",
+                borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+              }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                   <div>
                     <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>

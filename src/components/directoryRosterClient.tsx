@@ -114,10 +114,10 @@ export default function DirectoryRosterClient({
                       ["--col-gap" as any]: `${COL_GAP}px`,
                     }}
                   >
-                    <div style={{ fontFamily: "var(--font-body), system-ui", fontSize: 24, fontWeight: 500 }}>
+                    <div className="directory-roster-player-name" style={{ fontFamily: "var(--font-body), system-ui", fontSize: 24, fontWeight: 500 }}>
                       {p.displayName}
                     </div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "var(--navy)", textTransform: "uppercase" }}>
+                    <div className="directory-roster-team-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--navy)", textTransform: "uppercase" }}>
                       {p.teamName}
                     </div>
                     <div>

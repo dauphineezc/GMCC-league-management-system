@@ -50,6 +50,7 @@ export default function AdminLeagueCard({ leagueId, leagueName, teams }: {
                     gap: "12px"
                   }}>
                     <span
+                      className="summary-card-team-name"
                       title={t.name}
                       style={{
                         fontFamily: "var(--font-body), system-ui",

@@ -125,7 +125,7 @@ export default function TeamTabs(props: {
                         <tbody>
                           {sortedRoster.map((p) => (
                             <tr key={p.userId}>
-                              <td style={td}>{p.displayName || p.userId}</td>
+                              <td style={td}><span className="team-roster-player-name">{p.displayName || p.userId}</span></td>
                               <td style={tdCenter}>
                                 {p.isManager && (
                                   <span className="player-meta" title="Team Manager" style={{ 
@@ -190,7 +190,7 @@ export default function TeamTabs(props: {
                         <tbody>
                           {sortedRoster.map((p) => (
                             <tr key={p.userId}>
-                              <td style={td}>{p.displayName || p.userId}</td>
+                              <td style={td}><span className="team-roster-player-name">{p.displayName || p.userId}</span></td>
                               <td style={tdCenter}>
                                 {p.isManager && (
                                   <span className="player-meta" title="Team Manager" style={{ 

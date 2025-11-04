@@ -151,11 +151,14 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
       {/* Mobile cards */}
       <div className="game-history-mobile">
         <ul className="roster-list">
-          {games.map((game) => {
+          {games.map((game, idx) => {
             const winnerInfo = getWinnerInfo(game);
             return (
               <li key={game.id}>
-                <div className="player-card" style={{ padding: "12px 16px" }}>
+                <div style={{ 
+                  padding: "12px 16px",
+                  borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
@@ -165,18 +168,6 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
                         {game.location}
                       </div>
                     </div>
-                    {/* {game.homeScore != null && game.awayScore != null && (
-                      <span style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "var(--navy)",
-                        background: "var(--light-blue)",
-                        padding: "4px 8px",
-                        borderRadius: "4px"
-                      }}>
-                        {formatResult(game)}
-                      </span> */}
-                    {/* )} */}
                   </div>
                   
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px" }}>

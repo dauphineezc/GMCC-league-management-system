@@ -98,6 +98,7 @@ export default function SuperPlayerList({ roster, playerTeamsByUser }: Props) {
               >
                 {/* NAME (flexible, left aligned, single line with ellipsis) */}
                 <div
+                  className="player-name-display"
                   style={{
                     fontFamily: "var(--font-body), system-ui",
                     fontWeight: 500,

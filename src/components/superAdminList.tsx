@@ -105,6 +105,7 @@ export default function SuperAdminsList({ roster, adminTeamsByUser }: Props) {
               >
                 {/* NAME (flexible, left aligned, single line with ellipsis) */}
                 <div
+                  className="admin-name-display"
                   style={{
                     fontFamily: "var(--font-body), system-ui",
                     fontWeight: 500,

@@ -190,6 +190,7 @@ export default function AdminTeamTabs({
                                   <input type="hidden" name="userId" value={p.userId} />
                                   <button 
                                     type="submit"
+                                    className="toggle-button toggle-button--paid"
                                     aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
                                     title={p.paid ? "Mark as unpaid" : "Mark as paid"}
                                     style={{
@@ -198,8 +199,6 @@ export default function AdminTeamTabs({
                                       justifyContent: "space-between",
                                       gap: "4px",
                                       padding: "4px",
-                                      paddingLeft: p.paid ? "12px" : "4px",
-                                      paddingRight: p.paid ? "4px" : "12px",
                                       minWidth: "100px",
                                       border: "1px solid",
                                       borderColor: p.paid ? "var(--green)" : "#ec720e",
@@ -221,8 +220,8 @@ export default function AdminTeamTabs({
                                   >
                                     {p.paid ? (
                                       <>
-                                        <span style={{ flex: 1, textAlign: "left", fontSize: "13px" }}>PAID</span>
-                                        <span style={{
+                                        <span className="toggle-button__label" style={{ flex: 1, textAlign: "left", fontSize: "13px", paddingLeft: "4px", alignSelf: "center" }}>PAID</span>
+                                        <span className="toggle-button__circle" style={{
                                           width: "24px",
                                           height: "24px",
                                           borderRadius: "50%",
@@ -232,14 +231,14 @@ export default function AdminTeamTabs({
                                       </>
                                     ) : (
                                       <>
-                                        <span style={{
+                                        <span className="toggle-button__circle" style={{
                                           width: "24px",
                                           height: "24px",
                                           borderRadius: "50%",
                                           background: "#ec720e",
                                           flexShrink: 0,
                                         }} />
-                                        <span style={{ flex: 1, textAlign: "right", fontSize: "13px" }}>UNPAID</span>
+                                        <span className="toggle-button__label" style={{ flex: 1, textAlign: "right", fontSize: "13px", paddingRight: "4px", alignSelf: "center" }}>UNPAID</span>
                                       </>
                                     )}
                                   </button>
@@ -284,57 +283,46 @@ export default function AdminTeamTabs({
                 
                 {/* Mobile cards */}
                 <div className="admin-team-roster-mobile">
-                  <ul className="roster-list">
-                    {sortedRoster.map((p) => (
-                      <li key={p.userId}>
-                        <div className="player-card" style={{ padding: "12px 16px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div className="card--soft rounded-2xl border overflow-hidden">
+                    <ul className="roster-list">
+                      {sortedRoster.map((p, idx) => (
+                        <li key={p.userId}>
+                          <div style={{ 
+                            padding: "12px 16px",
+                            borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                          }}>
+                            {/* Row 1: Player name and PAID badge */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "8px" }}>
                             <h3 style={{ 
                               margin: 0, 
-                              fontSize: "20px", 
+                              fontSize: "16px", 
                               fontWeight: 500, 
                               color: "var(--navy)",
-                              fontFamily: "var(--font-body), system-ui"
+                              fontFamily: "var(--font-body), system-ui",
+                              flex: "1",
+                              minWidth: 0,
                             }}>
                               {p.displayName}
                             </h3>
-                            {p.isManager && (
-                              <span className="player-meta" title="Team Manager" style={{ 
-                                whiteSpace: "nowrap",
-                                fontSize: "12px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                              }}>
-                                <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
-                                  <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
-                                </svg>
-                                Manager
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                             <form action={onTogglePaid} style={{ display: "inline" }}>
                               <input type="hidden" name="userId" value={p.userId} />
                               <button 
                                 type="submit"
+                                className="toggle-button toggle-button--paid"
                                 aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
                                 title={p.paid ? "Mark as unpaid" : "Mark as paid"}
                                 style={{
                                   display: "inline-flex",
                                   alignItems: "center",
                                   justifyContent: "space-between",
-                                  gap: "8px",
+                                  gap: "4px",
                                   padding: "4px",
-                                  paddingLeft: p.paid ? "12px" : "4px",
-                                  paddingRight: p.paid ? "4px" : "12px",
                                   minWidth: "110px",
-                                  border: "2px solid",
-                                  borderColor: p.paid ? "rgba(75,139,43,0.6)" : "rgba(255,127,80,0.6)",
+                                  border: "1px solid",
+                                  borderColor: p.paid ? "var(--green)" : "#ec720e",
                                   borderRadius: "50px",
-                                  background: p.paid ? "rgba(75,139,43,0.15)" : "rgba(255,127,80,0.15)",
-                                  color: p.paid ? "rgba(75,139,43,1)" : "rgba(255,80,40,1)",
+                                  background: p.paid ? "#EAF7EE" : "#FFF3E6",
+                                  color: p.paid ? "var(--green)" : "#ec720e",
                                   fontSize: "12px",
                                   fontWeight: 600,
                                   cursor: "pointer",
@@ -342,71 +330,91 @@ export default function AdminTeamTabs({
                                   position: "relative",
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = p.paid ? "rgba(75,139,43,0.25)" : "rgba(255,127,80,0.25)";
+                                  e.currentTarget.style.background = p.paid ? "rgba(43, 139, 72, 0.25)" : "rgba(255, 144, 80, 0.25)";
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = p.paid ? "rgba(75,139,43,0.15)" : "rgba(255,127,80,0.15)";
+                                  e.currentTarget.style.background = p.paid ? "#EAF7EE" : "#FFF3E6";
                                 }}
                               >
                                 {p.paid ? (
                                   <>
-                                    <span style={{ flex: 1, textAlign: "left" }}>PAID</span>
-                                    <span style={{
+                                    <span className="toggle-button__label" style={{ flex: 1, textAlign: "left", paddingLeft: "4px", alignSelf: "center" }}>PAID</span>
+                                    <span className="toggle-button__circle" style={{
                                       width: "24px",
                                       height: "24px",
                                       borderRadius: "50%",
-                                      background: "rgba(75,139,43,1)",
+                                      background: "var(--green)",
                                       flexShrink: 0,
                                     }} />
                                   </>
                                 ) : (
                                   <>
-                                    <span style={{
+                                    <span className="toggle-button__circle" style={{
                                       width: "24px",
                                       height: "24px",
                                       borderRadius: "50%",
-                                      background: "rgba(255,127,80,1)",
+                                      background: "#ec720e",
                                       flexShrink: 0,
                                     }} />
-                                    <span style={{ flex: 1, textAlign: "right" }}>UNPAID</span>
+                                    <span className="toggle-button__label" style={{ flex: 1, textAlign: "right", paddingRight: "4px", alignSelf: "center" }}>UNPAID</span>
                                   </>
                                 )}
                               </button>
                             </form>
                           </div>
                           
-                          <div style={{ display: "flex", gap: "8px", justifyContent: "space-between" }}>
-                            <button
-                              type="button"
-                              className="card-cta"
-                              aria-label={`View ${p.displayName}`}
-                              onClick={() => openPopupFor(p)}
-                              title={`View ${p.displayName}`}
-                              style={{ flex: 1 }}
-                            >
-                              VIEW PLAYER →
-                            </button>
-                            <button
-                              type="button"
-                              className="icon-btn icon-btn--danger"
-                              onClick={() => handleRemovePlayer(p.userId, p.displayName)}
-                              disabled={removingPlayer === p.userId}
-                              aria-label={`Remove ${p.displayName}`}
-                              title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
-                              style={{ padding: "8px" }}
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
-                                <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
-                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
-                                <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
-                                <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
-                              </svg>
-                            </button>
+                          {/* Row 2: Manager badge and action buttons */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                            <div>
+                              {p.isManager && (
+                                <span className="player-meta" title="Team Manager" style={{ 
+                                  whiteSpace: "nowrap",
+                                  fontSize: "12px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                }}>
+                                  <svg viewBox="0 0 24 24" width="12" height="12" fill="navy" aria-hidden="true">
+                                    <path d="M3 7l5 4 4-6 4 6 5-4v10H3z" />
+                                  </svg>
+                                  Manager
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                type="button"
+                                className="card-cta"
+                                aria-label={`View ${p.displayName}`}
+                                onClick={() => openPopupFor(p)}
+                                title={`View ${p.displayName}`}
+                              >
+                                VIEW PLAYER →
+                              </button>
+                              <button
+                                type="button"
+                                className="icon-btn icon-btn--danger"
+                                onClick={() => handleRemovePlayer(p.userId, p.displayName)}
+                                disabled={removingPlayer === p.userId}
+                                aria-label={`Remove ${p.displayName}`}
+                                title={removingPlayer === p.userId ? 'Removing...' : `Remove ${p.displayName}`}
+                                style={{ padding: "8px" }}
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="18" height="18">
+                                  <path d="M3 6h18" strokeWidth="2" strokeLinecap="round" />
+                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeWidth="2" strokeLinecap="round" />
+                                  <rect x="6" y="6" width="12" height="14" rx="2" strokeWidth="2" />
+                                  <path d="M10 11v6M14 11v6" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </>
             )}
@@ -420,7 +428,9 @@ export default function AdminTeamTabs({
         )}
 
         {tab === "history" && (
-          <GameHistory leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+            <GameHistory leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          </div>
         )}
 
         {tab === "standings" && (
@@ -476,62 +486,42 @@ export default function AdminTeamTabs({
                 {/* Mobile cards */}
                 <div className="standings-mobile">
                   <ul className="roster-list">
-                    {standings.map((s: any) => {
+                    {standings.map((s: any, idx: number) => {
                       const isCurrentTeam = s.teamName === teamName || s.teamId === teamId;
                       return (
                         <li key={s.teamId}>
-                          <div 
-                            className={isCurrentTeam ? 'current-team-highlight' : ''}
-                            style={{
-                              backgroundColor: isCurrentTeam ? '#F1F8FF' : 'var(--card)',
-                              padding: "10px 10px",
-                              border: isCurrentTeam ? '1px solid rgba(0,58,112,.12)' : '1px solid transparent',
-                              borderLeft: isCurrentTeam ? '3px solid rgba(75,139,43,.35)' : '3px solid transparent',
-                              borderRadius: isCurrentTeam ? '8px' : '0',
-                              boxShadow: isCurrentTeam ? '0 2px 8px rgba(0,58,112,.06)' : 'none',
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                              <h3 style={{ 
-                                margin: 0, 
-                                fontSize: "22px", 
-                                fontWeight: 400, 
-                                color: "var(--navy)",
-                                fontFamily: "var(--font-body), system-ui"
-                              }}>
-                                {s.teamName || s.name || s.teamId}
-                              </h3>
-                              {
-                              /* {s.gamesPlayed > 0 && (
-                                <span style={{
-                                  fontSize: "14px",
-                                  fontWeight: 700,
-                                  color: "var(--navy)",
-                                  background: "var(--light-blue)",
-                                  padding: "4px 8px",
-                                  borderRadius: "4px"
-                                }}>
-                                  {(s.winPercentage * 100).toFixed(1)}%
-                                </span>
-                                
-                              )} */}
-                            </div>
+                          <div style={{ 
+                            padding: "12px 16px",
+                            borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                            backgroundColor: isCurrentTeam ? 'rgba(75,139,43,.05)' : 'transparent',
+                            borderLeft: isCurrentTeam ? '3.5px solid rgba(75,139,43,.3)' : '3px solid transparent',
+                          }}>
+                            <h3 style={{ 
+                              margin: 0, 
+                              fontSize: "16px", 
+                              fontWeight: 500, 
+                              color: "var(--navy)",
+                              fontFamily: "var(--font-body), system-ui",
+                              marginBottom: "8px",
+                            }}>
+                              {s.teamName || s.name || s.teamId}
+                            </h3>
                             
-                            <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
+                            <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
                               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", marginBottom: "4px" }}>
                                 <div>
-                                  <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                                  <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
                                 </div>
                                 <div>
-                                  <strong style={{ color: "var(--navy)" }}>Win Rate:</strong> {(s.winPercentage * 100).toFixed(1)}%
+                                  <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Win Rate:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
                                 </div>
                               </div>
                               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                                 <div>
-                                  <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                                  <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
                                 </div>
                                 <div>
-                                  <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                                  <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
                                 </div>
                               </div>
                             </div>
