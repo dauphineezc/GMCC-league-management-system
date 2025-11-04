@@ -11,13 +11,49 @@ type Totals = {
   managersUnpaid: number;
 };
 
-type Props = {
-  totals: Totals;
+type TeamOption = {
+  id: string;
+  name: string;
 };
 
-export default function AnnouncementFilters({ totals }: Props) {
+type Props = {
+  totals: Totals;
+  teams?: TeamOption[];
+};
+
+export default function AnnouncementFilters({ totals, teams = [] }: Props) {
   const [paymentFilter, setPaymentFilter] = React.useState<"all" | "paid" | "unpaid">("all");
   const [managersOnly, setManagersOnly] = React.useState(false);
+  const [selectedTeams, setSelectedTeams] = React.useState<string[]>([]);
+  const [teamDropdownOpen, setTeamDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setTeamDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleTeamToggle = (teamId: string) => {
+    setSelectedTeams(prev => 
+      prev.includes(teamId) 
+        ? prev.filter(id => id !== teamId)
+        : [...prev, teamId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTeams.length === teams.length) {
+      setSelectedTeams([]);
+    } else {
+      setSelectedTeams(teams.map(t => t.id));
+    }
+  };
 
   const filteredCount = React.useMemo(() => {
     if (managersOnly && paymentFilter === "all") return totals.managers;
@@ -36,13 +72,17 @@ export default function AnnouncementFilters({ totals }: Props) {
       : paymentFilter === "unpaid"
       ? ` (unpaid players${managersOnly ? " who are managers" : ""})`
       : "";
+  
+  const teamFilterText = selectedTeams.length > 0 
+    ? ` from ${selectedTeams.length} selected team${selectedTeams.length > 1 ? 's' : ''}`
+    : "";
 
   return (
     <>
     <div
         className="card--soft"
         style={{
-            maxWidth: 600,
+            maxWidth: 800,
             width: "100%",
             padding: "1.25rem 1.5rem",
             margin: "0", // was "0 auto" before
@@ -108,6 +148,114 @@ export default function AnnouncementFilters({ totals }: Props) {
                 Managers only
             </span>
             </label>
+
+            {/* Team Filter */}
+            {teams.length > 0 && (
+              <div style={{ position: "relative", flex: "1 1 200px", minWidth: 150, maxWidth: 250 }} ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="input"
+                  onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                  style={{
+                    width: "100%",
+                    height: 38,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 12px",
+                    cursor: "pointer",
+                    backgroundColor: "white",
+                    textAlign: "left",
+                  }}
+                >
+              <span style={{ fontSize: 14, color: "var(--navy)" }}>
+                {selectedTeams.length === 0 
+                  ? "All teams" 
+                  : selectedTeams.length === teams.length
+                  ? "All teams selected"
+                  : `${selectedTeams.length} team${selectedTeams.length > 1 ? 's' : ''} selected`
+                }
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                style={{
+                  transition: "transform 0.2s ease",
+                  transform: teamDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" fill="none" />
+              </svg>
+            </button>
+                
+                {/* Hidden select for form submission */}
+                <select
+                  id="teamFilter"
+                  name="teamFilter"
+                  multiple
+                  value={selectedTeams}
+                  onChange={() => {}}
+                  style={{ display: "none" }}
+                >
+                  {teams.map(team => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Dropdown Menu */}
+                {teamDropdownOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      marginTop: 4,
+                      backgroundColor: "white",
+                      border: "1px solid #d1d5db",
+                      borderRadius: 6,
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                      maxHeight: 300,
+                      overflowY: "auto",
+                      zIndex: 50,
+                    }}
+                  >
+                    {/* Team Checkboxes */}
+                    {teams.map(team => (
+                      <div
+                        key={team.id}
+                        style={{
+                          padding: "10px 12px",
+                          borderBottom: "1px solid #f3f4f6",
+                        }}
+                      >
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            cursor: "pointer",
+                            fontSize: 14,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTeams.includes(team.id)}
+                            onChange={() => handleTeamToggle(team.id)}
+                            style={{ cursor: "pointer", width: 16, height: 16 }}
+                          />
+                          <span>{team.name}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
         </div>
 
         <div
@@ -122,7 +270,10 @@ export default function AnnouncementFilters({ totals }: Props) {
             className="subtle-text"
             style={{ marginTop: 4, fontSize: 14, color: "#6b7280" }}
         >
-            {filteredCount} recipients will receive this announcement{details}
+            {selectedTeams.length > 0 
+              ? `Announcement will be sent to selected recipients${details}${teamFilterText}`
+              : `${filteredCount} recipients will receive this announcement${details}`
+            }
         </div>
         </div>
 

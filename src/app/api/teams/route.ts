@@ -100,11 +100,23 @@ export async function POST(req: NextRequest) {
   await kv.set(`team:${id}`, team);
   await kv.sadd("teams:index", id);
 
+  // Fetch user's displayName from their profile
+  const userProfile = await kv.get<any>(`user:${userId}`);
+  const displayName = userProfile?.displayName || userId;
+
+  // Debug logging
+  console.log('[Team Creation Debug]', {
+    userId,
+    userProfile,
+    displayName,
+    hasDisplayName: !!userProfile?.displayName,
+  });
+
   // initial roster: manager
   const roster = (await kv.get<any[]>(`team:${id}:roster`)) ?? [];
   await kv.set(`team:${id}:roster`, [
     ...roster,
-    { userId, displayName: userId, isManager: true, joinedAt: now },
+    { userId, displayName, isManager: true, joinedAt: now },
   ]);
 
   // membership: always add the creator as a member/manager

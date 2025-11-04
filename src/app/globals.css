@@ -411,8 +411,9 @@ h1.page-title{
   font-family: var(--font-body), system-ui;
   color: var(--navy);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.2px;
+  padding-right: 20px;
 }
 
 /* === Responsive card grid === */
@@ -1130,7 +1131,7 @@ button.card-cta {
 /* Teams filters - responsive grid */
 .teams-filters-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 160px)) !important;
   gap: 8px;
   align-items: center;
 }
@@ -1170,28 +1171,29 @@ button.card-cta {
 @media (min-width: 769px) {
   .teams-card-layout {
     display: grid !important;
-    grid-template-columns: 1fr auto minmax(220px, 1fr) max-content !important;
-    column-gap: 32px !important;
+    grid-template-columns: minmax(200px, 1fr) 120px minmax(220px, 1fr) max-content !important;
+    column-gap: 12px !important;
     align-items: center !important;
     gap: 0 !important;
     padding: 15px !important;
   }
   
-  /* Add extra space between badge and league assignment */
-  .teams-card-layout > div:nth-child(2) {
-    margin-left: 80px !important;
+  /* Desktop: Team name in first column (span) */
+  .teams-card-layout > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
-  /* Desktop: Team name and badge in first column */
-  .teams-card-layout > div:first-child {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
+  /* Desktop: Badge in second column (div) - centered */
+  .teams-card-layout > div:nth-child(2) {
+    justify-self: center !important;
+    margin-left: -125px !important;
+    margin-right: 125px !important;
   }
   
   /* Desktop: League assignment in third column */
-  .teams-card-layout > div:nth-child(2) {
+  .teams-card-layout > div:nth-child(3) {
     justify-self: start !important;
     min-width: 180px !important;
     max-width: 450px !important;
@@ -1221,6 +1223,11 @@ button.card-cta {
   .teams-card-layout {
     padding: 12px 16px;
     gap: 10px;
+  }
+  
+  /* Mobile: Left-align badge */
+  .teams-card-layout > div:nth-child(2) {
+    justify-content: flex-start !important;
   }
   
   .teams-card-league {

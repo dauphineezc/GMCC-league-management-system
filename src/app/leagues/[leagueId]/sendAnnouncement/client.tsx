@@ -15,12 +15,18 @@ type Totals = {
   managersUnpaid: number;
 };
 
+type TeamOption = {
+  id: string;
+  name: string;
+};
+
 interface SendAnnouncementClientProps {
   leagueId: string;
   totals: Totals;
+  teams: TeamOption[];
 }
 
-export default function SendAnnouncementClient({ leagueId, totals }: SendAnnouncementClientProps) {
+export default function SendAnnouncementClient({ leagueId, totals, teams }: SendAnnouncementClientProps) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -39,10 +45,16 @@ export default function SendAnnouncementClient({ leagueId, totals }: SendAnnounc
     // Get filter values from the filters component
     const paymentFilter = (document.getElementById("paymentFilter") as HTMLSelectElement)?.value || "all";
     const managersOnly = (document.getElementById("managersOnly") as HTMLInputElement)?.checked || false;
+    const teamSelect = document.getElementById("teamFilter") as HTMLSelectElement;
+    const selectedTeams = teamSelect ? Array.from(teamSelect.selectedOptions).map(opt => opt.value) : [];
 
     formData.append("paymentFilter", paymentFilter);
     if (managersOnly) {
       formData.append("managersOnly", "on");
+    }
+    // Pass selected team IDs as JSON
+    if (selectedTeams.length > 0) {
+      formData.append("teamIds", JSON.stringify(selectedTeams));
     }
 
     try {
@@ -81,7 +93,7 @@ export default function SendAnnouncementClient({ leagueId, totals }: SendAnnounc
       </div>
 
       {/* Filters (client) */}
-      <AnnouncementFilters totals={totals} />
+      <AnnouncementFilters totals={totals} teams={teams} />
 
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">

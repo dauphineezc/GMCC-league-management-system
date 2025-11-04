@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 import { kv } from "@vercel/kv";
 import { redirect } from "next/navigation";
-import { getServerUser } from "@/lib/serverUser";
+import { getServerUser, isLeagueAdminAsync } from "@/lib/serverUser";
 import SendAnnouncementClient from "./client";
 
 type LeaguePlayerRow = {
@@ -17,24 +17,52 @@ type LeaguePlayerRow = {
   paymentStatus?: "PAID" | "UNPAID";
 };
 
-async function isAdminOfLeague(userId: string, leagueId: string) {
-  // lightweight check for gating the page itself
+type TeamOption = {
+  id: string;
+  name: string;
+};
+
+async function smembersSafe(key: string): Promise<string[]> {
   try {
-    const inPerLeagueSet = await kv.sismember<string>(`league:${leagueId}:admins`, userId);
-    if (inPerLeagueSet) return true;
-  } catch {}
-  try {
-    const isMember = await kv.sismember<string>(`admin:${userId}:leagues`, leagueId);
-    if (isMember) return true;
-  } catch {}
-  return false;
+    const v = (await kv.smembers(key)) as unknown;
+    if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
+  } catch {
+    /* ignore WRONGTYPE or other errors */
+  }
+  return [];
+}
+
+async function getTeamsForLeague(leagueId: string): Promise<TeamOption[]> {
+  // Get team IDs from the league:teams set
+  const teamIds = await smembersSafe(`league:${leagueId}:teams`);
+  
+  // If no teams found in set, fallback to inferring from players
+  let ids = teamIds;
+  if (ids.length === 0) {
+    const players = (await kv.get<LeaguePlayerRow[]>(`league:${leagueId}:players`)) ?? [];
+    ids = Array.from(new Set(players.map(p => p.teamId).filter(Boolean)));
+  }
+  
+  // Fetch team details
+  const teams: TeamOption[] = [];
+  await Promise.all(
+    ids.map(async (id) => {
+      const team = await kv.get<any>(`team:${id}`);
+      teams.push({
+        id,
+        name: team?.name ?? id,
+      });
+    })
+  );
+  
+  return teams.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
 export default async function SendAnnouncementPage({ params }: { params: { leagueId: string } }) {
   const leagueId = params.leagueId;
   const user = await getServerUser();
   if (!user) redirect("/login");
-  const ok = await isAdminOfLeague(user.id, leagueId);
+  const ok = await isLeagueAdminAsync(user, leagueId);
   if (!ok) redirect(`/leagues/${leagueId}`);
 
   // quick counts for the UI
@@ -49,11 +77,15 @@ export default async function SendAnnouncementPage({ params }: { params: { leagu
     managersPaid: leaguePlayers.filter((p) => p.isManager && p.paymentStatus === "PAID").length,
     managersUnpaid: leaguePlayers.filter((p) => p.isManager && p.paymentStatus === "UNPAID").length,
   };
+  
+  // Fetch teams for the league
+  const teams = await getTeamsForLeague(leagueId);
 
   return (
     <SendAnnouncementClient 
       leagueId={leagueId}
       totals={totals}
+      teams={teams}
     />
   );
 }

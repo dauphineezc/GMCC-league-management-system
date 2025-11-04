@@ -13,6 +13,7 @@ import Tabs from "@/components/leagueTabs";
 import ScheduleViewerServer from "@/components/scheduleViewer.server";
 import GameHistory from "@/components/gameHistory";
 import LeagueActionsDropdown from "@/components/leagueActionsDropdown";
+import DeleteResourceButton from "@/components/deleteResourceButton";
 import { DIVISIONS } from "@/lib/divisions";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 import type { RosterEntry } from "@/types/domain";
@@ -376,6 +377,20 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
           standings={standings}
         />
       </IfAdmin>
+
+      {/* Superadmin-only: Delete League button */}
+      <IfSuperAdmin checker={permissions}>
+        <DeleteResourceButton
+          kind="league"
+          id={leagueId}
+          name={leagueName}
+          redirectTo="/leagues"
+          variant="link"
+        >
+          Delete League
+        </DeleteResourceButton>
+      </IfSuperAdmin>
+
     </main>
   );
 }

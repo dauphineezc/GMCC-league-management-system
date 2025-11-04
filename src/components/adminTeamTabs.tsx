@@ -221,25 +221,64 @@ export default function AdminTeamTabs({
                                 )}
                               </td>
                               <td style={tdCenter}>
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                                  <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
-                                    {p.paid ? "PAID" : "UNPAID"}
-                                  </span>
-                                  <form action={onTogglePaid} style={{ display: "inline" }}>
-                                    <input type="hidden" name="userId" value={p.userId} />
-                                    <button 
-                                      className="icon-btn icon-btn--light" 
-                                      type="submit"
-                                      aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
-                                      title={p.paid ? "Mark as unpaid" : "Mark as paid"}
-                                    >
-                                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                      </svg>
-                                    </button>
-                                  </form>
-                                </div>
+                                <form action={onTogglePaid} style={{ display: "inline" }}>
+                                  <input type="hidden" name="userId" value={p.userId} />
+                                  <button 
+                                    type="submit"
+                                    aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
+                                    title={p.paid ? "Mark as unpaid" : "Mark as paid"}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: "4px",
+                                      padding: "4px",
+                                      paddingLeft: p.paid ? "12px" : "4px",
+                                      paddingRight: p.paid ? "4px" : "12px",
+                                      minWidth: "100px",
+                                      border: "1px solid",
+                                      borderColor: p.paid ? "var(--green)" : "#ec720e",
+                                      borderRadius: "50px",
+                                      background: p.paid ? "#EAF7EE" : "#FFF3E6",
+                                      color: p.paid ? "var(--green)" : "#ec720e",
+                                      fontSize: "12px",
+                                      fontWeight: 600,
+                                      cursor: "pointer",
+                                      transition: "all 0.3s ease",
+                                      position: "relative",
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = p.paid ? "rgba(43, 139, 72, 0.25)" : "rgba(255, 144, 80, 0.25)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = p.paid ? "#EAF7EE" : "#FFF3E6";
+                                    }}
+                                  >
+                                    {p.paid ? (
+                                      <>
+                                        <span style={{ flex: 1, textAlign: "left", fontSize: "13px" }}>PAID</span>
+                                        <span style={{
+                                          width: "24px",
+                                          height: "24px",
+                                          borderRadius: "50%",
+                                          background: "var(--green)",
+                                          flexShrink: 0,
+                                        }} />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span style={{
+                                          width: "24px",
+                                          height: "24px",
+                                          borderRadius: "50%",
+                                          background: "#ec720e",
+                                          flexShrink: 0,
+                                        }} />
+                                        <span style={{ flex: 1, textAlign: "right", fontSize: "13px" }}>UNPAID</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </form>
                               </td>
                               <td style={tdCenter}>
                                 <button
@@ -311,21 +350,62 @@ export default function AdminTeamTabs({
                           </div>
                           
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                            <span className={`badge ${p.paid ? "badge--ok" : "badge--pending"}`}>
-                              {p.paid ? "PAID" : "UNPAID"}
-                            </span>
                             <form action={onTogglePaid} style={{ display: "inline" }}>
                               <input type="hidden" name="userId" value={p.userId} />
                               <button 
-                                className="icon-btn icon-btn--light" 
                                 type="submit"
                                 aria-label={p.paid ? "Mark as unpaid" : "Mark as paid"}
                                 title={p.paid ? "Mark as unpaid" : "Mark as paid"}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: "8px",
+                                  padding: "4px",
+                                  paddingLeft: p.paid ? "12px" : "4px",
+                                  paddingRight: p.paid ? "4px" : "12px",
+                                  minWidth: "110px",
+                                  border: "2px solid",
+                                  borderColor: p.paid ? "rgba(75,139,43,0.6)" : "rgba(255,127,80,0.6)",
+                                  borderRadius: "50px",
+                                  background: p.paid ? "rgba(75,139,43,0.15)" : "rgba(255,127,80,0.15)",
+                                  color: p.paid ? "rgba(75,139,43,1)" : "rgba(255,80,40,1)",
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  transition: "all 0.3s ease",
+                                  position: "relative",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = p.paid ? "rgba(75,139,43,0.25)" : "rgba(255,127,80,0.25)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = p.paid ? "rgba(75,139,43,0.15)" : "rgba(255,127,80,0.15)";
+                                }}
                               >
-                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
+                                {p.paid ? (
+                                  <>
+                                    <span style={{ flex: 1, textAlign: "left" }}>PAID</span>
+                                    <span style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      background: "rgba(75,139,43,1)",
+                                      flexShrink: 0,
+                                    }} />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      background: "rgba(255,127,80,1)",
+                                      flexShrink: 0,
+                                    }} />
+                                    <span style={{ flex: 1, textAlign: "right" }}>UNPAID</span>
+                                  </>
+                                )}
                               </button>
                             </form>
                           </div>

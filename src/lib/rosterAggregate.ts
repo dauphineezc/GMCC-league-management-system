@@ -2,6 +2,8 @@
 import { kv } from "@vercel/kv";
 import { adminAuth } from "@/lib/firebaseAdmin";
 import { DIVISIONS } from "@/lib/divisions";
+import { readLeagueName } from "@/lib/readLeagueName";
+import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import type { PlayerTeam, RosterRow } from "@/types/domain";
 
 
@@ -65,11 +67,9 @@ export async function buildGlobalPlayerRoster() {
   const roster: RosterRow[] = [];
   const playerTeamsByUser: Record<string, PlayerTeam[]> = {};
 
-  // Resolve league names up front
-  const leagueName = (id: string) => DIVISIONS.find(d => d.id === id)?.name ?? id;
-
   // walk leagues → teams → team rosters
   for (const leagueId of leagueIds) {
+    const leagueName = await readLeagueName(leagueId);
     const teams = await getMergedTeams(leagueId);
     for (const t of teams) {
         const [r, payMap] = await Promise.all([
@@ -94,7 +94,7 @@ export async function buildGlobalPlayerRoster() {
           isManager: Boolean(entry.isManager),
           paid: Boolean(payMap?.[entry.userId]),
           leagueId,
-          leagueName: leagueName(leagueId),
+          leagueName: leagueName,
         };
         (playerTeamsByUser[entry.userId] ??= []).push(pt);
       }
@@ -108,31 +108,72 @@ export async function buildGlobalPlayerRoster() {
 
 /** Build an 'admin roster' that reuses roster styling (1 row per league an admin manages). */
 export async function buildAdminRosterLikeRows() {
-  // We’ll show one row per {admin, league}, and one special row for superadmins.
+  // We'll show one row per {admin, league}, and one special row for superadmins.
   const out: RosterRow[] = [];
   const map: Record<string, PlayerTeam[]> = {};
 
-  const leagueName = (id: string) => DIVISIONS.find(d => d.id === id)?.name ?? id;
+  // Cache league names to avoid repeated lookups
+  const leagueNameCache = new Map<string, string>();
+  const getLeagueName = async (id: string) => {
+    if (!leagueNameCache.has(id)) {
+      leagueNameCache.set(id, await readLeagueName(id));
+    }
+    return leagueNameCache.get(id)!;
+  };
 
   let token: string | undefined = undefined;
   do {
     const res = await adminAuth.listUsers(1000, token);
     for (const u of res.users) {
       const claims = (u.customClaims ?? {}) as any;
-      const isAdmin = !!claims.superadmin || Array.isArray(claims.leagueAdminOf);
+      const uid = u.uid;
+      
+      // Use getAdminDisplayName to check KV storage first, then Firebase Auth
+      const displayName = (await getAdminDisplayName(uid)) ?? u.displayName ?? u.email ?? uid;
+
+      // Check both claims and KV sets BEFORE filtering
+      const leaguesFromClaims: string[] = Array.isArray(claims.leagueAdminOf) ? claims.leagueAdminOf : [];
+      
+      // Also check KV sets for admin leagues
+      let leaguesFromKV: string[] = [];
+      try {
+        leaguesFromKV = await smembers(`admin:${uid}:leagues`);
+      } catch {
+        // Try legacy format
+        try {
+          const val = await kv.get<any>(`admin:${uid}:leagues`);
+          if (Array.isArray(val)) {
+            leaguesFromKV = val;
+          } else if (typeof val === "string") {
+            const arr = JSON.parse(val);
+            if (Array.isArray(arr)) leaguesFromKV = arr;
+          }
+        } catch {}
+      }
+      
+      // Also check email-based key for legacy support
+      if (u.email) {
+        try {
+          const emailLeagues = await smembers(`admin:${u.email}:leagues`);
+          leaguesFromKV = [...leaguesFromKV, ...emailLeagues];
+        } catch {}
+      }
+      
+      // Merge and deduplicate
+      const leagues = Array.from(new Set([...leaguesFromClaims, ...leaguesFromKV]));
+
+      // Skip if not superadmin and has no leagues
+      const isAdmin = !!claims.superadmin || leagues.length > 0;
       if (!isAdmin) continue;
 
-      const displayName = u.displayName ?? (u.email ?? u.uid);
-      const uid = u.uid;
-
-      // Superadmin row (single “All Leagues” pseudo-membership)
+      // Superadmin row (single "All Leagues" pseudo-membership)
       if (claims.superadmin) {
         const row: RosterRow = {
           userId: uid,
           displayName,
           teamId: "all-leagues",
           teamName: "All Leagues",
-          isManager: true,     // renders the “Team Manager” chip; visually matches
+          isManager: true,     // renders the "Team Manager" chip; visually matches
           paid: true,          // renders a green badge (purely stylistic)
         };
         out.push(row);
@@ -148,13 +189,14 @@ export async function buildAdminRosterLikeRows() {
       }
 
       // Per-league admin rows
-      const leagues: string[] = Array.isArray(claims.leagueAdminOf) ? claims.leagueAdminOf : [];
+      
       for (const lid of leagues) {
+        const lname = await getLeagueName(lid);
         const row: RosterRow = {
           userId: uid,
           displayName,
           teamId: lid,
-          teamName: leagueName(lid),
+          teamName: lname,
           isManager: false,
           paid: true,
         };
@@ -162,11 +204,11 @@ export async function buildAdminRosterLikeRows() {
 
         (map[uid] ??= []).push({
           teamId: lid,
-          teamName: leagueName(lid),
+          teamName: lname,
           isManager: false,
           paid: true,
           leagueId: lid,
-          leagueName: leagueName(lid),
+          leagueName: lname,
         });
       }
 

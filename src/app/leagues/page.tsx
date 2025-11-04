@@ -271,23 +271,25 @@ export default async function LeaguesListPage({
       </form>
 
       {/* Results list */}
-      <div className="roster-gradient">
+      <div>
         {rows.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>No leagues found.</p>
         ) : (
-          <ul className="roster-list">
-            {rows.map((l) => {
+          <div className="roster-gradient" style={{ marginTop: 8 }}>
+            {rows.map((l, idx) => {
               return (
-                <li key={l.leagueId}>
+                <div key={l.leagueId}>
                   {/* Desktop Layout */}
                   <div
-                    className="player-card league-card-desktop"
+                    className="league-card-desktop"
                     style={{
                       display: "grid",
                       gridTemplateColumns:
                         "minmax(220px,1fr) minmax(220px,1fr) minmax(220px,1fr) max-content",
                       alignItems: "center",
                       columnGap: 40,
+                      padding: "12px 8px",
+                      borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
                     }}
                   >
                     {/* 1) League name */}
@@ -296,8 +298,8 @@ export default async function LeaguesListPage({
                       title={l.name}
                       style={{
                         fontWeight: 500,
-                        fontSize: 24,
-                        lineHeight: 1.1,
+                        fontSize: 20,
+                        lineHeight: 1.2,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -316,7 +318,7 @@ export default async function LeaguesListPage({
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: 600,
                         color: "var(--navy)",
                         textTransform: "uppercase",
@@ -334,7 +336,7 @@ export default async function LeaguesListPage({
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: 600,
                         color: "var(--navy)",
                         textTransform: "uppercase",
@@ -353,12 +355,13 @@ export default async function LeaguesListPage({
 
                   {/* Mobile Layout */}
                   <div
-                    className="player-card league-card-mobile"
+                    className="league-card-mobile"
                     style={{
                       display: "flex",
                       flexDirection: "column",
                       gap: "6px",
-                      padding: "12px 16px",
+                      padding: "12px 8px",
+                      borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
                     }}
                   >
                     {/* Line 1: League name */}
@@ -367,8 +370,8 @@ export default async function LeaguesListPage({
                       title={l.name}
                       style={{
                         fontWeight: 500,
-                        fontSize: 24,
-                        lineHeight: 1.1,
+                        fontSize: 20,
+                        lineHeight: 1,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -385,7 +388,7 @@ export default async function LeaguesListPage({
                         display: "flex",
                         alignItems: "center",
                         gap: "60px",
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: 600,
                         color: "var(--navy)",
                         textTransform: "uppercase",
@@ -411,10 +414,10 @@ export default async function LeaguesListPage({
                       </Link>
                     </div>
                   </div>
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
     </main>

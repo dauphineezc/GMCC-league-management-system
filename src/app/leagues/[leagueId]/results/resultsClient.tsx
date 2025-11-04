@@ -48,12 +48,10 @@ export default function ResultsClient({
 
       const completed = allGames.filter((g) => {
         const status = String(g.status || '').toLowerCase();
-        if (status === 'final' || status === 'completed' || status === 'canceled') return true;
+        // Show games with "final" or "completed" status, but NOT "canceled"
+        if (status === 'final' || status === 'completed') return true;
 
-        if (status === 'scheduled' && g.dateTimeISO) {
-          const t = new Date(g.dateTimeISO).getTime();
-          return Number.isFinite(t) && t + COMPLETION_GRACE_MINUTES * 60_000 < Date.now();
-        }
+        // Don't show scheduled or canceled games in game history
         return false;
       });
 
@@ -232,16 +230,18 @@ export default function ResultsClient({
                                 type="text"
                                 value={editingGame.homeScore}
                                 onChange={(e) => handleScoreChange('homeScore', e.target.value)}
-                                className="w-12 px-2 py-1 border rounded text-center text-sm"
+                                className="input"
+                                style={{ width: '50px', textAlign: 'center', padding: '6px' }}
                                 placeholder="0"
                                 maxLength={3}
                               />
-                              <span>-</span>
+                              <span> - </span>
                               <input
                                 type="text"
                                 value={editingGame.awayScore}
                                 onChange={(e) => handleScoreChange('awayScore', e.target.value)}
-                                className="w-12 px-2 py-1 border rounded text-center text-sm"
+                                className="input"
+                                style={{ width: '50px', textAlign: 'center', padding: '6px' }}
                                 placeholder="0"
                                 maxLength={3}
                               />
@@ -376,7 +376,8 @@ export default function ResultsClient({
                                 onChange={(e) => handleScoreChange('homeScore', e.target.value)}
                                 placeholder="0"
                                 maxLength={3}
-                                className="score-input-mobile"
+                                className="input score-input-mobile"
+                                style={{ textAlign: 'center' }}
                               />
                               <span style={{ fontSize: "10px" }}>-</span>
                               <input
@@ -385,7 +386,8 @@ export default function ResultsClient({
                                 onChange={(e) => handleScoreChange('awayScore', e.target.value)}
                                 placeholder="0"
                                 maxLength={3}
-                                className="score-input-mobile"
+                                className="input score-input-mobile"
+                                style={{ textAlign: 'center' }}
                               />
                             </div>
                           ) : (

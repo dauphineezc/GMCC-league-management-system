@@ -38,7 +38,7 @@ export type Team = {
   description?: string;
 
   // team-level fee (separate from per-player fees)
-  teamFee: TeamFee;
+  teamFee?: TeamFee;
 
   managerUserId: string;
   approved: boolean;

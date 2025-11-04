@@ -161,12 +161,9 @@ export default function JoinPage() {
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="Enter 8-character code"
                 maxLength={8}
+                className="input"
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: 4,
-                  fontSize: 16,
                   letterSpacing: 2,
                   textTransform: 'uppercase',
                 }}

@@ -817,7 +817,7 @@ function AssignManagerModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Assign New Team Manager</h2>
+          <h2 style={{ fontWeight: 400, fontSize: "22px" }}>Assign New Team Manager</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 

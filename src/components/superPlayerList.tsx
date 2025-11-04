@@ -72,67 +72,64 @@ export default function SuperPlayerList({ roster, playerTeamsByUser }: Props) {
   );
 
   return (
-    <section className="card">
-      <div className="pad-card-sides" style={{ paddingTop: 14 }}>
+    <section>
+      {players.length === 0 ? (
+        <p className="muted" style={{ margin: 0 }}>
+          No players yet.
+        </p>
+      ) : (
         <div className="roster-gradient" style={{ marginTop: 8 }}>
-          {players.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              No players yet.
-            </p>
-          ) : (
-            <ul className="roster-list">
-              {players.map((p) => {
-                // shrink font for long names to avoid multi-line wrapping
-                const len = (p.displayName || "").length;
-                const fontSize =
-                  len > 30 ? 18 : len > 22 ? 20 : 24; // tweak thresholds if you like
+          {players.map((p, idx) => {
+            // shrink font for long names to avoid multi-line wrapping
+            const len = (p.displayName || "").length;
+            const fontSize =
+              len > 30 ? 18 : len > 22 ? 20 : 24; // tweak thresholds if you like
 
-                return (
-                  <li key={p.userId}>
-                    <div
-                        className="player-card player-card--aligned"
-                        style={{
-                        // force left alignment regardless of the base card CSS
-                        display: "grid",
-                        gridTemplateColumns: "minmax(200px,1fr) max-content",
-                        alignItems: "center",
-                        justifyItems: "start",     // ← keeps the first cell left
-                        textAlign: "left",         // ← belt + suspenders
-                        gap: 24,
-                        }}
-                    >
-                        {/* NAME (flexible, left aligned, single line with ellipsis) */}
-                        <div
-                        style={{
-                            fontFamily: "var(--font-body), system-ui",
-                            fontWeight: 500,
-                            fontSize: 24,
-                            lineHeight: 1.1,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            justifySelf: "start",
-                            marginLeft: 15,
-                        }}
-                        title={p.displayName}
-                        >
-                        {p.displayName}
-                        </div>
+            return (
+              <div
+                key={p.userId}
+                className="player-card--aligned"
+                style={{
+                  // force left alignment regardless of the base card CSS
+                  display: "grid",
+                  gridTemplateColumns: "minmax(200px,1fr) max-content",
+                  alignItems: "center",
+                  justifyItems: "start",     // ← keeps the first cell left
+                  textAlign: "left",         // ← belt + suspenders
+                  gap: 24,
+                  padding: "12px 8px",
+                  borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                }}
+              >
+                {/* NAME (flexible, left aligned, single line with ellipsis) */}
+                <div
+                  style={{
+                    fontFamily: "var(--font-body), system-ui",
+                    fontWeight: 500,
+                    fontSize: 20,
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    justifySelf: "start",
+                    marginLeft: 15,
+                  }}
+                  title={p.displayName}
+                >
+                  {p.displayName}
+                </div>
 
-                        {/* ACTION (right side) */}
-                        <div className="col-view" style={{ justifySelf: "end", marginRight: 5 }}>
-                        <button className="card-cta" onClick={() => handleView(p)}>
-                            VIEW PLAYER →
-                        </button>
-                        </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                {/* ACTION (right side) */}
+                <div className="col-view" style={{ justifySelf: "end", marginRight: 5 }}>
+                  <button className="card-cta" onClick={() => handleView(p)}>
+                    VIEW PLAYER →
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
 
       {/* Reuse existing popup with full team context */}
       <PlayerInfoPopup open={open} player={player} onClose={handleClose} />

@@ -79,65 +79,62 @@ export default function SuperAdminsList({ roster, adminTeamsByUser }: Props) {
   );
 
   return (
-    <section className="card">
-      <div className="pad-card-sides" style={{ paddingTop: 14 }}>
+    <section>
+      {admins.length === 0 ? (
+        <p className="muted" style={{ margin: 0 }}>
+          No admins yet.
+        </p>
+      ) : (
         <div className="roster-gradient" style={{ marginTop: 8 }}>
-          {admins.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              No admins yet.
-            </p>
-          ) : (
-            <ul className="roster-list">
-              {admins.map((p) => {
-                const len = (p.displayName || "").length;
-                const fontSize = len > 30 ? 18 : len > 22 ? 20 : 24;
+          {admins.map((p, idx) => {
+            const len = (p.displayName || "").length;
+            const fontSize = len > 30 ? 18 : len > 22 ? 20 : 24;
 
-                return (
-                  <li key={p.userId}>
-                    <div
-                        className="player-card player-card--aligned"
-                        style={{
-                        // force left alignment regardless of the base card CSS
-                        display: "grid",
-                        gridTemplateColumns: "minmax(240px,1fr) max-content",
-                        alignItems: "center",
-                        justifyItems: "start",     // ← keeps the first cell left
-                        textAlign: "left",         // ← belt + suspenders
-                        gap: 24,
-                        }}
-                    >
-                        {/* NAME (flexible, left aligned, single line with ellipsis) */}
-                        <div
-                        style={{
-                            fontFamily: "var(--font-body), system-ui",
-                            fontWeight: 500,
-                            fontSize: 24,
-                            lineHeight: 1.1,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            justifySelf: "start",
-                            marginLeft: 15,
-                        }}
-                        title={p.displayName}
-                        >
-                        {p.displayName}
-                        </div>
+            return (
+              <div
+                key={p.userId}
+                className="player-card--aligned"
+                style={{
+                  // force left alignment regardless of the base card CSS
+                  display: "grid",
+                  gridTemplateColumns: "minmax(240px,1fr) max-content",
+                  alignItems: "center",
+                  justifyItems: "start",     // ← keeps the first cell left
+                  textAlign: "left",         // ← belt + suspenders
+                  gap: 24,
+                  padding: "12px 8px",
+                  borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
+                }}
+              >
+                {/* NAME (flexible, left aligned, single line with ellipsis) */}
+                <div
+                  style={{
+                    fontFamily: "var(--font-body), system-ui",
+                    fontWeight: 500,
+                    fontSize: 20,
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    justifySelf: "start",
+                    marginLeft: 15,
+                  }}
+                  title={p.displayName}
+                >
+                  {p.displayName}
+                </div>
 
-                        {/* ACTION (right side) */}
-                        <div className="col-view" style={{ justifySelf: "end", marginRight: 5 }}>
-                        <button className="card-cta" onClick={() => handleView(p)}>
-                            VIEW ADMIN →
-                        </button>
-                        </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                {/* ACTION (right side) */}
+                <div className="col-view" style={{ justifySelf: "end", marginRight: 5 }}>
+                  <button className="card-cta" onClick={() => handleView(p)}>
+                    VIEW ADMIN →
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
 
       {/* Reuse popup with leagues-as-teams */}
       <PlayerInfoPopup

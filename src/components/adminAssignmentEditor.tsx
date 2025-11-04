@@ -59,9 +59,9 @@ export default function AdminAssignmentEditor({
   if (isEditing) {
     return (
       <div className="mt-4">
-        <div className="card" style={{ padding: 24, maxWidth: 500 }}>
-          <h3 className="content-title" style={{ marginBottom: 20, fontSize: 18 }}>
-            Assign League Admin
+        <div className="card" style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 10, paddingBottom: 24, maxWidth: 500 }}>
+          <h3 className="content-title" style={{ marginBottom: 20, fontSize: 18, fontWeight: 600 }}>
+            Assign New Admin
           </h3>
 
           <form onSubmit={handleSubmit}>
@@ -93,12 +93,12 @@ export default function AdminAssignmentEditor({
               <button
                 type="submit"
                 disabled={loading || !email.trim()}
-                className="btn btn--primary"
+                className="btn btn--primary btn--sm"
                 style={{ minWidth: 120 }}
               >
                 {loading ? 'Assigning...' : 'Assign Admin'}
               </button>
-              <button type="button" onClick={handleCancel} disabled={loading} className="btn">
+              <button type="button" onClick={handleCancel} disabled={loading} className="btn btn--sm">
                 Cancel
               </button>
             </div>

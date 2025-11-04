@@ -216,7 +216,7 @@ export default async function TeamsPage({
               <option value="no">Unapproved</option>
             </select>
 
-            <label className="input" style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap", cursor: "pointer", ...CONTROL }} title="Show only teams with no league assigned">
+            <label className="input" style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", cursor: "pointer", minWidth: 170 }} title="Show only teams with no league assigned">
               <input type="checkbox" name="unassigned" value="1" defaultChecked={onlyUnassigned}/>
               <span className="form-label">Unassigned only</span>
             </label>
@@ -239,44 +239,43 @@ export default async function TeamsPage({
             <p className="muted" style={{ margin: 0 }}>No teams found.</p>
           ) : (
             <div>
+              <div className="roster-gradient" style={{ marginTop: 8 }}>
               {rows.map((t, idx) => {
                 return (
                   <div key={t.teamId} className="teams-card-layout" style={{
                     padding: "12px 8px",
                     borderTop: idx === 0 ? "none" : "1px solid #f3f4f6",
                   }}>
-                    {/* Top row: Team name and badge inline */}
+                    {/* Team name */}
+                    <span
+                      style={{
+                        fontFamily: "var(--font-body)",
+                        fontWeight: 500,
+                        letterSpacing: ".3px",
+                        fontSize: 20,
+                        lineHeight: 1.2,
+                        color: "var(--navy)",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.name}
+                    </span>
+                    
+                    {/* Badge - will be centered in its column */}
                     <div style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "space-between",
-                      gap: "12px"
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
                     }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontWeight: 500,
-                          letterSpacing: ".3px",
-                          fontSize: 20,
-                          lineHeight: 1.2,
-                          color: "var(--navy)",
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {t.name}
-                      </span>
-                      
-                      {/* Badge inline with team name */}
-                      <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} style={{
+                      <span className={`badge ${t.approved ? "badge--ok" : "badge--pending"}`} 
+                      style={{
                         fontSize: "12px",
                         padding: "4px 8px",
                         fontWeight: 700,
                         lineHeight: 1.2,
-                        flexShrink: 0,
                       }}>
                         {t.approved ? "APPROVED" : "PENDING"}
                       </span>
@@ -286,7 +285,7 @@ export default async function TeamsPage({
                       <EditableLeagueAssignment teamId={t.teamId} current={t.leagueId ?? undefined} leagues={leagues} />
                     </div>
 
-                    {/* Bottom row: View link aligned right */}
+                    {/* View link aligned right */}
                     <div style={{ 
                       display: "flex", 
                       justifyContent: "flex-end" 
@@ -296,6 +295,7 @@ export default async function TeamsPage({
                   </div>
                 );
               })}
+            </div>
             </div>
           )}
         </div>

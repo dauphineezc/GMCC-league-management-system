@@ -36,6 +36,9 @@ function toNewShape(g: any, idToName: Map<string, string>) {
   const awayTeamName =
     g.awayTeamName || g.awayName || (g.awayTeamId ? idToName.get(g.awayTeamId) : "") || "";
 
+  // Check if results have been entered
+  const hasResults = (g.score?.home != null && g.score?.away != null) || (g.homeScore != null && g.awayScore != null);
+
   // normalize raw status first
   const statusRaw = (g.status || "scheduled") + "";
   let status =
@@ -44,8 +47,12 @@ function toNewShape(g: any, idToName: Map<string, string>) {
     : /completed/i.test(statusRaw) ? "completed"
     : "scheduled";
 
-  // auto-classify past scheduled games as completed (grace window)
-  if (status === "scheduled" && dateTimeISO) {
+  // Auto-classify past scheduled games as completed if:
+  // 1. Status is "scheduled" (whether set manually or automatically)
+  // 2. Game time has passed + grace period
+  // 3. Results have NOT been entered (once results are in, status becomes "final")
+  // 4. NOT canceled (canceled games stay canceled)
+  if (status === "scheduled" && !hasResults && dateTimeISO) {
     const start = new Date(dateTimeISO).getTime();
     const now   = Date.now();
     if (Number.isFinite(start) && start + COMPLETION_GRACE_MINUTES * 60_000 < now) {

@@ -1,11 +1,12 @@
 // src/app/create-team/page.tsx
 export const dynamic = "force-dynamic";
 
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { kv } from "@vercel/kv";
+import { getServerUser } from "@/lib/serverUser";
 
 // ---- enums used in form + payload ----
 const SPORTS = ["basketball", "volleyball"] as const;
@@ -48,14 +49,12 @@ async function createTeam(formData: FormData) {
     PRACTICE_DAYS.includes(d as PracticeDay)
   ) as PracticeDay[];
 
-  // who am I?
-  const c = cookies();
-  const userId =
-    c.get("dev-user-id")?.value ||
-    c.get("auth_user")?.value ||
-    headers().get("x-user-id") ||
-    "";
-  if (!userId) throw new Error("No user. Use the dev sign-in first.");
+  // Get authenticated user
+  const user = await getServerUser();
+  if (!user?.id) {
+    throw new Error("Not authenticated. Please log in first.");
+  }
+  const userId = user.id;
 
   const origin =
     headers().get("origin") ||
@@ -93,20 +92,20 @@ export default function CreateTeamPage() {
     <form action={createTeam} style={{ display: "grid", gap: 14, padding: 24, maxWidth: 720 }}>
       <h1 className="section-title">Create a Team</h1>
 
-      <div className="card" style={{ padding: 16, display: "grid", gap: 14 }}>
+      <div className="card" style={{ padding: 16, display: "grid", gap: 14, background: '#FFFFFF' }}>
         <label>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Team name</div>
-          <input name="name" placeholder="Team name" required />
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Team name</div>
+          <input name="name" placeholder="Team name" className="input" style={{ width: '100%' }} required />
         </label>
 
         <label>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Description (optional)</div>
-          <input name="description" placeholder="Optional description" />
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Description (optional)</div>
+          <input name="description" placeholder="Optional description" className="input" style={{ width: '100%' }} />
         </label>
 
         <label>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Sport</div>
-          <select name="sport" defaultValue="basketball" required>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Sport</div>
+          <select name="sport" defaultValue="basketball" className="input" style={{ width: '40%' }} required>
             {SPORTS.map((s) => (
               <option key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -116,16 +115,25 @@ export default function CreateTeamPage() {
         </label>
 
         <label>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Team gender</div>
-          <select name="gender" defaultValue="co-ed" required>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Team gender</div>
+          <select name="gender" defaultValue="co-ed" className="input" style={{ width: '40%' }} required>
             <option value="mens">Mens</option>
             <option value="womens">Womens</option>
             <option value="co-ed">Co-ed</option>
           </select>
         </label>
 
+        <label>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Estimated division</div>
+          <select name="estimatedDivision" defaultValue="low b" className="input" style={{ width: '40%' }} required>
+            <option value="low b">Low B</option>
+            <option value="high b">High B</option>
+            <option value="a">A</option>
+          </select>
+        </label>
+
         <fieldset style={{ border: 0, padding: 0 }}>
-          <legend style={{ fontWeight: 700, marginBottom: 6 }}>Preferred practice days</legend>
+          <legend style={{ fontWeight: 600, marginBottom: 6 }}>Preferred practice days</legend>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             {PRACTICE_DAYS.map((d) => (
               <label key={d} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -135,20 +143,11 @@ export default function CreateTeamPage() {
             ))}
           </div>
         </fieldset>
-
-        <label>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Estimated division</div>
-          <select name="estimatedDivision" defaultValue="low b" required>
-            <option value="low b">Low B</option>
-            <option value="high b">High B</option>
-            <option value="a">A</option>
-          </select>
-        </label>
       </div>
 
       <div style={{ display: "flex", gap: 12 }}>
         <button type="submit" className="btn btn--primary">Create</button>
-        <Link href="/" className="btn btn--primary">Cancel</Link>
+        <Link href="/" className="btn">Cancel</Link>
       </div>
     </form>
   );

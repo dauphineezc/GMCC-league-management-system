@@ -100,6 +100,17 @@ export async function sendAnnouncementAction(formData: FormData) {
   const managersOnly = formData.get("managersOnly") === "on";
   const paymentFilter = (formData.get("paymentFilter") as string) || "all"; // all | paid | unpaid
   const leagueId = (formData.get("leagueId") as string)?.trim();
+  const teamIdsJson = formData.get("teamIds") as string | null;
+  
+  // Parse selected team IDs
+  let selectedTeamIds: string[] = [];
+  if (teamIdsJson) {
+    try {
+      selectedTeamIds = JSON.parse(teamIdsJson);
+    } catch (e) {
+      console.error("Failed to parse teamIds:", e);
+    }
+  }
 
   const user = await getServerUser();
   if (!user) redirect("/login");
@@ -120,6 +131,11 @@ export async function sendAnnouncementAction(formData: FormData) {
     filtered = filtered.filter((p) => p.paymentStatus === "PAID");
   else if (paymentFilter === "unpaid")
     filtered = filtered.filter((p) => p.paymentStatus === "UNPAID");
+  
+  // Filter by selected teams if any
+  if (selectedTeamIds.length > 0) {
+    filtered = filtered.filter((p) => selectedTeamIds.includes(p.teamId));
+  }
 
   const uniqueUserIds = Array.from(new Set(filtered.map((p) => p.userId)));
   console.log(

@@ -128,14 +128,14 @@ export default function PlayerInfoPopup(props: Props) {
             <div className="contact-label">DOB</div>
             <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.dob || "—"}</div>
 
-            <div className="contact-label">Emergency Contact</div>
-            <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.emergencyName || "—"}</div>
+            {/* <div className="contact-label">Emergency Contact</div>
+            <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.emergencyName || "—"}</div> */}
 
             <div className="contact-label">Phone</div>
             <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.phone || "—"}</div>
 
-            <div className="contact-label">Emergency Phone</div>
-            <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.emergencyPhone || "—"}</div>
+            {/* <div className="contact-label">Emergency Phone</div>
+            <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.emergencyPhone || "—"}</div> */}
 
             <div className="contact-label">Email</div>
             <div className="contact-val" style={{ minHeight: "1.25rem" }}>

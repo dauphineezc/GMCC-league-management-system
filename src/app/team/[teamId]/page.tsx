@@ -10,6 +10,7 @@ import { PermissionChecker } from "@/lib/permissions";
 import TeamTabs from "@/components/teamTabs";
 import AdminTeamTabs from "@/components/adminTeamTabs";
 import DeleteTeamButton from "@/components/deleteResourceButton";
+import ToggleButton from "@/components/toggleButton";
 import type { Team, RosterEntry, StandingRow, Game, PlayerTeam } from "@/types/domain";
 import { batchGetTeamNames, batchGetTeams, batchGetPayments, batchGet } from "@/lib/kvBatch";
 
@@ -194,6 +195,29 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
     }
   };
 
+  const toggleTeamFeePaid = async () => {
+    "use server";
+    const t = (await kv.get<Team>(`team:${teamId}`)) || null;
+    if (!t) return;
+
+    const now = new Date().toISOString();
+    const nextPaid = !(t.teamFee?.paid ?? false);
+
+    const teamFee = {
+      required: t.teamFee?.required ?? false,
+      amountCents: t.teamFee?.amountCents,
+      paid: nextPaid,
+      paidAt: nextPaid ? now : undefined,
+      payerNote: t.teamFee?.payerNote,
+    };
+
+    await kv.set(`team:${teamId}`, { ...t, teamFee, updatedAt: now });
+    await revalidatePath(`/team/${teamId}`);
+    if (t.leagueId) {
+      await revalidatePath(`/leagues/${t.leagueId}`);
+    }
+  };
+
   /* ---------------- Render ---------------- */
 
   return (
@@ -204,21 +228,67 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
           {/* {!permissions.isAdmin() && <div className="team-subtle">{record}</div>} */}
         </div>
 
-        <div className="chip-group" style={{ display: "flex", gap: 8 }}>
-          <span className={team.approved ? "chip chip--ok" : "chip chip--pending"}>
-            {team.approved ? "Approved" : "Pending"}
-          </span>
-          
-          {/* Admin-only: Approval toggle */}
-          {permissions.isAdmin() && !permissions.isSuperAdmin() && (
+        <div className="chip-group" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "0px" }}>
+          {/* Admin toggle for approval */}
+          {permissions.isAdmin() ? (
             <form action={toggleApproval}>
-              <button type="submit" className="btn btn--light btn--sm">
-                {team.approved ? "Unapprove" : "Approve"}
-              </button>
+              <ToggleButton
+                isActive={team.approved}
+                activeLabel="APPROVED"
+                inactiveLabel="PENDING"
+                activeColor="var(--green)"
+                inactiveColor="#ec720e"
+                activeBg="#EAF7EE"
+                inactiveBg="#FFF3E6"
+                activeCircleBg="var(--green)"
+                inactiveCircleBg="#ec720e"
+                minWidth="120px"
+              />
             </form>
+          ) : (
+            /* Regular badge for non-admin users */
+            <span className={team.approved ? "chip chip--ok" : "chip chip--pending"} style={{ fontSize: "14px" }}>
+              {team.approved ? "Approved" : "Pending"}
+            </span>
           )}
         </div>
       </header>
+
+      <div className="team-fee-container" style={{ marginTop: "-30px" }}>
+        {/* Team Fee Badge - Show if fee is required */}
+        {team.teamFee?.required && team.teamFee?.amountCents !== undefined && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "end" }}>
+          <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--navy)" }}>
+            Team Fee: ${(team.teamFee.amountCents / 100).toFixed(2)}
+          </span>
+          {permissions.isAdmin() ? (
+            /* Admin: Toggleable badge */
+            <form action={toggleTeamFeePaid}>
+              <ToggleButton
+                isActive={team.teamFee.paid}
+                activeLabel="PAID"
+                inactiveLabel="UNPAID"
+                activeColor="var(--green)"
+                inactiveColor="#ec720e"
+                activeBg="#EAF7EE"
+                inactiveBg="#FFF3E6"
+                activeCircleBg="var(--green)"
+                inactiveCircleBg="#ec720e"
+                minWidth="100px"
+              />
+            </form>
+          ) : (
+            /* Player: View-only badge */
+            <span 
+              className={team.teamFee.paid ? "chip chip--ok" : "chip chip--pending"} 
+              style={{ fontSize: "14px" }}
+            >
+              {team.teamFee.paid ? "Paid" : "Unpaid"}
+            </span>
+            )}
+          </div>
+        )}
+      </div>
 
       {team.description ? (
         <section className="team-desc card--soft">{team.description}</section>

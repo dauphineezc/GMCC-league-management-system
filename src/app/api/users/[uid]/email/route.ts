@@ -32,8 +32,8 @@ export async function GET(req: NextRequest, { params }: { params: { uid: string 
     const uid = params.uid;
     const leagueId = new URL(req.url).searchParams.get("leagueId") || undefined;
 
-    // Authorization: you’re allowed if you’re the user or an admin of the league
-    const allowed = me.id === uid || (await isAdminOfLeague(me.id, leagueId));
+    // Authorization: you're allowed if you're superadmin, the user yourself, or an admin of the league
+    const allowed = me.superadmin || me.id === uid || (await isAdminOfLeague(me.id, leagueId));
     if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
     // Prefer Firebase Auth

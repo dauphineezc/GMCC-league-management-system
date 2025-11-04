@@ -33,6 +33,7 @@ type EditingGame = {
   time: string;
   location: string;
   customLocation: string;
+  status: string;
 };
 
 
@@ -99,6 +100,8 @@ export default function ScheduleClient({
   };
 
   const [pdfInfo, setPdfInfo] = useState<{ filename: string; size?: number } | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvMessage, setCsvMessage] = useState<string | null>(null);
 
   async function loadPdfInfo() {
     const tryOnce = async () => {
@@ -149,6 +152,57 @@ export default function ScheduleClient({
     } catch (error) {
       console.error('Remove error:', error);
       setMsg("Remove failed. Please try again.");
+    }
+  }
+
+  async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setCsvMessage('Please upload a CSV file');
+      return;
+    }
+
+    setCsvUploading(true);
+    setCsvMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('timezone', form.timezone);
+
+      const res = await fetch(`/api/leagues/${leagueId}/schedule/bulk-import?ts=${Date.now()}`, {
+        method: 'POST',
+        body: formData,
+        cache: 'no-store',
+      });
+
+      const result = await res.json();
+
+      console.log('CSV Upload Response:', { status: res.status, result });
+
+      if (res.ok) {
+        setCsvMessage(result.message || `Successfully imported ${result.imported} games!`);
+        if (result.errors && result.errors.length > 0) {
+          console.warn('Import warnings:', result.errors);
+        }
+        // Refresh the games list
+        setTimeout(refresh, 500);
+      } else {
+        setCsvMessage(`Upload failed: ${result.error || 'Unknown error'}`);
+        if (result.errors) {
+          console.error('CSV Import Errors:', result.errors);
+        } else {
+          console.error('CSV Import Error (no details provided):', result);
+        }
+      }
+    } catch (error) {
+      console.error('CSV upload error:', error);
+      setCsvMessage('Upload failed. Please try again.');
+    } finally {
+      setCsvUploading(false);
+      e.target.value = ''; // Reset input
     }
   }
 
@@ -236,7 +290,8 @@ export default function ScheduleClient({
       date: dateStr,
       time: timeStr,
       location: game.location === "Court A" || game.location === "Court B" ? game.location : "custom",
-      customLocation: game.location !== "Court A" && game.location !== "Court B" ? game.location : ""
+      customLocation: game.location !== "Court A" && game.location !== "Court B" ? game.location : "",
+      status: game.status || "scheduled"
     });
     setMsg(null);
   }
@@ -249,7 +304,7 @@ export default function ScheduleClient({
   async function saveGame() {
     if (!editingGame) return;
 
-    const { homeTeamName, awayTeamName, date, time, location, customLocation } = editingGame;
+    const { homeTeamName, awayTeamName, date, time, location, customLocation, status } = editingGame;
     const finalLocation = location === "custom" ? customLocation.trim() : location;
 
     if (!homeTeamName.trim() || !awayTeamName.trim() || homeTeamName.trim() === awayTeamName.trim() || !date || !time || !finalLocation) {
@@ -268,6 +323,7 @@ export default function ScheduleClient({
         date: date,
         time: time,
         timezone: form.timezone,
+        status: status || "scheduled",
       };
 
 
@@ -307,10 +363,49 @@ export default function ScheduleClient({
         </div>
       </header>
 
-      {/* Compact PDF uploader strip */}
-      <h3 className="section-header">Schedule File</h3>
+      {/* CSV Bulk Import */}
+      <h3 className="section-header">File Upload</h3>
       <section className="card--soft rounded-xl border uploader-strip">
         <div className="uploader-row">
+          <div style={{ fontSize: '16px', color: 'var(--gray-600)', marginTop: '4px', marginBottom: '8px', paddingLeft: '8px' }}>
+            Upload a CSV file to add games in bulk:
+          </div>
+          <input
+            id="csv-file"
+            name="csv"
+            type="file"
+            accept=".csv"
+            onChange={handleCsvUpload}
+            disabled={csvUploading}
+            style={{ display: "none" }}
+          />
+          <label 
+            htmlFor="csv-file" 
+            className={`btn btn--secondary btn-file btn--sm ${csvUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {csvUploading ? 'Uploading...' : 'Upload CSV'}
+          </label>
+
+          <div className="uploader-status">
+            {csvMessage && (
+              <span style={{ 
+                color: csvMessage.toLowerCase().includes('success') || 
+                       (csvMessage.toLowerCase().includes('imported') && !csvMessage.toLowerCase().includes('failed'))
+                  ? 'var(--green)' 
+                  : 'var(--danger-red)',
+                fontWeight: 500
+              }}>
+                {csvMessage}
+              </span>
+            )}
+          </div>
+        </div>
+
+      {/* Compact PDF uploader strip */}
+        <div className="uploader-row">
+        <div style={{ fontSize: '16px', color: 'var(--gray-600)', marginTop: '8px', paddingLeft: '8px' }}>
+          Upload a PDF file for viewing:
+        </div>
           {/* Hidden input + styled label button */}
           <input
             id="pdf-file"
@@ -318,23 +413,23 @@ export default function ScheduleClient({
             type="file"
             accept="application/pdf"
             onChange={handlePdfChange}
-            style={{ display: "none" }}
+            style={{ display: "none", alignItems: "center" }}
           />
-          <label htmlFor="pdf-file" className="btn btn--light btn-file btn--md">
+          <label htmlFor="pdf-file" className="btn btn--light btn-file btn--sm" style={{ alignItems: "center" }}>
             Upload PDF
           </label>
-
-          <div className="uploader-status">
+          </div>
+          <div className="uploader-status" style={{ marginTop: '4px', marginBottom: '8px', paddingLeft: '50px' }}>
             {pdfInfo ? <>Current file: <strong>{pdfInfo.filename}</strong> 
             <button 
               type="button" 
               className="link-danger" 
+              style={{ marginLeft: '8px', fontSize: '10px' }}
               onClick={removePdf}>Remove
               </button>
               </>
               : <span className="muted">No file uploaded.</span>}
           </div>
-        </div>
       </section>
 
 
@@ -498,13 +593,8 @@ export default function ScheduleClient({
                             value={editingGame.date}
                             onChange={(e) => setEditingGame(prev => prev ? { ...prev, date: e.target.value } : null)}
                             disabled={saving}
-                            style={{ 
-                              width: "100%", 
-                              padding: "4px 6px", 
-                              border: "1px solid #d1d5db", 
-                              borderRadius: "4px",
-                              fontSize: "14px"
-                            }}
+                            className="input"
+                            style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
                           />
                         ) : (
                           d.dateText
@@ -517,13 +607,8 @@ export default function ScheduleClient({
                             value={editingGame.time}
                             onChange={(e) => setEditingGame(prev => prev ? { ...prev, time: e.target.value } : null)}
                             disabled={saving}
-                            style={{ 
-                              width: "100%", 
-                              padding: "4px 6px", 
-                              border: "1px solid #d1d5db", 
-                              borderRadius: "4px",
-                              fontSize: "14px"
-                            }}
+                            className="input"
+                            style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
                           />
                         ) : (
                           d.timeText
@@ -537,13 +622,8 @@ export default function ScheduleClient({
                             value={editingGame.homeTeamName}
                             onChange={(e) => setEditingGame(prev => prev ? { ...prev, homeTeamName: e.target.value } : null)}
                             disabled={saving}
-                            style={{ 
-                              width: "100%", 
-                              padding: "4px 6px", 
-                              border: "1px solid #d1d5db", 
-                              borderRadius: "4px",
-                              fontSize: "14px"
-                            }}
+                            className="input"
+                            style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
                           />
                         ) : (
                           d.home
@@ -557,13 +637,8 @@ export default function ScheduleClient({
                             value={editingGame.awayTeamName}
                             onChange={(e) => setEditingGame(prev => prev ? { ...prev, awayTeamName: e.target.value } : null)}
                             disabled={saving}
-                            style={{ 
-                              width: "100%", 
-                              padding: "4px 6px", 
-                              border: "1px solid #d1d5db", 
-                              borderRadius: "4px",
-                              fontSize: "14px"
-                            }}
+                            className="input"
+                            style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
                           />
                         ) : (
                           d.away
@@ -576,12 +651,11 @@ export default function ScheduleClient({
                               value={editingGame.location}
                               onChange={(e) => setEditingGame(prev => prev ? { ...prev, location: e.target.value } : null)}
                               disabled={saving}
+                              className="input"
                               style={{ 
                                 width: "100%", 
-                                padding: "4px 6px", 
-                                border: "1px solid #d1d5db", 
-                                borderRadius: "4px",
-                                fontSize: "14px",
+                                padding: "4px 8px",
+                                fontSize: "13px",
                                 marginBottom: editingGame.location === "custom" ? "4px" : "0"
                               }}
                             >
@@ -595,13 +669,8 @@ export default function ScheduleClient({
                                 value={editingGame.customLocation}
                                 onChange={(e) => setEditingGame(prev => prev ? { ...prev, customLocation: e.target.value } : null)}
                                 disabled={saving}
-                                style={{ 
-                                  width: "100%", 
-                                  padding: "4px 6px", 
-                                  border: "1px solid #d1d5db", 
-                                  borderRadius: "4px",
-                                  fontSize: "14px"
-                                }}
+                                className="input"
+                                style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
                               />
                             )}
                           </div>
@@ -609,7 +678,23 @@ export default function ScheduleClient({
                           d.court
                         )}
                       </td>
-                      <td style={td}>{d.status}</td>
+                      <td style={td}>
+                        {isEditing ? (
+                          <select
+                            value={editingGame.status}
+                            onChange={(e) => setEditingGame(prev => prev ? { ...prev, status: e.target.value } : null)}
+                            disabled={saving}
+                            className="input"
+                            style={{ width: "100%", padding: "4px 8px", fontSize: "13px", textTransform: "capitalize" }}
+                          >
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="canceled">Canceled</option>
+                          </select>
+                        ) : (
+                          <span style={{ textTransform: "capitalize" }}>{d.status}</span>
+                        )}
+                      </td>
                       <td className="actions" style={td}>
                         {isEditing ? (
                           <div className="flex items-center gap-1">
@@ -698,26 +783,16 @@ export default function ScheduleClient({
                                   value={editingGame.date}
                                   onChange={(e) => setEditingGame(prev => prev ? { ...prev, date: e.target.value } : null)}
                                   disabled={saving}
-                                  style={{ 
-                                    width: "120px", 
-                                    padding: "4px 6px", 
-                                    border: "1px solid #d1d5db", 
-                                    borderRadius: "4px",
-                                    fontSize: "12px"
-                                  }}
+                                  className="input"
+                                  style={{ width: "120px", padding: "4px 6px", fontSize: "12px" }}
                                 />
                                 <input
                                   type="time"
                                   value={editingGame.time}
                                   onChange={(e) => setEditingGame(prev => prev ? { ...prev, time: e.target.value } : null)}
                                   disabled={saving}
-                                  style={{ 
-                                    width: "100px", 
-                                    padding: "4px 6px", 
-                                    border: "1px solid #d1d5db", 
-                                    borderRadius: "4px",
-                                    fontSize: "12px"
-                                  }}
+                                  className="input"
+                                  style={{ width: "100px", padding: "4px 6px", fontSize: "12px" }}
                                 />
                               </div>
                             ) : (
@@ -731,11 +806,10 @@ export default function ScheduleClient({
                                   value={editingGame.location}
                                   onChange={(e) => setEditingGame(prev => prev ? { ...prev, location: e.target.value } : null)}
                                   disabled={saving}
+                                  className="input"
                                   style={{ 
                                     width: "100%", 
                                     padding: "4px 6px", 
-                                    border: "1px solid #d1d5db", 
-                                    borderRadius: "4px",
                                     fontSize: "12px",
                                     marginBottom: editingGame.location === "custom" ? "4px" : "0"
                                   }}
@@ -750,13 +824,8 @@ export default function ScheduleClient({
                                     value={editingGame.customLocation}
                                     onChange={(e) => setEditingGame(prev => prev ? { ...prev, customLocation: e.target.value } : null)}
                                     disabled={saving}
-                                    style={{ 
-                                      width: "100%", 
-                                      padding: "4px 6px", 
-                                      border: "1px solid #d1d5db", 
-                                      borderRadius: "4px",
-                                      fontSize: "12px"
-                                    }}
+                                    className="input"
+                                    style={{ width: "100%", padding: "4px 6px", fontSize: "12px" }}
                                   />
                                 )}
                               </div>
@@ -766,16 +835,35 @@ export default function ScheduleClient({
                               </div>
                             )}
                           </div>
-                          <span style={{
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            color: "var(--navy)",
-                            background: d.status === 'final' || d.status.includes('final') ? "var(--light-blue)" : "var(--gray-100)",
-                            padding: "4px 8px",
-                            borderRadius: "4px"
-                          }}>
-                            {d.status}
-                          </span>
+                          {isEditing ? (
+                            <select
+                              value={editingGame.status}
+                              onChange={(e) => setEditingGame(prev => prev ? { ...prev, status: e.target.value } : null)}
+                              disabled={saving}
+                              className="input"
+                              style={{ 
+                                width: "auto",
+                                padding: "4px 6px",
+                                fontSize: "12px"
+                              }}
+                            >
+                              <option value="scheduled">Scheduled</option>
+                              <option value="completed">Completed</option>
+                              <option value="canceled">Canceled</option>
+                            </select>
+                          ) : (
+                            <span style={{
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              color: "var(--navy)",
+                              background: d.status === 'final' || d.status.includes('final') ? "var(--light-blue)" : "var(--gray-100)",
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              textTransform: "capitalize"
+                            }}>
+                              {d.status}
+                            </span>
+                          )}
                         </div>
                         
                         {isEditing ? (
@@ -787,11 +875,10 @@ export default function ScheduleClient({
                                 value={editingGame.homeTeamName}
                                 onChange={(e) => setEditingGame(prev => prev ? { ...prev, homeTeamName: e.target.value } : null)}
                                 disabled={saving}
+                                className="input"
                                 style={{ 
                                   width: "100px", 
                                   padding: "4px 6px", 
-                                  border: "1px solid #d1d5db", 
-                                  borderRadius: "4px",
                                   fontSize: "12px",
                                   textAlign: "center"
                                 }}
@@ -806,11 +893,10 @@ export default function ScheduleClient({
                                 value={editingGame.awayTeamName}
                                 onChange={(e) => setEditingGame(prev => prev ? { ...prev, awayTeamName: e.target.value } : null)}
                                 disabled={saving}
+                                className="input"
                                 style={{ 
                                   width: "100px", 
                                   padding: "4px 6px", 
-                                  border: "1px solid #d1d5db", 
-                                  borderRadius: "4px",
                                   fontSize: "12px",
                                   textAlign: "center"
                                 }}

@@ -9,6 +9,7 @@ type Props = {
 
 export default function LeagueActionsDropdown({ leagueId }: Props) {
   const [open, setOpen] = useState(false);
+  const [showFeeModal, setShowFeeModal] = useState(false);
 
   return (
     <div className="league-actions-dropdown" style={{ marginBottom: "16px" }}>
@@ -91,6 +92,20 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
               gap: "12px",
             }}
           >
+            <button
+              type="button"
+              className="btn btn--secondary btn--md"
+              onClick={() => {
+                setShowFeeModal(true);
+                setOpen(false);
+              }}
+              style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+              </svg>
+              Set Team Fee
+            </button>
             <Link
               href={`/leagues/${leagueId}/schedule`}
               className="btn btn--secondary btn--md"
@@ -121,7 +136,7 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
               </svg>
               Send Announcement
             </Link>
-            <a
+            {/* <a
               className="btn btn--secondary btn--md"
               href={`/leagues/${encodeURIComponent(leagueId)}/export.csv`}
               style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
@@ -130,10 +145,243 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
                 <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
               </svg>
               Download Roster CSV
-            </a>
+            </a> */}
           </div>
         </div>
       </div>
+
+      {/* Team Fee Modal */}
+      {showFeeModal && (
+        <TeamFeeModal
+          leagueId={leagueId}
+          onClose={() => setShowFeeModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Team Fee Modal Component ---------------- */
+
+function TeamFeeModal({
+  leagueId,
+  onClose,
+}: {
+  leagueId: string;
+  onClose: () => void;
+}) {
+  const [amount, setAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async () => {
+    // Validate amount
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum < 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/leagues/${leagueId}/set-team-fee`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountCents: Math.round(amountNum * 100) }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to set team fee");
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 style={{ fontWeight: 400, fontSize: "22px" }}>Set Team Fee</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {!success ? (
+            <>
+              <p className="modal-description">
+                Enter the fee amount that each team must pay. This will be applied to all teams in this league.
+              </p>
+
+              <div className="form-field">
+                <label htmlFor="amount">Fee Amount ($)</label>
+                <input
+                  id="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  disabled={loading}
+                />
+              </div>
+
+              {error && <div className="error-message">{error}</div>}
+
+              <div className="modal-actions">
+                <button
+                  className="btn btn--outline"
+                  onClick={onClose}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn--primary"
+                  onClick={handleSubmit}
+                  disabled={loading || !amount}
+                >
+                  {loading ? "Setting..." : "Set Fee"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="success-message">
+              ✅ Team fee has been set successfully! Refreshing...
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 8px;
+          max-width: 500px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 20px;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          padding: 0;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+        }
+
+        .modal-close:hover {
+          background: #f0f0f0;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .modal-description {
+          margin-bottom: 20px;
+          color: #666;
+        }
+
+        .form-field {
+          margin-bottom: 16px;
+        }
+
+        .form-field label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 500;
+        }
+
+        .form-field input {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+
+        .form-field input:focus {
+          outline: none;
+          border-color: #4CAF50;
+        }
+
+        .form-field input:disabled {
+          background: #f5f5f5;
+          cursor: not-allowed;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          margin-top: 20px;
+        }
+
+        .error-message {
+          background: #ffebee;
+          color: #c62828;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 16px;
+        }
+
+        .success-message {
+          background: #e8f5e9;
+          color: #2e7d32;
+          padding: 12px;
+          border-radius: 4px;
+          text-align: center;
+        }
+      `}</style>
     </div>
   );
 }

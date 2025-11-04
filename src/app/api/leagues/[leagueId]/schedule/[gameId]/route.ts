@@ -23,7 +23,7 @@ export async function PUT(
   { params }: { params: { leagueId: string; gameId: string } }
 ) {
   try {
-    const { homeTeamName, awayTeamName, location, date, time, timezone } = await req.json();
+    const { homeTeamName, awayTeamName, location, date, time, timezone, status } = await req.json();
     const { leagueId, gameId } = params;
 
     // Validate input
@@ -74,6 +74,10 @@ export async function PUT(
     const dateTimeStr = `${date}T${time}`;
     const dateTimeISO = dayjs.tz(dateTimeStr, timezoneToUse).toISOString();
 
+    // Check if results have been entered - if so, keep status as "final"
+    const hasResults = games[gameIndex].homeScore != null && games[gameIndex].awayScore != null;
+    const finalStatus = hasResults ? 'final' : (status || games[gameIndex].status || 'scheduled');
+
     // Update the game with new details
     games[gameIndex] = {
       ...games[gameIndex],
@@ -81,6 +85,7 @@ export async function PUT(
       awayTeamName: awayTeamName.trim(),
       location: location.trim(),
       dateTimeISO,
+      status: finalStatus,
     };
 
     // Save updated games
