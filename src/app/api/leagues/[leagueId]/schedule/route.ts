@@ -167,6 +167,50 @@ export async function POST(req: Request, { params }: { params: { leagueId: strin
       });
     }
 
+    // Validate that teams exist in the league
+    const teamIds = await kv.smembers(`league:${leagueId}:teams`) as string[];
+    const { batchGetTeams } = await import("@/lib/kvBatch");
+    const teamsMap = await batchGetTeams(teamIds);
+    
+    // Get all team names in the league
+    const leagueTeamNames = new Set<string>();
+    teamsMap.forEach((team) => {
+      if (team?.name) {
+        leagueTeamNames.add(team.name.trim());
+      }
+    });
+    
+    // Also check players list as fallback
+    if (leagueTeamNames.size === 0) {
+      const players = await kv.get<any[]>(`league:${leagueId}:players`) || [];
+      players.forEach((p: any) => {
+        if (p?.teamName) {
+          leagueTeamNames.add(String(p.teamName).trim());
+        }
+      });
+    }
+    
+    const homeTeamNameTrimmed = homeTeamName.trim();
+    const awayTeamNameTrimmed = awayTeamName.trim();
+    
+    if (!leagueTeamNames.has(homeTeamNameTrimmed)) {
+      return new Response(JSON.stringify({ 
+        error: `Home team "${homeTeamNameTrimmed}" is not in this league. Please select a team from the dropdown.` 
+      }), { 
+        status: 400,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+    
+    if (!leagueTeamNames.has(awayTeamNameTrimmed)) {
+      return new Response(JSON.stringify({ 
+        error: `Away team "${awayTeamNameTrimmed}" is not in this league. Please select a team from the dropdown.` 
+      }), { 
+        status: 400,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
     if (!date || !time) {
       return new Response(JSON.stringify({ error: 'Date and time are required' }), { 
         status: 400,

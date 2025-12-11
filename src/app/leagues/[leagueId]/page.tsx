@@ -14,6 +14,7 @@ import ScheduleViewerServer from "@/components/scheduleViewer.server";
 import GameHistory from "@/components/gameHistory";
 import LeagueActionsDropdown from "@/components/leagueActionsDropdown";
 import DeleteResourceButton from "@/components/deleteResourceButton";
+import EditLeagueDescription from "@/components/editLeagueDescription";
 import { DIVISIONS } from "@/lib/divisions";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 import type { RosterEntry } from "@/types/domain";
@@ -221,11 +222,17 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
         </div>
       </header>
 
-      {description && (
-        <section className="card--soft" style={{ maxWidth: 720 }}>
+      {/* League Description - editable by admins and superadmins */}
+      {permissions.isAdmin() ? (
+        <EditLeagueDescription 
+          leagueId={leagueId}
+          initialDescription={description}
+        />
+      ) : description ? (
+        <p style={{ margin: 0, fontSize: 16, color: 'var(--text)' }}>
           {description}
-        </section>
-      )}
+        </p>
+      ) : null}
 
       {/* Superadmin-only: Admin assignment editor */}
       <IfSuperAdmin checker={permissions}>
@@ -259,7 +266,7 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
                     <div>
                       {teams.map((t, idx) => (
                         <div key={t.teamId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 8px", borderTop: idx === 0 ? "none" : "1px solid #f3f4f6" }}>
-                          <span style={{ 
+                          <span className="public-league-team-name" style={{ 
                             fontFamily: "var(--font-body), system-ui", 
                             fontWeight: 500, 
                             letterSpacing: ".3px", 
@@ -323,33 +330,32 @@ export default async function UnifiedLeaguePage({ params }: { params: { leagueId
                                 backgroundColor: 'var(--card)',
                                 padding: "10px 10px",
                               }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                                  <h3 style={{ 
-                                    margin: 0, 
-                                    fontSize: "22px", 
-                                    fontWeight: 400, 
-                                    color: "var(--navy)",
-                                    fontFamily: "var(--font-body), system-ui"
-                                  }}>
-                                    {s.teamName || s.name || s.teamId}
-                                  </h3>
-                                </div>
+                                <h3 className="public-standings-team-name" style={{ 
+                                  margin: 0, 
+                                  fontSize: "22px", 
+                                  fontWeight: 400, 
+                                  color: "var(--navy)",
+                                  fontFamily: "var(--font-body), system-ui",
+                                  marginBottom: "8px",
+                                }}>
+                                  {s.teamName || s.name || s.teamId}
+                                </h3>
                                 
-                                <div style={{ fontSize: "14px", color: "var(--gray-600)" }}>
+                                <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
                                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", marginBottom: "4px" }}>
                                     <div>
-                                      <strong style={{ color: "var(--navy)" }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
+                                      <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Record:</strong> {s.gamesPlayed > 0 ? `${s.wins}-${s.losses}` : "--"}
                                     </div>
                                     <div>
-                                      <strong style={{ color: "var(--navy)" }}>Win Rate:</strong> {(s.winPercentage * 100).toFixed(1)}%
+                                      <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Win Rate:</strong> {s.gamesPlayed > 0 ? (s.winPercentage * 100).toFixed(1) + "%" : "--"}
                                     </div>
                                   </div>
                                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                                     <div>
-                                      <strong style={{ color: "var(--navy)" }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
+                                      <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Points For:</strong> {s.gamesPlayed > 0 ? s.pointsFor : "--"}
                                     </div>
                                     <div>
-                                      <strong style={{ color: "var(--navy)" }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
+                                      <strong style={{ color: "var(--navy)", fontWeight: 800 }}>Points Against:</strong> {s.gamesPlayed > 0 ? s.pointsAgainst : "--"}
                                     </div>
                                   </div>
                                 </div>

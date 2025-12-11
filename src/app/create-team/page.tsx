@@ -83,7 +83,7 @@ async function createTeam(formData: FormData) {
   if (!res.ok) throw new Error(data?.error?.message || "Failed to create team");
 
   revalidatePath("/");
-  redirect(`/team/${data.team.id}`);
+  redirect(`/team/${data.team.id}?created=true`);
 }
 
 export default function CreateTeamPage() {

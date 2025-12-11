@@ -101,16 +101,30 @@ export async function POST(req: NextRequest) {
   await kv.sadd("teams:index", id);
 
   // Fetch user's displayName from their profile
-  const userProfile = await kv.get<any>(`user:${userId}`);
-  const displayName = userProfile?.displayName || userId;
-
-  // Debug logging
-  console.log('[Team Creation Debug]', {
-    userId,
-    userProfile,
-    displayName,
-    hasDisplayName: !!userProfile?.displayName,
-  });
+  // User profile might be stored as HASH or JSON object, so try both
+  let userProfile: any = null;
+  const userKey = `user:${userId}`;
+  
+  // Try HASH first (as used in adminUserLookup.ts)
+  try {
+    const h = (await kv.hgetall(userKey)) as Record<string, unknown> | null;
+    if (h && typeof h === "object" && Object.keys(h).length) {
+      userProfile = h;
+    }
+  } catch {}
+  
+  // Fall back to GET if HASH didn't work
+  if (!userProfile) {
+    try {
+      const g = await kv.get(userKey);
+      if (g && typeof g === "object") {
+        userProfile = g;
+      }
+    } catch {}
+  }
+  
+  // Use same fallback pattern as addPlayerToTeam: displayName || email || userId
+  const displayName = userProfile?.displayName || userProfile?.email || userId;
 
   // initial roster: manager
   const roster = (await kv.get<any[]>(`team:${id}:roster`)) ?? [];

@@ -40,7 +40,7 @@ export default function JoinPage() {
       if (response.ok && data.teamId) {
         setMessage('✅ Successfully joined team! Redirecting...');
         setTimeout(() => {
-          router.push(`/team/${data.teamId}`);
+          router.push(`/team/${data.teamId}?joined=true`);
         }, 1000);
       } else {
         const errorMsg = data.error?.code === 'UNAUTHENTICATED' 
@@ -88,7 +88,7 @@ export default function JoinPage() {
       if (response.ok && data.ok && data.team) {
         setMessage('✅ Successfully joined team! Redirecting...');
         setTimeout(() => {
-          router.push(`/team/${data.team.id}`);
+          router.push(`/team/${data.team.id}?joined=true`);
         }, 1000);
       } else {
         const errorMsg = data.error === 'Already on a team'

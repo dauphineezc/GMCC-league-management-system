@@ -45,6 +45,7 @@ export default function ScheduleClient({
   // ---------- state
   const [games, setGames] = useState<Game[]>([]);
   const [names, setNames] = useState<string[]>([]);
+  const [teams, setTeams] = useState<Array<{ teamId: string; name: string }>>([]);
   const [form, setForm] = useState({
     homeTeamName: "",
     awayTeamName: "",
@@ -217,10 +218,19 @@ export default function ScheduleClient({
 
   useEffect(() => {
     if (!leagueId) return;
-    fetch(`/api/team-names?leagueId=${encodeURIComponent(leagueId)}`)
+    // Fetch teams for the league
+    fetch(`/api/leagues/${leagueId}/teams`)
       .then(r => (r.ok ? r.json() : []))
-      .then(arr => setNames(Array.isArray(arr) ? arr : []))
-      .catch(() => setNames([]));
+      .then(arr => {
+        const teamsList = Array.isArray(arr) ? arr : [];
+        setTeams(teamsList);
+        // Also set names for backward compatibility (datalist)
+        setNames(teamsList.map(t => t.name));
+      })
+      .catch(() => {
+        setTeams([]);
+        setNames([]);
+      });
   }, [leagueId]);
 
   // ---------- actions
@@ -439,38 +449,42 @@ export default function ScheduleClient({
             <div className="versus-row">
               <div className="field">
                 <label className="field-label">Home Team</label>
-                <input
-                  list="team-suggestions"
+                <select
                   className="input input-bordered control"
-                  placeholder="e.g. Spurs"
                   value={form.homeTeamName}
                   onChange={(e) => setForm((f) => ({ ...f, homeTeamName: e.target.value }))}
                   disabled={busy}
-                />
+                  required
+                >
+                  <option value="">Select home team...</option>
+                  {teams.map((team) => (
+                    <option key={team.teamId} value={team.name}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <span className="vs-pill">VS</span>
 
               <div className="field">
                 <label className="field-label">Away Team</label>
-                <input
-                  list="team-suggestions"
+                <select
                   className="input input-bordered control"
-                  placeholder="e.g. Sharks"
                   value={form.awayTeamName}
                   onChange={(e) => setForm((f) => ({ ...f, awayTeamName: e.target.value }))}
                   disabled={busy}
-                />
+                  required
+                >
+                  <option value="">Select away team...</option>
+                  {teams.map((team) => (
+                    <option key={team.teamId} value={team.name}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-
-            <datalist id="team-suggestions">
-              {names.map((n) => (<option key={n} value={n} />))}
-            </datalist>
-
-            <datalist id="team-suggestions-edit">
-              {names.map((n) => (<option key={n} value={n} />))}
-            </datalist>
 
             {/* Date / Time / Location */}
             <div className="form-grid thirds">
@@ -610,30 +624,40 @@ export default function ScheduleClient({
                       </td>
                       <td style={td}>
                         {isEditing ? (
-                          <input
-                            list="team-suggestions-edit"
-                            placeholder="Home team"
+                          <select
                             value={editingGame.homeTeamName}
                             onChange={(e) => setEditingGame(prev => prev ? { ...prev, homeTeamName: e.target.value } : null)}
                             disabled={saving}
                             className="input"
                             style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
-                          />
+                          >
+                            <option value="">Select home team...</option>
+                            {teams.map((team) => (
+                              <option key={team.teamId} value={team.name}>
+                                {team.name}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           d.home
                         )}
                       </td>
                       <td style={td}>
                         {isEditing ? (
-                          <input
-                            list="team-suggestions-edit"
-                            placeholder="Away team"
+                          <select
                             value={editingGame.awayTeamName}
                             onChange={(e) => setEditingGame(prev => prev ? { ...prev, awayTeamName: e.target.value } : null)}
                             disabled={saving}
                             className="input"
                             style={{ width: "100%", padding: "4px 8px", fontSize: "13px" }}
-                          />
+                          >
+                            <option value="">Select away team...</option>
+                            {teams.map((team) => (
+                              <option key={team.teamId} value={team.name}>
+                                {team.name}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           d.away
                         )}
@@ -861,40 +885,50 @@ export default function ScheduleClient({
                         </div>
                         
                         {isEditing ? (
-                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontSize: "14px", gap: "12px", marginBottom: "8px" }}>
-                            <div style={{ textAlign: "center" }}>
-                              <input
-                                list="team-suggestions-edit"
-                                placeholder="Home team"
+                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontSize: "14px", gap: "12px", marginBottom: "8px", flexWrap: "wrap" }}>
+                            <div style={{ textAlign: "center", minWidth: "120px" }}>
+                              <select
                                 value={editingGame.homeTeamName}
                                 onChange={(e) => setEditingGame(prev => prev ? { ...prev, homeTeamName: e.target.value } : null)}
                                 disabled={saving}
                                 className="input"
                                 style={{ 
-                                  width: "100px", 
+                                  width: "100%", 
                                   padding: "4px 6px", 
                                   fontSize: "12px",
                                   textAlign: "center"
                                 }}
-                              />
+                              >
+                                <option value="">Select home team...</option>
+                                {teams.map((team) => (
+                                  <option key={team.teamId} value={team.name}>
+                                    {team.name}
+                                  </option>
+                                ))}
+                              </select>
                               <div style={{ fontSize: "10px", color: "var(--gray-600)", marginTop: "2px" }}>Home</div>
                             </div>
                             <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--navy)" }}>vs</div>
-                            <div style={{ textAlign: "center" }}>
-                              <input
-                                list="team-suggestions-edit"
-                                placeholder="Away team"
+                            <div style={{ textAlign: "center", minWidth: "120px" }}>
+                              <select
                                 value={editingGame.awayTeamName}
                                 onChange={(e) => setEditingGame(prev => prev ? { ...prev, awayTeamName: e.target.value } : null)}
                                 disabled={saving}
                                 className="input"
                                 style={{ 
-                                  width: "100px", 
+                                  width: "100%", 
                                   padding: "4px 6px", 
                                   fontSize: "12px",
                                   textAlign: "center"
                                 }}
-                              />
+                              >
+                                <option value="">Select away team...</option>
+                                {teams.map((team) => (
+                                  <option key={team.teamId} value={team.name}>
+                                    {team.name}
+                                  </option>
+                                ))}
+                              </select>
                               <div style={{ fontSize: "10px", color: "var(--gray-600)", marginTop: "2px" }}>Away</div>
                             </div>
                           </div>

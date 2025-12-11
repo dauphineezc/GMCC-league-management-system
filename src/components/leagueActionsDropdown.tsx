@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
 export default function LeagueActionsDropdown({ leagueId }: Props) {
   const [open, setOpen] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
 
   return (
     <div className="league-actions-dropdown" style={{ marginBottom: "16px" }}>
@@ -136,6 +137,20 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
               </svg>
               Send Announcement
             </Link>
+            <button
+              type="button"
+              className="btn btn--secondary btn--md"
+              onClick={() => {
+                setShowDeadlineModal(true);
+                setOpen(false);
+              }}
+              style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              Set Add Player Deadline
+            </button>
             {/* <a
               className="btn btn--secondary btn--md"
               href={`/leagues/${encodeURIComponent(leagueId)}/export.csv`}
@@ -155,6 +170,14 @@ export default function LeagueActionsDropdown({ leagueId }: Props) {
         <TeamFeeModal
           leagueId={leagueId}
           onClose={() => setShowFeeModal(false)}
+        />
+      )}
+
+      {/* Player Add Deadline Modal */}
+      {showDeadlineModal && (
+        <PlayerAddDeadlineModal
+          leagueId={leagueId}
+          onClose={() => setShowDeadlineModal(false)}
         />
       )}
     </div>
@@ -243,14 +266,14 @@ function TeamFeeModal({
 
               <div className="modal-actions">
                 <button
-                  className="btn btn--outline"
+                  className="btn btn--outline btn--sm"
                   onClick={onClose}
                   disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
-                  className="btn btn--primary"
+                  className="btn btn--primary btn--sm"
                   onClick={handleSubmit}
                   disabled={loading || !amount}
                 >
@@ -260,7 +283,7 @@ function TeamFeeModal({
             </>
           ) : (
             <div className="success-message">
-              ✅ Team fee has been set successfully! Refreshing...
+              Team fee has been set successfully! Refreshing...
             </div>
           )}
         </div>
@@ -380,6 +403,352 @@ function TeamFeeModal({
           padding: 12px;
           border-radius: 4px;
           text-align: center;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ---------------- Player Add Deadline Modal Component ---------------- */
+
+function PlayerAddDeadlineModal({
+  leagueId,
+  onClose,
+}: {
+  leagueId: string;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  
+  const [currentDeadline, setCurrentDeadline] = useState<string | null>(null);
+  const [currentOverride, setCurrentOverride] = useState(false);
+  
+  const [deadlineInput, setDeadlineInput] = useState("");
+  const [overrideInput, setOverrideInput] = useState(false);
+
+  // Fetch current settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch(`/api/leagues/${leagueId}/player-add-deadline`);
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentDeadline(data.playerAddDeadline);
+          setCurrentOverride(data.playerAddDeadlineOverride || false);
+          
+          // Pre-fill inputs
+          if (data.playerAddDeadline) {
+            // Convert ISO string to date input format (YYYY-MM-DD)
+            const date = new Date(data.playerAddDeadline);
+            setDeadlineInput(date.toISOString().split('T')[0]);
+          }
+          setOverrideInput(data.playerAddDeadlineOverride || false);
+        }
+      } catch (err) {
+        console.error("Failed to fetch deadline settings:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSettings();
+  }, [leagueId]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+
+    try {
+      // Convert date input to ISO string
+      let deadlineISO: string | null = null;
+      if (deadlineInput) {
+        const date = new Date(deadlineInput);
+        // Set to end of day in local timezone
+        date.setHours(23, 59, 59, 999);
+        deadlineISO = date.toISOString();
+      }
+
+      const response = await fetch(`/api/leagues/${leagueId}/player-add-deadline`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerAddDeadline: deadlineISO,
+          playerAddDeadlineOverride: overrideInput,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update deadline");
+      }
+
+      setCurrentDeadline(data.playerAddDeadline);
+      setCurrentOverride(data.playerAddDeadlineOverride);
+      
+      // Refresh page to update any cached data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClear = async () => {
+    const confirmed = confirm("Are you sure you want to remove the player add deadline? Team managers will be able to invite players at any time.");
+    if (!confirmed) return;
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/leagues/${leagueId}/player-add-deadline`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to clear deadline");
+      }
+
+      setCurrentDeadline(null);
+      setCurrentOverride(false);
+      setDeadlineInput("");
+      setOverrideInput(false);
+      
+      // Refresh page to update any cached data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deadlinePassed = currentDeadline && new Date(currentDeadline) < new Date();
+  const isLocked = deadlinePassed && !currentOverride;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 style={{ fontWeight: 400, fontSize: "22px" }}>Set Add Player Deadline</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#666' }}>Loading...</p>
+          ) : (
+            <>
+              <p className="modal-description">
+                 
+              </p>
+
+              <div className="form-field">
+                <label htmlFor="deadline-date" style={{ display: "block", marginBottom: 8, fontWeight: 500, color: "var(--navy)" }}>Deadline Date</label>
+                <input
+                  id="deadline-date"
+                  type="date"
+                  className="input input-bordered control"
+                  value={deadlineInput}
+                  onChange={(e) => setDeadlineInput(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  disabled={saving}
+                />
+                <p style={{ fontSize: 12, color: '#666', marginTop: 8, marginBottom: 0 }}>
+                  After this date, team managers will not be able to invite new players.
+                </p>
+              </div>
+
+              {currentDeadline && (
+                <div style={{ 
+                  marginTop: 16, 
+                  padding: 12, 
+                  backgroundColor: isLocked ? '#FFF3E6' : '#EAF7EE', 
+                  borderRadius: 4,
+                  fontSize: 14,
+                  color: isLocked ? '#ec720e' : 'var(--green)'
+                }}>
+                  <strong>Current Status: </strong>
+                  {currentDeadline && (
+                    <>
+                      Deadline: {new Date(currentDeadline).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                      {deadlinePassed && (
+                        <span style={{ marginLeft: 8, fontWeight: 600 }}>
+                          {isLocked ? "LOCKED" : "UNLOCKED"}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {deadlinePassed && (
+                <div className="form-field" style={{ 
+                  padding: 12, 
+                  backgroundColor: "#f8fbff", 
+                  borderRadius: 4,
+                  marginTop: 16
+                }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 4 }}>
+                    <input
+                      type="checkbox"
+                      checked={overrideInput}
+                      onChange={(e) => setOverrideInput(e.target.checked)}
+                      disabled={saving}
+                      style={{ width: 18, height: 18 }}
+                    />
+                    <span style={{ fontSize: 16, fontWeight: 500, color: "var(--navy)" }}>
+                      Override deadline
+                    </span>
+                  </label>
+                  <p style={{ fontSize: 12, color: '#666', marginTop: 4, marginLeft: 26, marginBottom: 0 }}>
+                    Use this for special circumstances when players need to be added late in the season.
+                  </p>
+                </div>
+              )}
+
+              {error && <div className="error-message">{error}</div>}
+
+              <div className="modal-actions">
+                {currentDeadline && (
+                  <button
+                    className="btn btn--outline btn--sm"
+                    onClick={handleClear}
+                    disabled={saving}
+                    style={{ color: "#c62828" }}
+                  >
+                    Clear Deadline
+                  </button>
+                )}
+                <button
+                  className="btn btn--outline btn--sm"
+                  onClick={onClose}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn--primary btn--sm"
+                  onClick={handleSave}
+                  disabled={saving || !deadlineInput}
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 8px;
+          max-width: 500px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 20px;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          padding: 0;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+        }
+
+        .modal-close:hover {
+          background: #f0f0f0;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .modal-description {
+          margin-bottom: 20px;
+          color: #666;
+        }
+
+        .form-field {
+          margin-bottom: 16px;
+        }
+
+        .form-field label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 500;
+        }
+
+        .form-field input {
+          width: 100%;
+        }
+
+        .form-field input:disabled {
+          background: #f5f5f5;
+          cursor: not-allowed;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          margin-top: 20px;
+        }
+
+        .error-message {
+          background: #ffebee;
+          color: #c62828;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 16px;
         }
       `}</style>
     </div>

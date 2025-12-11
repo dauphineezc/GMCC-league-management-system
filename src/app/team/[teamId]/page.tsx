@@ -4,6 +4,7 @@ export const revalidate = 60; // Revalidate every 60 seconds
 
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Suspense } from "react";
 import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 import { PermissionChecker } from "@/lib/permissions";
@@ -11,6 +12,8 @@ import TeamTabs from "@/components/teamTabs";
 import AdminTeamTabs from "@/components/adminTeamTabs";
 import DeleteTeamButton from "@/components/deleteResourceButton";
 import ToggleButton from "@/components/toggleButton";
+import EditTeamDescription from "@/components/editTeamDescription";
+import WelcomeTeamPopup from "@/components/welcomeTeamPopup";
 import type { Team, RosterEntry, StandingRow, Game, PlayerTeam } from "@/types/domain";
 import { batchGetTeamNames, batchGetTeams, batchGetPayments, batchGet } from "@/lib/kvBatch";
 
@@ -21,6 +24,18 @@ async function readArr<T = any>(key: string): Promise<T[]> {
   if (Array.isArray(raw)) return raw as T[];
   if (typeof raw === "string") return raw.trim() ? (JSON.parse(raw) as T[]) : [];
   return [];
+}
+
+async function readLeagueDoc(leagueId: string): Promise<Record<string, any> | null> {
+  try {
+    const h = (await kv.hgetall(`league:${leagueId}`)) as Record<string, any> | null;
+    if (h && typeof h === "object" && Object.keys(h).length) return h;
+  } catch {}
+  try {
+    const g = (await kv.get(`league:${leagueId}`)) as any;
+    if (g && typeof g === "object") return g as Record<string, any>;
+  } catch {}
+  return null;
 }
 
 /* ---------------- Page Component ---------------- */
@@ -38,7 +53,78 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
   const permissions = await PermissionChecker.create(user, team.leagueId ?? "");
   
   // Load roster
-  const roster = await readArr<RosterEntry>(`team:${teamId}:roster`);
+  let roster = await readArr<RosterEntry>(`team:${teamId}:roster`);
+  
+  // Refresh display names for roster entries that have userId as displayName
+  // This handles cases where roster entries were created before user had a displayName
+  let rosterUpdated = false;
+  const refreshedRoster = await Promise.all(
+    roster.map(async (entry) => {
+      // If displayName is missing or equals userId, try to refresh from user profile
+      if (!entry.displayName || entry.displayName === entry.userId) {
+        // User profile might be stored as HASH or JSON object, so try both
+        let userProfile: any = null;
+        const userKey = `user:${entry.userId}`;
+        
+        // Try HASH first
+        try {
+          const h = (await kv.hgetall(userKey)) as Record<string, unknown> | null;
+          if (h && typeof h === "object" && Object.keys(h).length) {
+            userProfile = h;
+          }
+        } catch {}
+        
+        // Fall back to GET if HASH didn't work
+        if (!userProfile) {
+          try {
+            const g = await kv.get(userKey);
+            if (g && typeof g === "object") {
+              userProfile = g;
+            }
+          } catch {}
+        }
+        
+        const displayName = userProfile?.displayName || userProfile?.email || entry.userId;
+        if (displayName !== entry.displayName) {
+          rosterUpdated = true;
+          return { ...entry, displayName };
+        }
+      }
+      return entry;
+    })
+  );
+  
+  // Update roster in KV if any entries were refreshed
+  if (rosterUpdated) {
+    await kv.set(`team:${teamId}:roster`, refreshedRoster);
+    roster = refreshedRoster;
+  }
+
+  // Load league deadline info for player adds and team size requirements
+  let playerAddDeadline: string | null = null;
+  let playerAddDeadlineOverride = false;
+  let isPlayerAddLocked = false;
+  let minTeamSize: number | undefined;
+  let maxTeamSize: number | undefined;
+  
+  if (team.leagueId) {
+    const league = await readLeagueDoc(team.leagueId);
+    if (league) {
+      if (league.playerAddDeadline) {
+        playerAddDeadline = league.playerAddDeadline;
+        playerAddDeadlineOverride = league.playerAddDeadlineOverride || false;
+        const deadlineDate = new Date(league.playerAddDeadline);
+        const deadlinePassed = deadlineDate < new Date();
+        isPlayerAddLocked = deadlinePassed && !playerAddDeadlineOverride;
+      }
+      minTeamSize = league.minTeamSize;
+      maxTeamSize = league.maxTeamSize;
+    }
+  }
+  
+  // Count paid players for team size memo
+  const paymentsMap = (await kv.get<Record<string, boolean>>(`team:${teamId}:payments`)) ?? {};
+  const paidPlayerCount = roster.filter(r => paymentsMap[r.userId]).length;
   
   // Load games
   let games = await readArr<Game>(`team:${teamId}:games`);
@@ -212,6 +298,9 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
 
   return (
     <main style={{ display: "grid", gap: 16 }}>
+      <Suspense fallback={null}>
+        <WelcomeTeamPopup teamName={team.name} />
+      </Suspense>
       <header className="team-header">
         <div className="team-title-wrap">
           <h1 className="page-title">{team.name}</h1>
@@ -281,9 +370,31 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
         )}
       </div>
 
-      {team.description ? (
-        <section className="team-desc card--soft">{team.description}</section>
+      {/* Team Description - editable by managers and admins */}
+      {isManager ? (
+        <EditTeamDescription 
+          teamId={teamId}
+          initialDescription={team.description}
+        />
+      ) : team.description ? (
+        <p style={{ margin: 0, fontSize: 16, color: 'var(--text)', marginTop: "-30px" }}>
+          {team.description}
+        </p>
       ) : null}
+
+      {/* Team Size Memo - Show if league has team size requirements */}
+      {(minTeamSize !== undefined || maxTeamSize !== undefined) && (
+        <div className="card--soft" style={{ padding: '12px 16px', maxWidth: 800, fontSize: 14, marginTop: "0"}}>
+          {/* <strong style={{ color: "var(--navy)" }}>Team Size: </strong> */}
+          <strong>{paidPlayerCount}</strong> player{paidPlayerCount !== 1 ? 's' : ''} (registered and paid)
+          {minTeamSize !== undefined && (
+            <> out of the required <strong>{minTeamSize}</strong></>
+          )}
+          {maxTeamSize !== undefined && (
+            <>. Maximum of <strong>{maxTeamSize}</strong> players</>
+          )}.
+        </div>
+      )}
 
       {/* Conditional tabs based on permissions */}
       {permissions.isAdmin() ? (
@@ -305,7 +416,23 @@ export default async function UnifiedTeamPage({ params }: { params: { teamId: st
           games={gamesWithNames}
           isMember={isMember}
           isManager={isManager}
+          playerAddDeadline={playerAddDeadline}
+          isPlayerAddLocked={isPlayerAddLocked}
         />
+      )}
+
+      {/* Player-only: payment/registration link */}
+      {isMember && !permissions.isAdmin() && (
+        <p style={{ fontSize: 14, color: '#666', marginTop: 0, marginBottom: 0, fontStyle: "italic" }}>
+          Have you completed your registration and paid your team fee? If not, please do so{" "}
+          <a 
+            href="https://register.greatermidland.org/webtrac/web/search.html?category=ADULT&module=AR&subtype=LEAGS&display=Detail" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{ color: "var(--navy)", textDecoration: "underline", fontWeight: 500 }}>
+            here
+          </a>.
+        </p>
       )}
 
       {/* Admin-only: Delete button */}

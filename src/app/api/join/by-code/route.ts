@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
 
     const leagueId = team.leagueId || 'unknown';
 
+    // Check league player add deadline
+    if (team.leagueId) {
+      const league = await kv.get<any>(`league:${team.leagueId}`);
+      if (league?.playerAddDeadline) {
+        const deadlinePassed = new Date(league.playerAddDeadline) < new Date();
+        const overrideActive = league.playerAddDeadlineOverride || false;
+        
+        if (deadlinePassed && !overrideActive) {
+          return NextResponse.json({ 
+            error: 'The player add deadline for this league has passed. This invite code is no longer valid.' 
+          }, { status: 403 });
+        }
+      }
+    }
+
     // Check if user is already on a team in this league
     const memberships = await readArr<any>(`user:${user.id}:memberships`);
     if (memberships.some((m) => m.leagueId === leagueId)) {

@@ -65,8 +65,16 @@ export type League = {
   description?: string;
   season?: string;
 
+  // team size requirements
+  minTeamSize?: number;             // minimum number of paid players required
+  maxTeamSize?: number;             // maximum roster size allowed
+
   // denorm cache for fast lists (optional)
   teamIds?: string[];
+
+  // player add deadline - locks team managers from inviting new players after this date
+  playerAddDeadline?: string;       // ISO date string - when set, managers can't add players after this date
+  playerAddDeadlineOverride?: boolean; // if true, allows adding players even after deadline (for special circumstances)
 
   createdAt?: string;
   updatedAt?: string;

@@ -2804,6 +2804,18 @@ div.standings-mobile ul.roster-list li {
     font-size: 16px !important;
   }
 
+  /* Reduce league name font size on public league tabs for mobile */
+  .public-league-name {
+    font-size: 16px !important;
+  }
+
+  /* Reduce team name font size on public league views for mobile */
+  .public-league-team-name,
+  .public-standings-team-name {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+
   /* Reduce font sizes on league roster tab for mobile */
   .league-roster-player-name-mobile {
     font-size: 16px !important;

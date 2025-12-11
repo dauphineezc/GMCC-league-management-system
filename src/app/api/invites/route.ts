@@ -27,6 +27,30 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: { code: "NOT_MANAGER", message: "Only team managers can create invites" }}, { status: 403 });
   }
 
+  // Check league player add deadline (only for non-admin users)
+  if (team.leagueId) {
+    const league = await kv.get<any>(`league:${team.leagueId}`);
+    if (league?.playerAddDeadline) {
+      const deadlinePassed = new Date(league.playerAddDeadline) < new Date();
+      const overrideActive = league.playerAddDeadlineOverride || false;
+      
+      if (deadlinePassed && !overrideActive) {
+        // Check if user is a league admin or superadmin
+        const { PermissionChecker } = await import("@/lib/permissions");
+        const permissions = await PermissionChecker.create(user, team.leagueId);
+        
+        if (!permissions.isAdmin()) {
+          return Response.json({ 
+            error: { 
+              code: "DEADLINE_PASSED", 
+              message: "The player add deadline for this league has passed. Contact your league admin if you need to add a player." 
+            }
+          }, { status: 403 });
+        }
+      }
+    }
+  }
+
   if (roster.length >= (team.rosterLimit ?? 8)) {
     return Response.json({ error: { code: "TEAM_FULL", message: "Roster is full." }}, { status: 400 });
   }

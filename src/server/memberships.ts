@@ -53,7 +53,28 @@ export async function addPlayerToTeam(userId: string, teamId: string) {
   if (!team) throw new Error('Team not found');
   
   // Fetch user's display name
-  const user = await kv.get<any>(`user:${userId}`);
+  // User profile might be stored as HASH or JSON object, so try both
+  let user: any = null;
+  const userKey = `user:${userId}`;
+  
+  // Try HASH first (as used in adminUserLookup.ts)
+  try {
+    const h = (await kv.hgetall(userKey)) as Record<string, unknown> | null;
+    if (h && typeof h === "object" && Object.keys(h).length) {
+      user = h;
+    }
+  } catch {}
+  
+  // Fall back to GET if HASH didn't work
+  if (!user) {
+    try {
+      const g = await kv.get(userKey);
+      if (g && typeof g === "object") {
+        user = g;
+      }
+    } catch {}
+  }
+  
   const displayName = user?.displayName || user?.email || userId;
   
   const now = new Date().toISOString();

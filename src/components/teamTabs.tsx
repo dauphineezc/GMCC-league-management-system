@@ -16,8 +16,10 @@ export default function TeamTabs(props: {
   games: Game[];
   isMember: boolean;    // team member
   isManager: boolean;   // team manager
+  playerAddDeadline?: string | null;
+  isPlayerAddLocked?: boolean;
 }) {
-  const { teamId, teamName, leagueId, roster, isMember, isManager } = props;
+  const { teamId, teamName, leagueId, roster, isMember, isManager, playerAddDeadline, isPlayerAddLocked } = props;
   const [tab, setTab] = useState<"roster" | "schedule" | "history" | "standings">("roster");
   const [inviteModal, setInviteModal] = useState<InviteModalType>(null);
   const [leaving, setLeaving] = useState(false);
@@ -151,15 +153,34 @@ export default function TeamTabs(props: {
 
                   <div className="roster-actions" style={{ marginTop: "16px" }}>
                       {isManager && (
-                        <>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
                           <button 
                             type="button" 
                             className="btn btn--outline btn--sm"
                             onClick={() => setInviteModal('code')}
+                            disabled={isPlayerAddLocked}
+                            style={{ 
+                              opacity: isPlayerAddLocked ? 0.5 : 1,
+                              cursor: isPlayerAddLocked ? 'not-allowed' : 'pointer'
+                            }}
+                            title={isPlayerAddLocked ? 'Player add deadline has passed' : ''}
                           >
                             Invite via Code
                           </button>
-                        </>
+                          {playerAddDeadline && !isPlayerAddLocked && (
+                            <div style={{ 
+                              fontSize: 13, 
+                              color: '#666',
+                              fontStyle: 'italic'
+                            }}>
+                              Deadline to invite players: {new Date(playerAddDeadline).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                          )}
+                        </div>
                       )}
                       {isMember && (
                         <button
@@ -173,6 +194,24 @@ export default function TeamTabs(props: {
                         </button>
                       )}
                     </div>
+                    {isManager && isPlayerAddLocked && playerAddDeadline && (
+                      <div style={{ 
+                        marginTop: 2, 
+                        padding: '8px 8px', 
+                        // backgroundColor: '#FFF3E6', 
+                        borderRadius: 8,
+                        fontSize: 12,
+                        // color: '#ec720e',
+                        color: 'var(--navy)',
+                        fontWeight: 400
+                      }}>
+                          Player invites are locked. The add-player deadline ({new Date(playerAddDeadline).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}) has passed.<br />Contact your league admin if you need to add a player.
+                      </div>
+                    )}
 
                 </div>
                 
@@ -216,15 +255,34 @@ export default function TeamTabs(props: {
                   
                   <div className="roster-actions" style={{ marginTop: "16px" }}>
                     {isManager && (
-                      <>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
                         <button 
                           type="button" 
                           className="btn btn--outline btn--sm"
                           onClick={() => setInviteModal('code')}
+                          disabled={isPlayerAddLocked}
+                          style={{ 
+                            opacity: isPlayerAddLocked ? 0.5 : 1,
+                            cursor: isPlayerAddLocked ? 'not-allowed' : 'pointer'
+                          }}
+                          title={isPlayerAddLocked ? 'Player add deadline has passed' : ''}
                         >
                           Invite via Code
                         </button>
-                      </>
+                        {playerAddDeadline && !isPlayerAddLocked && (
+                          <div style={{ 
+                            fontSize: 13, 
+                            color: '#666',
+                            fontStyle: 'italic'
+                          }}>
+                            Deadline to invite players: {new Date(playerAddDeadline).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </div>
+                        )}
+                      </div>
                     )}
                     {isMember && (
                       <button
@@ -238,6 +296,23 @@ export default function TeamTabs(props: {
                       </button>
                     )}
                   </div>
+                  {isManager && isPlayerAddLocked && playerAddDeadline && (
+                    <div style={{ 
+                      marginTop: 12, 
+                      padding: '12px 16px', 
+                      backgroundColor: '#FFF3E6', 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      color: '#ec720e',
+                      fontWeight: 500
+                    }}>
+                      ⚠️ Player invites are locked. The add-player deadline ({new Date(playerAddDeadline).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}) has passed. Contact your league admin if you need to add a player.
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -494,7 +569,7 @@ function InviteModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{type === 'link' ? 'Generate Invite Link' : 'Generate Invite Code'}</h2>
+          <h2 style={{ fontWeight: 400, fontSize: "22px" }}>{type === 'link' ? 'Generate Invite Link' : 'Generate Invite Code'}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -546,14 +621,14 @@ function InviteModal({
 
               <div className="modal-actions">
                 <button 
-                  className="btn btn--outline" 
+                  className="btn btn--outline btn--sm" 
                   onClick={onClose}
                   disabled={loading}
                 >
                   Cancel
                 </button>
                 <button 
-                  className="btn btn--primary" 
+                  className="btn btn--primary btn--sm" 
                   onClick={handleGenerate}
                   disabled={loading}
                 >

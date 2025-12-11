@@ -85,12 +85,37 @@ function SubmitBtn({ children }: { children: React.ReactNode }) {
               </label>
             </div>
     
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span className="form-label">Minimum team size</span>
+                <input 
+                  name="minTeamSize" 
+                  type="number" 
+                  className="input" 
+                  placeholder="e.g. 8" 
+                  min="1"
+                  defaultValue="8"
+                />
+              </label>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span className="form-label">Maximum team size</span>
+                <input 
+                  name="maxTeamSize" 
+                  type="number" 
+                  className="input" 
+                  placeholder="e.g. 12" 
+                  min="1"
+                  defaultValue="12"
+                />
+              </label>
+            </div>
+    
             <label style={{ display: "grid", gap: 6 }}>
               <span className="form-label">Admin (email)</span>
               <input name="adminEmail" type="email" className="input" placeholder="admin@domain.com" />
             </label>
     
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <SubmitBtn>Create League</SubmitBtn>
             </div>
           </form>
@@ -105,8 +130,8 @@ function SubmitBtn({ children }: { children: React.ReactNode }) {
           {/* Success + unassigned list */}
           {state?.ok === true && (
             <div className="card--soft" style={{ marginTop: 16, padding: 16 }}>
-                <h4 className="content-title" style={{ marginTop: 0 }}>
-                ✅ You successfully created league <em>{state.leagueName}</em>.
+                <h4 className="content-title" style={{ marginTop: 15, fontWeight: 600, fontSize: "22px" }}>
+                  You successfully created league <em>{state.leagueName}</em>.
                 </h4>
 
                 {added.size > 0 && (
@@ -126,13 +151,13 @@ function SubmitBtn({ children }: { children: React.ReactNode }) {
 
                 return (
                     <>
-                    <p>Would you like to add teams to the league now?</p>
+                    <p style={{ fontWeight: 400, fontSize: "18px", marginTop: 20 }}>Would you like to add teams to the league now? Unassigned teams:</p>
                     <ul className="roster-list">
                         {visible.map((t) => (
                         <li key={t.teamId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div className="body-text" style={{ fontWeight: 500 }}>{t.name}</div>
+                            <div className="body-text" style={{ fontWeight: 600, fontSize: "18px", marginLeft: "25px" }}>{t.name}</div>
                             <button
-                            className="btn btn--outline"
+                            className="btn btn--outline btn--sm"
                             type="button"
                             onClick={() => handleAdd(state.leagueId, t)}
                             disabled={isPending}

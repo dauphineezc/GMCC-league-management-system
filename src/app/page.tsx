@@ -11,7 +11,7 @@ import AdminLeagueCard from "@/components/adminLeagueSummaryCard";
 import PublicLeagueTabsServer from "@/components/publicLeagueTabs.server";
 import { readMembershipsForUid } from "@/lib/kvread";
 import type { Game } from "@/types/domain";
-import { batchGetTeams, batchGetTeamNames, batchGet } from "@/lib/kvBatch";
+import { batchGetTeams, batchGetTeamNames, batchGet, parseArrayFromKV } from "@/lib/kvBatch";
 
 /* ---------------- helpers ---------------- */
 
@@ -175,7 +175,54 @@ export default async function UnifiedHome() {
     // Step 4: Batch fetch all team names
     const nameMap = await batchGetTeamNames(Array.from(allGameTeamIds));
 
-    // Step 5: Process each membership using cached data
+    // Step 5: Batch fetch league names for leagues not in DIVISIONS
+    // Collect leagueIds from both memberships and teams
+    const membershipLeagueIds = memberships.map(m => m.leagueId).filter((id): id is string => Boolean(id));
+    const teamLeagueIds = Array.from(teamsMap.values()).map(t => t?.leagueId).filter((id): id is string => Boolean(id));
+    const uniqueLeagueIds = [...new Set([...membershipLeagueIds, ...teamLeagueIds])];
+    const leagueNameMap = new Map<string, string>();
+    
+    // First, add DIVISIONS leagues to the map
+    DIVISIONS.forEach(d => {
+      if (uniqueLeagueIds.includes(d.id)) {
+        leagueNameMap.set(d.id, d.name);
+      }
+    });
+    
+    // Then, fetch league names for leagues not in DIVISIONS
+    const leaguesToFetch = uniqueLeagueIds.filter(id => !leagueNameMap.has(id));
+    if (leaguesToFetch.length > 0) {
+      // Fetch leagues - try both hash and JSON formats
+      const leaguePromises = leaguesToFetch.map(async (leagueId) => {
+        const key = `league:${leagueId}`;
+        // Try reading as hash first (for leagues created with writePatch)
+        try {
+          const h = (await kv.hgetall(key)) as Record<string, any> | null;
+          if (h && typeof h === "object" && Object.keys(h).length) {
+            return { leagueId, name: h.name };
+          }
+        } catch {}
+        
+        // Fall back to JSON format
+        try {
+          const g = (await kv.get(key)) as any;
+          if (g && typeof g === "object" && g.name) {
+            return { leagueId, name: g.name };
+          }
+        } catch {}
+        
+        return { leagueId, name: null };
+      });
+      
+      const leagueResults = await Promise.all(leaguePromises);
+      leagueResults.forEach(({ leagueId, name }) => {
+        if (name && typeof name === 'string') {
+          leagueNameMap.set(leagueId, name);
+        }
+      });
+    }
+
+    // Step 6: Process each membership using cached data
     playerTeams = memberships.map((m) => {
       const team = teamsMap.get(`team:${m.teamId}`) ?? {
         id: m.teamId,
@@ -183,29 +230,51 @@ export default async function UnifiedHome() {
         name: m.teamId,
         approved: false,
       };
-
-      let games = teamGamesResults.get(`team:${m.teamId}:games`);
-      games = Array.isArray(games) ? games : [];
       
-      if (!games.length) {
-        const leagueGames = leagueGamesResults.get(`league:${m.leagueId}:games`);
-        const leagueGamesArray = Array.isArray(leagueGames) ? leagueGames : [];
-        const thisTeamName = norm(team.name ?? m.teamId);
+      // Use team's leagueId if membership doesn't have it
+      const effectiveLeagueId = m.leagueId ?? team.leagueId ?? "";
 
-        games = leagueGamesArray
-          .filter((g) => {
+      let games = parseArrayFromKV(teamGamesResults.get(`team:${m.teamId}:games`));
+      
+      // Normalize dateTimeISO for team games
+      games = games.map((g: any) => ({
+        ...g,
+        dateTimeISO: g.dateTimeISO ?? g.startTimeISO ?? g.start ?? g.date ?? null,
+      }));
+      
+      // Always check league games if we have a leagueId (games might only be stored at league level)
+      if (effectiveLeagueId) {
+        const leagueGames = parseArrayFromKV(leagueGamesResults.get(`league:${effectiveLeagueId}:games`));
+        const thisTeamName = norm(team.name ?? m.teamId);
+        const thisTeamNameExact = team.name ?? m.teamId;
+
+        const leagueGamesForTeam = leagueGames
+          .filter((g: any) => {
+            // First check by team ID
             const idHit =
               (g.homeTeamId && g.homeTeamId === m.teamId) ||
               (g.awayTeamId && g.awayTeamId === m.teamId);
             if (idHit) return true;
+            
+            // Then check by exact team name match
+            const homeNameExact = g.homeTeamName;
+            const awayNameExact = g.awayTeamName;
+            if (homeNameExact === thisTeamNameExact || awayNameExact === thisTeamNameExact) return true;
+            
+            // Finally check by normalized name match
             const homeName = norm(g.homeTeamName);
             const awayName = norm(g.awayTeamName);
             return homeName === thisTeamName || awayName === thisTeamName;
           })
-          .map((g) => ({
+          .map((g: any) => ({
             ...g,
             dateTimeISO: g.dateTimeISO ?? g.startTimeISO ?? g.start ?? g.date ?? null,
           }));
+        
+        // Merge league games with team games (avoid duplicates)
+        const existingGameIds = new Set(games.map((g: any) => g.id));
+        const newLeagueGames = leagueGamesForTeam.filter((g: any) => !existingGameIds.has(g.id));
+        games = [...games, ...newLeagueGames];
       }
 
       const withNames: Game[] = games.map((g: any) => ({
@@ -214,9 +283,15 @@ export default async function UnifiedHome() {
         awayTeamName: g.awayTeamName ?? (g.awayTeamId ? nameMap.get(g.awayTeamId) : undefined),
       }));
 
-      const now = Date.now();
+      const now = new Date();
       const next = withNames
-        .filter((g) => g.dateTimeISO && new Date(g.dateTimeISO).getTime() >= now)
+        .filter((g) => {
+          if (!g.dateTimeISO) return false;
+          const gameDate = new Date(g.dateTimeISO);
+          const status = (g.status || '').toLowerCase();
+          // Include games that are in the future OR have status 'scheduled'
+          return gameDate >= now || status === 'scheduled';
+        })
         .sort((a, b) => +new Date(a.dateTimeISO!) - +new Date(b.dateTimeISO!))[0];
 
       let nextGameText: string | undefined;
@@ -244,12 +319,17 @@ export default async function UnifiedHome() {
         nextGameText = `${when}${oppText}`;
       }
 
+      // Get league name from map or fallback
+      const leagueName = effectiveLeagueId 
+        ? (leagueNameMap.get(effectiveLeagueId) ?? effectiveLeagueId)
+        : "Not Assigned to a League";
+
       return {
         id: m.teamId,
         name: team.name ?? m.teamId,
         approved: !!team.approved,
-        leagueId: m.leagueId ?? "",
-        leagueName: DIVISIONS.find((d) => d.id === m.leagueId)?.name ?? m.leagueId ?? "Unknown League",
+        leagueId: effectiveLeagueId,
+        leagueName,
         isManager: m.isManager,
         nextGameText,
       };

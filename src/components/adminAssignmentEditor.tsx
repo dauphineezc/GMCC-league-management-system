@@ -115,9 +115,13 @@ export default function AdminAssignmentEditor({
       </p>
       <button
         type="button"
-        className="btn btn--sm"
-        style={{ padding: '6px 8px', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         onClick={() => setIsEditing(true)}
+        className="icon-btn icon-btn--edit"
+        style={{ 
+          width: '28px',
+          height: '28px',
+          flexShrink: 0
+        }}
         title="Edit admin assignment"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

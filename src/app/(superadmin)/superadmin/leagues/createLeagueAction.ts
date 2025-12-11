@@ -86,11 +86,28 @@ export async function createLeagueAction(
   const division    = String(formData.get("division") || "").trim().toLowerCase();
   const gender      = String(formData.get("gender") || "").trim().toLowerCase();
   const adminEmail  = normEmail(formData.get("adminEmail"));
+  
+  // Parse team size values
+  const minTeamSizeStr = String(formData.get("minTeamSize") || "").trim();
+  const maxTeamSizeStr = String(formData.get("maxTeamSize") || "").trim();
+  const minTeamSize = minTeamSizeStr ? parseInt(minTeamSizeStr, 10) : undefined;
+  const maxTeamSize = maxTeamSizeStr ? parseInt(maxTeamSizeStr, 10) : undefined;
 
   if (!name) return { ok: false, error: "Please provide a league name." };
   if (!(SPORTS as readonly string[]).includes(sport))   return { ok: false, error: "Please choose a valid sport." };
   if (!(DIVS as readonly string[]).includes(division))  return { ok: false, error: "Please choose a valid division." };
   if (!(GENDERS as readonly string[]).includes(gender)) return { ok: false, error: "Please choose a valid gender." };
+
+  // Validate team sizes if provided
+  if (minTeamSize !== undefined && (isNaN(minTeamSize) || minTeamSize < 1)) {
+    return { ok: false, error: "Minimum team size must be at least 1." };
+  }
+  if (maxTeamSize !== undefined && (isNaN(maxTeamSize) || maxTeamSize < 1)) {
+    return { ok: false, error: "Maximum team size must be at least 1." };
+  }
+  if (minTeamSize !== undefined && maxTeamSize !== undefined && minTeamSize > maxTeamSize) {
+    return { ok: false, error: "Minimum team size cannot be greater than maximum team size." };
+  }
 
   const leagueId = randomUUID();
 
@@ -110,6 +127,8 @@ export async function createLeagueAction(
     sport,
     division,
     gender,
+    minTeamSize,
+    maxTeamSize,
     adminUserId: adminUserId ?? null,
     approved: false,
     createdAt: now,
@@ -134,8 +153,64 @@ export async function addTeamToLeagueDirect(
     const existing = await readDoc<Record<string, any>>(key);
     if (!existing) return { ok: false, error: "Team not found." };
   
+    // Get league document to get league name
+    const league = await readDoc<Record<string, any>>(`league:${leagueId}`);
+    const leagueName = league?.name ?? leagueId;
+  
+    // Update team with leagueId
     await writePatch(key, { leagueId, updatedAt: new Date().toISOString() });
     try { await kv.sadd(`league:${leagueId}:teams`, teamId); } catch {}
+  
+    // Update all roster members' memberships with league information
+    // Read roster (stored as array)
+    let rosterArray: any[] = [];
+    try {
+      const rosterRaw = await kv.get(`team:${teamId}:roster`);
+      if (Array.isArray(rosterRaw)) {
+        rosterArray = rosterRaw;
+      } else if (typeof rosterRaw === 'string') {
+        try {
+          rosterArray = JSON.parse(rosterRaw);
+        } catch {}
+      }
+    } catch {}
+  
+    // Update memberships for all roster members
+    for (const member of rosterArray) {
+      if (!member?.userId) continue;
+      
+      const membershipKey = `user:${member.userId}:memberships`;
+      let memberships: any[] = [];
+      try {
+        const raw = await kv.get(membershipKey);
+        if (Array.isArray(raw)) {
+          memberships = raw;
+        } else if (typeof raw === 'string') {
+          try {
+            memberships = JSON.parse(raw);
+          } catch {}
+        }
+      } catch {}
+      
+      const membershipIndex = memberships.findIndex((m: any) => m?.teamId === teamId);
+      const membershipData = {
+        teamId,
+        leagueId,
+        leagueName,
+        teamName: existing.name ?? teamId,
+        isManager: member.isManager ?? false,
+      };
+      
+      if (membershipIndex >= 0) {
+        memberships[membershipIndex] = { ...memberships[membershipIndex], ...membershipData };
+      } else {
+        memberships.push(membershipData);
+      }
+      
+      try {
+        await kv.set(membershipKey, memberships);
+      } catch {}
+    }
   
     return { ok: true };
   }
