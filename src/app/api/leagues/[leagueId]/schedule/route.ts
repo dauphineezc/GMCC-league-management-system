@@ -75,11 +75,11 @@ function toNewShape(g: any, idToName: Map<string, string>) {
   };
 }
 
-export async function GET(req: Request, { params }: { params: { leagueId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
     const url = new URL(req.url);
     const teamFilter = url.searchParams.get("team") ?? "";
-    const leagueId = params.leagueId;
+    const { leagueId } = await params;
 
     // Use the same reliable pattern as PDFs
     const key = `league:${leagueId}:games`;
@@ -147,10 +147,10 @@ export async function GET(req: Request, { params }: { params: { leagueId: string
   }
 }
 
-export async function POST(req: Request, { params }: { params: { leagueId: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
     const { homeTeamName, awayTeamName, location, date, time, timezone } = await req.json();
-    const { leagueId } = params;
+    const { leagueId } = await params;
 
     // Validate input
     if (!homeTeamName?.trim() || !awayTeamName?.trim()) {

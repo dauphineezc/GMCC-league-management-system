@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { auth, googleProvider, appleProvider, microsoftProvider } from "@/lib/firebaseClient";
 import {
   createUserWithEmailAndPassword,
@@ -22,7 +23,7 @@ async function establishSession() {
   });
 }
 
-export default function CreateAccountPage() {
+function CreateAccountContent() {
   const [firstName, setFirst] = useState("");
   const [lastName, setLast] = useState("");
   const [gender, setGender] = useState<Gender>("PREFER_NOT_TO_SAY");
@@ -242,5 +243,13 @@ export default function CreateAccountPage() {
         </p>
       </section>
     </main>
+  );
+}
+
+export default function CreateAccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateAccountContent />
+    </Suspense>
   );
 }

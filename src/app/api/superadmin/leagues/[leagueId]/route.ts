@@ -4,14 +4,14 @@ import { getServerUser } from "@/lib/serverUser";
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const user = await getServerUser();
   if (!user?.superadmin) {
     return Response.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
 
-  const leagueId = params.leagueId;
+  const { leagueId } = await params;
 
   // Detach any teams assigned to the league
   const teamIds = (await kv.smembers(`league:${leagueId}:teams`)) as string[] || [];

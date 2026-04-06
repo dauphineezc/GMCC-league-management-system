@@ -9,12 +9,12 @@ import { readLeagueDocJSON, writeLeagueAdminJSON } from "@/lib/leagueDoc";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest, { params }: { params: { leagueId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ leagueId: string }> }) {
   const me = await getServerUser();
   if (!me) return new Response("Unauthorized", { status: 401 });
   if (!(await isSuperAdmin(me))) return new Response("Forbidden", { status: 403 });
 
-  const { leagueId } = params;
+  const { leagueId } = await params;
 
   let body: any;
   try { body = await req.json(); } catch { return new Response("Invalid JSON", { status: 400 }); }

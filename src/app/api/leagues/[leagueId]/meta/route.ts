@@ -3,9 +3,9 @@ import { DIVISIONS } from "@/lib/divisions";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const { leagueId } = params;
+  const { leagueId } = await params;
 
   // Try hash then JSON doc, then static DIVISIONS, then id
   let name: string | null = null;

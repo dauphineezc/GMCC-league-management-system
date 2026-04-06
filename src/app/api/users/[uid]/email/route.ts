@@ -24,12 +24,12 @@ async function isAdminOfLeague(userId: string, leagueId?: string) {
   return false;
 }
 
-export async function GET(req: NextRequest, { params }: { params: { uid: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
   try {
     const me = await getServerUser();
     if (!me) return new NextResponse("Unauthorized", { status: 401 });
 
-    const uid = params.uid;
+    const { uid } = await params;
     const leagueId = new URL(req.url).searchParams.get("leagueId") || undefined;
 
     // Authorization: you're allowed if you're superadmin, the user yourself, or an admin of the league

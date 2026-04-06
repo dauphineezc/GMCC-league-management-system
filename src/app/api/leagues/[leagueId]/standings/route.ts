@@ -10,9 +10,9 @@ function parseKV(raw: unknown): any[] {
   return [];
 }
 
-export async function GET(req: Request, { params }: { params: { leagueId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
-    const { leagueId } = params;
+    const { leagueId } = await params;
     
     // Try to get existing standings
     const standingsKey = `league:${leagueId}:standings`;

@@ -3,7 +3,7 @@ import { ScheduleList } from '@/components/scheduleList';
 import { absoluteUrl } from '@/lib/absoluteUrl';
 
 async function fetchTeamGames(leagueId: string, teamName: string) {
-  const url = absoluteUrl(`/api/leagues/${leagueId}/schedule?team=${encodeURIComponent(teamName)}`);
+  const url = await absoluteUrl(`/api/leagues/${leagueId}/schedule?team=${encodeURIComponent(teamName)}`);
   const res = await fetch(url, { cache: 'no-store' });
   return (await res.json()) as any[];
 }

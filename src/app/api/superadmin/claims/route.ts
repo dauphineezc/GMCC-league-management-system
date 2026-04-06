@@ -6,7 +6,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   // Must be superadmin via session cookie
-  const cookie = cookies().get("fb:session")?.value;
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get("fb:session")?.value;
   if (!cookie) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const caller = await adminAuth.verifySessionCookie(cookie, true);
   if (!caller.superadmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });

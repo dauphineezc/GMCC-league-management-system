@@ -44,7 +44,8 @@ export async function isLeagueAdminAsync(user: MinimalUser | null, leagueId: str
 
 
 export async function getServerUser(): Promise<ServerUser | null> {
-  const sessionCookie = cookies().get("fb:session")?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("fb:session")?.value;
   if (!sessionCookie) return null;
   try {
     const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);

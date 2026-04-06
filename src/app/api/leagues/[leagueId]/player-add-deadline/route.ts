@@ -8,9 +8,9 @@ import { readLeagueDocJSON } from "@/lib/leagueDoc";
 // GET - Fetch the current player add deadline settings
 export async function GET(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const leagueId = params.leagueId;
+  const { leagueId } = await params;
   const user = await getServerUser();
   
   if (!user) {
@@ -38,9 +38,9 @@ export async function GET(
 // PUT - Update the player add deadline settings
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const leagueId = params.leagueId;
+  const { leagueId } = await params;
   const user = await getServerUser();
   
   if (!user) {
@@ -145,9 +145,9 @@ export async function PUT(
 // DELETE - Clear the player add deadline
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const leagueId = params.leagueId;
+  const { leagueId } = await params;
   const user = await getServerUser();
   
   if (!user) {

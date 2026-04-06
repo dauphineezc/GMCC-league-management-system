@@ -30,7 +30,7 @@ async function smembers(key: string): Promise<string[]> {
 
 export async function PUT(
   req: Request,
-  { params }: { params: { uid: string } }
+  { params }: { params: Promise<{ uid: string }> }
 ) {
   try {
     const me = await getServerUser();
@@ -38,8 +38,10 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { uid } = await params;
+
     // Users can only update their own name
-    if (me.id !== params.uid) {
+    if (me.id !== uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -54,7 +56,6 @@ export async function PUT(
     }
 
     const newDisplayName = `${firstName.trim()} ${lastName.trim()}`;
-    const uid = params.uid;
 
     // 1. Update user profile (handle both Hash and GET formats)
     const userKey = `user:${uid}`;

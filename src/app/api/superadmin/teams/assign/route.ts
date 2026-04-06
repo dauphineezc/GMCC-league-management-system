@@ -37,7 +37,8 @@ async function readDoc<T>(key: string): Promise<{ doc: T | null; isHash: boolean
 
 export async function POST(req: Request) {
   // --- auth (superadmin required) ---
-  const cookie = cookies().get("fb:session")?.value;
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get("fb:session")?.value;
   if (!cookie) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const caller = await adminAuth.verifySessionCookie(cookie, true);
   if (!caller.superadmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });

@@ -7,7 +7,7 @@ import { kv } from "@vercel/kv";
 
 
 export async function POST() {
-  const c = cookies();
+  const c = await cookies();
   const session = c.get("fb:session")?.value;
   if (!session) return NextResponse.json({ ok:false, target:"/login" }, { status: 200 });
 

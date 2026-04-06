@@ -7,7 +7,8 @@ export const runtime = "nodejs"; // important: use the admin SDK on Node
 
 export async function GET() {
   try {
-    const cookie = cookies().get("fb:session")?.value; // same name you use elsewhere
+    const cookieStore = await cookies();
+    const cookie = cookieStore.get("fb:session")?.value; // same name you use elsewhere
     if (!cookie) {
       return NextResponse.json(
         { ok: false, auth: null },

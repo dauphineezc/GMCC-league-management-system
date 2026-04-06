@@ -45,7 +45,7 @@ async function readMap<T = Record<string, any>>(key: string): Promise<T> {
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { uid: string } }
+  { params }: { params: Promise<{ uid: string }> }
 ) {
   try {
     const me = await getServerUser();
@@ -53,12 +53,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { uid } = await params;
+
     // Users can only delete their own account
-    if (me.id !== params.uid) {
+    if (me.id !== uid) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const uid = params.uid;
     const userEmail = me.email;
 
     let teamsDeleted = 0;

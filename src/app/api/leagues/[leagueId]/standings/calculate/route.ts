@@ -21,9 +21,9 @@ function parseKV(raw: unknown): any[] {
   return [];
 }
 
-export async function POST(req: Request, { params }: { params: { leagueId: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
-    const { leagueId } = params;
+    const { leagueId } = await params;
     console.log(`Calculating standings for league ${leagueId}`);
 
     // Get all team IDs in the league (stored as a SET)

@@ -20,11 +20,11 @@ function parseKV(raw: unknown): any[] {
 
 export async function PUT(
   req: Request, 
-  { params }: { params: { leagueId: string; gameId: string } }
+  { params }: { params: Promise<{ leagueId: string; gameId: string }> }
 ) {
   try {
     const { homeTeamName, awayTeamName, location, date, time, timezone, status } = await req.json();
-    const { leagueId, gameId } = params;
+    const { leagueId, gameId } = await params;
 
     // Validate input
     if (!homeTeamName?.trim() || !awayTeamName?.trim()) {
@@ -165,10 +165,10 @@ export async function PUT(
 
 export async function DELETE(
   req: Request, 
-  { params }: { params: { leagueId: string; gameId: string } }
+  { params }: { params: Promise<{ leagueId: string; gameId: string }> }
 ) {
   try {
-    const { leagueId, gameId } = params;
+    const { leagueId, gameId } = await params;
 
     console.log(`Deleting game ${gameId}`);
 

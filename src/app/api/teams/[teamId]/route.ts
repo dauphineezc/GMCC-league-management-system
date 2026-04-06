@@ -14,12 +14,12 @@ async function writeArr<T>(key: string, arr: T[]) {
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   const user = await getServerUser();
   if (!user) return Response.json({ ok: false, error: "UNAUTHENTICATED" }, { status: 401 });
 
-  const teamId = params.teamId;
+  const { teamId } = await params;
   const team = (await kv.get<any>(`team:${teamId}`)) || null;
   if (!team) return Response.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
 

@@ -51,13 +51,13 @@ async function getMergedTeams(leagueId: string) {
 
 export async function GET(
   _req: Request,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const me = await getServerUser();
   if (!me) {
     return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"));
   }
-  const leagueId = params.leagueId;
+  const { leagueId } = await params;
 
   if (!isLeagueAdmin(me, leagueId)) {
     // superadmins can also export any league

@@ -36,10 +36,10 @@ async function readArr<T = any>(key: string): Promise<T[]> {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
   try {
-    const leagueId = params.leagueId;
+    const { leagueId } = await params;
     
     // Get team IDs from the league
     const teamIds = await smembersSafe(`league:${leagueId}:teams`);

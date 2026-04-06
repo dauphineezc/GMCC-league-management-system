@@ -42,10 +42,10 @@ async function readArr<T = any>(key: string): Promise<T[]> {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
   try {
-    const leagueId = params.leagueId;
+    const { leagueId } = await params;
     
     // 1. Authenticate user
     const user = await getServerUser();

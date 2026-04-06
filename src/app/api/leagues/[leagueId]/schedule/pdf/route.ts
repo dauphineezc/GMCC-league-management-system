@@ -4,8 +4,9 @@ import { kvGetRaw, kvDelRaw, parseDoc, SCHEDULE_KEY } from "@/lib/scheduleKv";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { leagueId: string } }) {
-  const key = SCHEDULE_KEY(params.leagueId);
+export async function GET(_req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
+  const { leagueId } = await params;
+  const key = SCHEDULE_KEY(leagueId);
   const doc = parseDoc(await kvGetRaw(key));
   if (!doc?.data) {
     return new Response(JSON.stringify({ error: "not-found", key }), {
@@ -23,8 +24,9 @@ export async function GET(_req: Request, { params }: { params: { leagueId: strin
   });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { leagueId: string } }) {
-  const key = SCHEDULE_KEY(params.leagueId);
+export async function DELETE(_req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
+  const { leagueId } = await params;
+  const key = SCHEDULE_KEY(leagueId);
   await kvDelRaw(key);
   return new Response(JSON.stringify({ ok: true, key }), {
     status: 200, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },

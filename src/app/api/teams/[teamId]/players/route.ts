@@ -17,14 +17,14 @@ async function readArr<T = any>(key: string): Promise<T[]> {
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   const user = await getServerUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   }
 
-  const { teamId } = params;
+  const { teamId } = await params;
   const body = await req.json();
   let { userId } = body;
   const { newManagerId } = body;

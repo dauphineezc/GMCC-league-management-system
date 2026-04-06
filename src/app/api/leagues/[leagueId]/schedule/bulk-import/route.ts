@@ -92,9 +92,9 @@ function parseCSV(csvText: string): CSVRow[] {
   return rows;
 }
 
-export async function POST(req: Request, { params }: { params: { leagueId: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
-    const { leagueId } = params;
+    const { leagueId } = await params;
     const form = await req.formData();
     const file = form.get("file") as File | null;
     const timezone = form.get("timezone") as string || "America/Detroit";

@@ -1,10 +1,10 @@
 // Join page - handles both token (link) and code entry
 
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function JoinPage() {
+function JoinContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('t');
@@ -217,5 +217,13 @@ export default function JoinPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={null}>
+      <JoinContent />
+    </Suspense>
   );
 }

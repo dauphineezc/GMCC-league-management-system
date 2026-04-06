@@ -56,7 +56,7 @@ async function createTeam(formData: FormData) {
   const userId = user.id;
 
   const origin =
-    headers().get("origin") ||
+    (await headers()).get("origin") ||
     process.env.NEXT_PUBLIC_APP_URL ||
     "http://localhost:3000";
 

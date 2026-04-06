@@ -9,14 +9,14 @@ import { revalidatePath } from "next/cache";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const user = await getServerUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   }
 
-  const { leagueId } = params;
+  const { leagueId } = await params;
 
   try {
     // Check permissions

@@ -79,7 +79,7 @@ export async function generateStaticParams() {
 /* ---------------- API helpers ---------------- */
 
 async function fetchGames(leagueId: string) {
-  const url = absoluteUrl(`/api/leagues/${leagueId}/schedule`);
+  const url = await absoluteUrl(`/api/leagues/${leagueId}/schedule`);
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json().catch(() => []);
@@ -87,7 +87,7 @@ async function fetchGames(leagueId: string) {
 }
 
 async function fetchStandings(leagueId: string) {
-  const url = absoluteUrl(`/api/leagues/${leagueId}/standings`);
+  const url = await absoluteUrl(`/api/leagues/${leagueId}/standings`);
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
   const data = await res.json().catch(() => []);

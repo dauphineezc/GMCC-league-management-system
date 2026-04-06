@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
 export async function POST(req: Request) {
-  const cookie = cookies().get("fb:session")?.value;
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get("fb:session")?.value;
   if (!cookie) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const user = await adminAuth.verifySessionCookie(cookie, true);
 

@@ -12,11 +12,11 @@ function parseKV(raw: unknown): any[] {
 
 export async function POST(
   req: Request, 
-  { params }: { params: { leagueId: string; gameId: string } }
+  { params }: { params: Promise<{ leagueId: string; gameId: string }> }
 ) {
   try {
     const { homeScore, awayScore } = await req.json();
-    const { leagueId, gameId } = params;
+    const { leagueId, gameId } = await params;
 
     // Validate input
     if (typeof homeScore !== 'number' || typeof awayScore !== 'number') {

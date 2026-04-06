@@ -4,8 +4,8 @@ import { kvSetRaw, SCHEDULE_KEY } from "@/lib/scheduleKv";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request, { params }: { params: { leagueId: string } }) {
-  const lid = params.leagueId;
+export async function POST(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
+  const { leagueId: lid } = await params;
   const key = SCHEDULE_KEY(lid);
 
   const form = await req.formData();

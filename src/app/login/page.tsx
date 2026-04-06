@@ -1,7 +1,7 @@
 // /src/app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth, googleProvider } from "@/lib/firebaseClient";
 import {
@@ -41,7 +41,7 @@ async function waitForServerSession(): Promise<boolean> {
   return false;
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -307,5 +307,13 @@ export default function LoginPage() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }
