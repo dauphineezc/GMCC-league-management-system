@@ -38,13 +38,31 @@ async function readLeagueDoc(leagueId: string): Promise<Record<string, any> | nu
   return null;
 }
 
+async function readTeamDoc(teamId: string): Promise<Team | null> {
+  try {
+    const h = (await kv.hgetall(`team:${teamId}`)) as Record<string, any> | null;
+    if (h && typeof h === "object" && Object.keys(h).length) {
+      return h as Team;
+    }
+  } catch {}
+  try {
+    const g = (await kv.get<Team>(`team:${teamId}`)) || null;
+    if (g && typeof g === "object") return g;
+  } catch {}
+  return null;
+}
+
 /* ---------------- Page Component ---------------- */
 
-export default async function UnifiedTeamPage({ params }: { params: { teamId: string } }) {
-  const teamId = params.teamId;
+export default async function UnifiedTeamPage({
+  params,
+}: {
+  params: Promise<{ teamId: string }>;
+}) {
+  const { teamId } = await params;
   
   // Load team first
-  const team = (await kv.get<Team>(`team:${teamId}`)) || null;
+  const team = await readTeamDoc(teamId);
   if (!team) notFound();
 
   const user = await getServerUser();

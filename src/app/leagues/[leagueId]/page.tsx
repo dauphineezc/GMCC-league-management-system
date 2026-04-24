@@ -130,8 +130,12 @@ async function getTeamsForLeague(leagueId: string): Promise<TeamCard[]> {
 
 /* ---------------- Page Component ---------------- */
 
-export default async function UnifiedLeaguePage({ params }: { params: { leagueId: string } }) {
-  const leagueId = params.leagueId;
+export default async function UnifiedLeaguePage({
+  params,
+}: {
+  params: Promise<{ leagueId: string }>;
+}) {
+  const { leagueId } = await params;
   const user = await getServerUser();
   
   // Create permission checker

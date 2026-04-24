@@ -58,8 +58,12 @@ async function getTeamsForLeague(leagueId: string): Promise<TeamOption[]> {
   return teams.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
-export default async function SendAnnouncementPage({ params }: { params: { leagueId: string } }) {
-  const leagueId = params.leagueId;
+export default async function SendAnnouncementPage({
+  params,
+}: {
+  params: Promise<{ leagueId: string }>;
+}) {
+  const { leagueId } = await params;
   const user = await getServerUser();
   if (!user) redirect("/login");
   const ok = await isLeagueAdminAsync(user, leagueId);

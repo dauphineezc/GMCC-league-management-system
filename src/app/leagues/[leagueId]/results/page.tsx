@@ -11,18 +11,17 @@ import { redirect, notFound } from "next/navigation";
 export default async function ResultsPage({
   params,
 }: {
-  params: { leagueId: string };
+  params: Promise<{ leagueId: string }>;
 }) {
   const user = await getServerUser();
   if (!user) redirect("/login");
+  const { leagueId } = await params;
   
   // Use new permission system
-  const isAuthorized = await hasLeaguePermission(user, params.leagueId, "admin");
+  const isAuthorized = await hasLeaguePermission(user, leagueId, "admin");
   if (!isAuthorized) {
     notFound(); // More appropriate than redirect with error
   }
-
-  const leagueId = params.leagueId;
   const leagueName = await readLeagueName(leagueId);
 
   return <ResultsClient leagueId={leagueId} leagueName={leagueName} />;

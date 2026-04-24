@@ -2,6 +2,11 @@
 // This route is deprecated - all users now use /team/[teamId]
 import { redirect } from "next/navigation";
 
-export default function SuperadminTeamRedirect({ params }: { params: { teamId: string } }) {
-  redirect(`/team/${params.teamId}`);
+export default async function SuperadminTeamRedirect({
+  params,
+}: {
+  params: Promise<{ teamId: string }>;
+}) {
+  const { teamId } = await params;
+  redirect(`/team/${teamId}`);
 }

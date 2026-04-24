@@ -2,6 +2,11 @@
 // This route is deprecated - all users now use /leagues/[leagueId]
 import { redirect } from "next/navigation";
 
-export default function SuperadminLeagueRedirect({ params }: { params: { leagueId: string } }) {
-  redirect(`/leagues/${params.leagueId}`);
+export default async function SuperadminLeagueRedirect({
+  params,
+}: {
+  params: Promise<{ leagueId: string }>;
+}) {
+  const { leagueId } = await params;
+  redirect(`/leagues/${leagueId}`);
 }
