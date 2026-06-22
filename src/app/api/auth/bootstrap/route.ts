@@ -3,8 +3,12 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { kv } from "@vercel/kv";
-
+import {
+  migrateEmailAdminKeyToUid,
+  readAdminLeagueIds,
+  writeAdminLeaguesAsSet,
+} from "@/lib/adminLeaguesMigration";
+import { resolveManagedLeagueIds } from "@/lib/kvHelpers";
 
 export async function POST() {
   const c = await cookies();
@@ -13,19 +17,29 @@ export async function POST() {
 
   try {
     const dec = await adminAuth.verifySessionCookie(session, true);
-    const isSuper = !!dec.superadmin;
-    const isAdmin = isSuper || Array.isArray(dec.leagueAdminOf);
-    const target = isSuper ? "/superadmin" : isAdmin ? "/admin" : "/player";
-
     const uid = dec.uid;
     const email = dec.email || null;
     const claims = dec as any;
 
-    // Admin index: prefer UID, else legacy, else claims -> persist to UID
-    let managed = await kv.get(`admin:${uid}:leagues`);
-    if (!managed && email) managed = await kv.get(`admin:${email}:leagues`);
-    if (!managed && Array.isArray(claims.leagueAdminOf)) {
-      await kv.set(`admin:${uid}:leagues`, JSON.stringify(claims.leagueAdminOf));
+    const isSuper = !!dec.superadmin;
+    const managed = await resolveManagedLeagueIds({
+      id: uid,
+      email,
+      leagueAdminOf: Array.isArray(claims.leagueAdminOf) ? claims.leagueAdminOf : undefined,
+    });
+    const isAdmin = isSuper || managed.length > 0;
+    const target = isSuper ? "/superadmin" : isAdmin ? "/admin" : "/player";
+
+    // Admin index: migrate legacy email key → uid SET; seed from claims if empty
+    if (email) {
+      await migrateEmailAdminKeyToUid(email, uid, { deleteLegacy: true });
+    }
+    if (Array.isArray(claims.leagueAdminOf) && claims.leagueAdminOf.length) {
+      const uidKey = `admin:${uid}:leagues`;
+      const existing = await readAdminLeagueIds(uidKey);
+      if (!existing.length) {
+        await writeAdminLeaguesAsSet(uidKey, claims.leagueAdminOf);
+      }
     }
 
     return NextResponse.json({

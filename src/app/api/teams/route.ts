@@ -1,8 +1,8 @@
 // src/app/api/teams/route.ts
 import type { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
-import { normalizeDivision, DIVISIONS } from "@/lib/divisions";
-import { upsertMembership } from "@/server/memberships";
+import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { normalizeDivision } from "@/lib/divisions";
+import { createTeam } from "@/lib/repositories/teamsRepo";
 
 /* ----- request body shape (back-compat + new fields) ----- */
 type Body = {
@@ -29,10 +29,9 @@ const DIV_EST = new Set(["low b", "high b", "a"]);
 const DAYS = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get("x-user-id") || "";
-  if (!userId) {
-    return Response.json({ error: { code: "UNAUTHENTICATED" } }, { status: 401 });
-  }
+  const auth = await assertAuthenticated();
+  if (isAuthFailure(auth)) return auth.response;
+  const userId = auth.user.id;
 
   const body: Body = await req.json().catch(() => ({} as Body));
   const name = (body.name || "").trim();
@@ -45,7 +44,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ---- sanitize new fields (with sensible defaults) ----
   const sport = SPORTS.has(String(body.sport)) ? (body.sport as "basketball" | "volleyball") : "basketball";
   const gender = GENDERS.has(String(body.gender)) ? (body.gender as "mens" | "womens" | "co-ed") : "co-ed";
   const estimatedDivision = DIV_EST.has(String(body.estimatedDivision)) ? (body.estimatedDivision as "low b" | "high b" | "a") : "low b";
@@ -55,13 +53,11 @@ export async function POST(req: NextRequest) {
       : [];
   const teamPaymentRequired = Boolean(body.teamPaymentRequired);
 
-  // ---- league assignment logic: optional at creation ----
   const rawDiv =
     (body.leagueId ?? undefined) ??
     (body.division ?? undefined) ??
     (body.divisionId ?? undefined);
 
-  // If caller provided a value, normalize & validate. If nothing provided, we leave it null.
   let leagueId: string | null = null;
   if (rawDiv != null && String(rawDiv).trim() !== "") {
     const normalized = normalizeDivision(String(rawDiv));
@@ -74,88 +70,31 @@ export async function POST(req: NextRequest) {
     leagueId = normalized;
   }
 
-  // ---- create & persist team ----
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  const team = {
+  const teamDoc = await createTeam({
     id,
     name,
     description,
-    leagueId, // may be null
+    leagueSlug: leagueId,
     managerUserId: userId,
-    approved: false,
-    rosterLimit: 8,
-    createdAt: now,
-    updatedAt: now,
-
-    // new fields
     sport,
     gender,
     estimatedDivision,
+    paymentRequired: teamPaymentRequired,
+  });
+
+  const team = {
+    ...teamDoc,
+    leagueId,
+    managerUserId: userId,
+    rosterLimit: 8,
+    createdAt: now,
+    updatedAt: now,
     preferredPracticeDays,
     teamPaymentRequired,
   };
-
-  await kv.set(`team:${id}`, team);
-  await kv.sadd("teams:index", id);
-
-  // Fetch user's displayName from their profile
-  // User profile might be stored as HASH or JSON object, so try both
-  let userProfile: any = null;
-  const userKey = `user:${userId}`;
-  
-  // Try HASH first (as used in adminUserLookup.ts)
-  try {
-    const h = (await kv.hgetall(userKey)) as Record<string, unknown> | null;
-    if (h && typeof h === "object" && Object.keys(h).length) {
-      userProfile = h;
-    }
-  } catch {}
-  
-  // Fall back to GET if HASH didn't work
-  if (!userProfile) {
-    try {
-      const g = await kv.get(userKey);
-      if (g && typeof g === "object") {
-        userProfile = g;
-      }
-    } catch {}
-  }
-  
-  // Use same fallback pattern as addPlayerToTeam: displayName || email || userId
-  const displayName = userProfile?.displayName || userProfile?.email || userId;
-
-  // initial roster: manager
-  const roster = (await kv.get<any[]>(`team:${id}:roster`)) ?? [];
-  await kv.set(`team:${id}:roster`, [
-    ...roster,
-    { userId, displayName, isManager: true, joinedAt: now },
-  ]);
-
-  // membership: always add the creator as a member/manager
-  if (leagueId) {
-    // assigned at creation → add to league team set
-    await kv.sadd(`league:${leagueId}:teams`, id);
-
-    const leagueName = DIVISIONS.find((d) => d.id === leagueId)?.name ?? leagueId;
-    await upsertMembership(userId, {
-      leagueId,
-      leagueName,
-      teamId: id,
-      teamName: name,
-      isManager: true,
-    });
-  } else {
-    // unassigned at creation → membership without league context
-    const key = `user:${userId}:memberships`;
-    const existing = (await kv.get<any[]>(key)) ?? [];
-    const next = [
-      ...existing.filter((m) => m?.teamId !== id),
-      { teamId: id, teamName: name, isManager: true },
-    ];
-    await kv.set(key, next);
-  }
 
   return Response.json({ ok: true, team });
 }

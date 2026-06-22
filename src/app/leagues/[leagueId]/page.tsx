@@ -3,7 +3,6 @@
 export const revalidate = 30; // Revalidate every 30 seconds
 export const dynamicParams = true;
 
-import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 import { PermissionChecker } from "@/lib/permissions";
 import { IfAdmin, IfSuperAdmin } from "@/components/conditionalDisplay";
@@ -16,116 +15,35 @@ import LeagueActionsDropdown from "@/components/leagueActionsDropdown";
 import DeleteResourceButton from "@/components/deleteResourceButton";
 import EditLeagueDescription from "@/components/editLeagueDescription";
 import { DIVISIONS } from "@/lib/divisions";
-import { absoluteUrl } from "@/lib/absoluteUrl";
+import { getLeagueScheduleView, getOrCalculateStandings } from "@/lib/leagueData";
 import type { RosterEntry } from "@/types/domain";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { batchGetRosters, batchGetPayments } from "@/lib/kvBatch";
 import { buildPlayerTeamsByUserFromMemberships } from "@/lib/playerTeams";
-
-/* ---------------- tolerant helpers ---------------- */
-
-async function smembersSafe(key: string): Promise<string[]> {
-  try {
-    const v = (await kv.smembers(key)) as unknown;
-    if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
-  } catch {
-    /* ignore WRONGTYPE */
-  }
-  return [];
-}
-
-async function readArr<T = any>(key: string): Promise<T[]> {
-  let raw: unknown;
-  try {
-    raw = await kv.get(key);
-  } catch {
-    return [];
-  }
-  if (Array.isArray(raw)) return raw as T[];
-  if (typeof raw === "string") {
-    const s = raw.trim();
-    if (!s) return [];
-    try {
-      const arr = JSON.parse(s);
-      return Array.isArray(arr) ? (arr as T[]) : [];
-    } catch {
-      return [];
-    }
-  }
-  if (raw && typeof raw === "object") {
-    return [];
-  }
-  return [];
-}
-
-async function readLeagueDoc(leagueId: string): Promise<Record<string, any> | null> {
-  try {
-    const h = (await kv.hgetall(`league:${leagueId}`)) as Record<string, any> | null;
-    if (h && typeof h === "object" && Object.keys(h).length) return h;
-  } catch {}
-  try {
-    const g = (await kv.get(`league:${leagueId}`)) as any;
-    if (g && typeof g === "object") return g as Record<string, any>;
-  } catch {}
-  return null;
-}
+import { getTeamsForLeague, smembersSafe, readLeagueDoc } from "@/lib/kvHelpers";
 
 export async function generateStaticParams() {
   const ids = await smembersSafe("leagues:index");
   return ids.map((leagueId) => ({ leagueId }));
 }
 
-/* ---------------- API helpers ---------------- */
+/* ---------------- Data helpers (direct KV, no HTTP self-fetch) ---------------- */
 
 async function fetchGames(leagueId: string) {
-  const url = await absoluteUrl(`/api/leagues/${leagueId}/schedule`);
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => []);
-  return Array.isArray(data) ? data : [];
+  try {
+    return await getLeagueScheduleView(leagueId);
+  } catch {
+    return [];
+  }
 }
 
 async function fetchStandings(leagueId: string) {
-  const url = await absoluteUrl(`/api/leagues/${leagueId}/standings`);
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => []);
-  return Array.isArray(data) ? data : [];
-}
-
-/* ---------------- page helpers ---------------- */
-
-type TeamCard = { teamId: string; name: string; description?: string; approved?: boolean };
-
-async function getTeamsForLeague(leagueId: string): Promise<TeamCard[]> {
-  const teamIds = await smembersSafe(`league:${leagueId}:teams`);
-  const seeds = new Set<string>(teamIds);
-  
-  if (seeds.size === 0) {
-    const players = await readArr<any>(`league:${leagueId}:players`);
-    for (const tid of players.map((p) => String(p?.teamId ?? "")).filter(Boolean)) {
-      seeds.add(tid);
-    }
+  try {
+    return await getOrCalculateStandings(leagueId);
+  } catch {
+    return [];
   }
-
-  const ids = Array.from(seeds);
-  
-  // OPTIMIZED: Batch fetch all teams at once instead of N individual fetches
-  const { batchGetTeams } = await import("@/lib/kvBatch");
-  const teamsMap = await batchGetTeams(ids);
-  
-  const rows = ids.map((id) => {
-    const t = teamsMap.get(`team:${id}`);
-    return {
-      teamId: id,
-      name: t?.name ?? id,
-      description: t?.description ?? "",
-      approved: Boolean(t?.approved),
-    } as TeamCard;
-  });
-
-  return rows.sort((a, b) => (a.name || a.teamId).localeCompare(b.name || b.teamId, undefined, { sensitivity: "base" }));
 }
 
 /* ---------------- Page Component ---------------- */
@@ -150,11 +68,12 @@ export default async function UnifiedLeaguePage({
   ]);
 
   const leagueName =
-    (leagueDoc?.name && String(leagueDoc.name)) ||
+    (leagueDoc?.name != null ? String(leagueDoc.name) : "") ||
     DIVISIONS.find((d) => d.id === leagueId)?.name ||
     leagueId;
 
-  const description = leagueDoc?.description ?? "";
+  const description =
+    leagueDoc?.description != null ? String(leagueDoc.description) : "";
 
   // Admin-specific data (only fetch if needed)
   const masterRoster: Array<RosterEntry & { teamId: string; teamName: string; paid?: boolean }> = [];
@@ -178,12 +97,13 @@ export default async function UnifiedLeaguePage({
         const roster = rostersMap.get(t.teamId) ?? [];
         const payMap = paymentsMap.get(t.teamId) ?? {};
         
-        roster.forEach(entry => {
+        roster.forEach((entry) => {
           masterRoster.push({
             ...entry,
+            joinedAt: entry.joinedAt ?? new Date().toISOString(),
+            paid: Boolean(payMap[entry.userId]),
             teamId: t.teamId,
             teamName: t.name,
-            paid: Boolean(payMap[entry.userId]),
           });
         });
       });

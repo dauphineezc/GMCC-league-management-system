@@ -1,38 +1,29 @@
 // /src/app/api/me/route.ts
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
 
-export const runtime = "nodejs"; // important: use the admin SDK on Node
+export const runtime = "nodejs";
 
 export async function GET() {
-  try {
-    const cookieStore = await cookies();
-    const cookie = cookieStore.get("fb:session")?.value; // same name you use elsewhere
-    if (!cookie) {
-      return NextResponse.json(
-        { ok: false, auth: null },
-        { headers: { "Cache-Control": "no-store" } },
-      );
-    }
-    const decoded = await adminAuth.verifySessionCookie(cookie, true);
-    // return a compact, non-sensitive view
-    return NextResponse.json(
-      {
-        ok: true,
-        auth: {
-          uid: decoded.uid,
-          email: decoded.email ?? null,
-          superadmin: !!(decoded as any).superadmin,
-          leagueAdminOf: (decoded as any).leagueAdminOf ?? null,
-        },
-      },
-      { headers: { "Cache-Control": "no-store" } },
-    );
-  } catch {
+  const auth = await assertAuthenticated();
+  if (isAuthFailure(auth)) {
     return NextResponse.json(
       { ok: false, auth: null },
-      { headers: { "Cache-Control": "no-store" } },
+      { status: 401, headers: { "Cache-Control": "no-store" } },
     );
   }
+
+  const user = auth.user;
+  return NextResponse.json(
+    {
+      ok: true,
+      auth: {
+        uid: user.id,
+        email: user.email,
+        superadmin: user.superadmin,
+        leagueAdminOf: user.leagueAdminOf ?? null,
+      },
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

@@ -1,18 +1,15 @@
 // src/app/api/superadmin/leagues/route.ts
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
-import { getServerUser } from "@/lib/serverUser";
+import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
+import { createLeagueRecord } from "@/lib/repositories/leaguesRepo";
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
-function nowISO() { return new Date().toISOString(); }
 
 export async function POST(req: NextRequest) {
-  const user = await getServerUser();
-  if (!user?.superadmin) {
-    return Response.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
-  }
+  const auth = await assertSuperAdmin();
+  if (isAuthFailure(auth)) return auth.response;
 
   const body = (await req.json().catch(() => ({}))) as {
     name?: string;
@@ -25,24 +22,27 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: false, error: "NAME_REQUIRED" }, { status: 400 });
   }
 
-  const leagueId = (body.leagueId || slugify(body.name)).trim();
-  const now = nowISO();
+  const slug = (body.leagueId || slugify(body.name)).trim();
+  const sport =
+    body.sport === "volleyball" || body.sport === "basketball" ? body.sport : "basketball";
 
-  const league = {
-    id: leagueId,
+  const league = await createLeagueRecord({
     name: body.name.trim(),
     description: body.description ?? "",
-    sport: body.sport ?? null,
-    createdAt: now,
-    updatedAt: now,
-  };
+    sport,
+    gender: "coed",
+    division: "low_b",
+    slug,
+  });
 
-  await kv.set(`league:${leagueId}`, league);
-  await kv.sadd("leagues:index", leagueId);
-
-  // (optional) initialize empty sets/arrays
-  // teams is now a SET - no need to initialize empty sets in Redis
-  await kv.set(`league:${leagueId}:players`, []);
-
-  return Response.json({ ok: true, leagueId, league });
+  return Response.json({
+    ok: true,
+    leagueId: league.slug,
+    league: {
+      id: league.slug,
+      name: league.name,
+      description: body.description ?? "",
+      sport,
+    },
+  });
 }

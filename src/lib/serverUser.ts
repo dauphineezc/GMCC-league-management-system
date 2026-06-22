@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { kv } from "@vercel/kv";
+import { isUserLeagueAdmin } from "@/lib/repositories/leaguesRepo";
 
 export type ServerUser = {
   id: string;
@@ -27,18 +27,14 @@ export async function isLeagueAdminAsync(user: MinimalUser | null, leagueId: str
   // superadmin wins
   if (user.superadmin) return true;
 
-  // check kv sets (uid and legacy email), then claims as fallback
-  const [byUid, byEmail] = await Promise.all([
-    kv.sismember(`admin:${uid}:leagues`, leagueId).catch(() => 0),
-    user.email
-      ? kv.sismember(`admin:${user.email}:leagues`, leagueId).catch(() => 0)
-      : Promise.resolve(0),
-  ]);
-
-  return (
-    Boolean(byUid) ||
-    Boolean(byEmail) ||
-    (Array.isArray(user.leagueAdminOf) && user.leagueAdminOf.includes(leagueId))
+  return isUserLeagueAdmin(
+    {
+      id: uid,
+      email: user.email ?? null,
+      superadmin: user.superadmin,
+      leagueAdminOf: user.leagueAdminOf ?? undefined,
+    },
+    leagueId
   );
 }
 
@@ -65,13 +61,6 @@ export async function getServerUser(): Promise<ServerUser | null> {
   }
 }
 
-/* optional helpers, unchanged */
-export function isLeagueAdmin(user: ServerUser | null, _leagueId: string) {
-  return !!user?.superadmin; // or your own logic
-}
-export function isTeamManager(user: ServerUser | null, _teamId: string) {
-  return !!user?.superadmin; // or your own logic
-}
 export async function isSuperAdmin(user: ServerUser | null) {
   return !!user?.superadmin;
 }

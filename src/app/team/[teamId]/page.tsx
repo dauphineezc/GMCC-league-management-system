@@ -5,7 +5,6 @@ export const revalidate = 60; // Revalidate every 60 seconds
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Suspense } from "react";
-import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 import { PermissionChecker } from "@/lib/permissions";
 import TeamTabs from "@/components/teamTabs";
@@ -14,42 +13,16 @@ import DeleteTeamButton from "@/components/deleteResourceButton";
 import ToggleButton from "@/components/toggleButton";
 import EditTeamDescription from "@/components/editTeamDescription";
 import WelcomeTeamPopup from "@/components/welcomeTeamPopup";
-import type { Team, RosterEntry, StandingRow, Game, PlayerTeam } from "@/types/domain";
-import { batchGetTeamNames, batchGetTeams, batchGetPayments, batchGet } from "@/lib/kvBatch";
-
-/* ---------------- helpers ---------------- */
-
-async function readArr<T = any>(key: string): Promise<T[]> {
-  const raw = await kv.get(key);
-  if (Array.isArray(raw)) return raw as T[];
-  if (typeof raw === "string") return raw.trim() ? (JSON.parse(raw) as T[]) : [];
-  return [];
-}
-
-async function readLeagueDoc(leagueId: string): Promise<Record<string, any> | null> {
-  try {
-    const h = (await kv.hgetall(`league:${leagueId}`)) as Record<string, any> | null;
-    if (h && typeof h === "object" && Object.keys(h).length) return h;
-  } catch {}
-  try {
-    const g = (await kv.get(`league:${leagueId}`)) as any;
-    if (g && typeof g === "object") return g as Record<string, any>;
-  } catch {}
-  return null;
-}
+import type { Team, RosterEntry, Game, PlayerTeam } from "@/types/domain";
+import { batchGetTeamNames, batchGetTeams, batchGetPayments, batchGetGames } from "@/lib/kvBatch";
+import { readArr, readLeagueDoc, readDoc, readMap } from "@/lib/kvHelpers";
+import { readLeagueGames } from "@/lib/leagueData";
+import { getUserDisplayName, readMembershipsForUid, readMembershipsForUids } from "@/lib/repositories/usersRepo";
+import { toggleMemberPaid, toggleTeamApproved } from "@/lib/repositories/teamsRepo";
+import { toggleTeamFeePaid as toggleTeamFeePaidAction } from "@/lib/adminActions";
 
 async function readTeamDoc(teamId: string): Promise<Team | null> {
-  try {
-    const h = (await kv.hgetall(`team:${teamId}`)) as Record<string, any> | null;
-    if (h && typeof h === "object" && Object.keys(h).length) {
-      return h as Team;
-    }
-  } catch {}
-  try {
-    const g = (await kv.get<Team>(`team:${teamId}`)) || null;
-    if (g && typeof g === "object") return g;
-  } catch {}
-  return null;
+  return readDoc<Team>(`team:${teamId}`);
 }
 
 /* ---------------- Page Component ---------------- */
@@ -72,51 +45,19 @@ export default async function UnifiedTeamPage({
   
   // Load roster
   let roster = await readArr<RosterEntry>(`team:${teamId}:roster`);
-  
-  // Refresh display names for roster entries that have userId as displayName
-  // This handles cases where roster entries were created before user had a displayName
-  let rosterUpdated = false;
+
   const refreshedRoster = await Promise.all(
     roster.map(async (entry) => {
-      // If displayName is missing or equals userId, try to refresh from user profile
       if (!entry.displayName || entry.displayName === entry.userId) {
-        // User profile might be stored as HASH or JSON object, so try both
-        let userProfile: any = null;
-        const userKey = `user:${entry.userId}`;
-        
-        // Try HASH first
-        try {
-          const h = (await kv.hgetall(userKey)) as Record<string, unknown> | null;
-          if (h && typeof h === "object" && Object.keys(h).length) {
-            userProfile = h;
-          }
-        } catch {}
-        
-        // Fall back to GET if HASH didn't work
-        if (!userProfile) {
-          try {
-            const g = await kv.get(userKey);
-            if (g && typeof g === "object") {
-              userProfile = g;
-            }
-          } catch {}
-        }
-        
-        const displayName = userProfile?.displayName || userProfile?.email || entry.userId;
+        const displayName = await getUserDisplayName(entry.userId);
         if (displayName !== entry.displayName) {
-          rosterUpdated = true;
-          return { ...entry, displayName };
+          return { ...entry, displayName, joinedAt: entry.joinedAt ?? new Date().toISOString(), paid: entry.paid ?? false };
         }
       }
-      return entry;
+      return { ...entry, joinedAt: entry.joinedAt ?? new Date().toISOString(), paid: entry.paid ?? false };
     })
   );
-  
-  // Update roster in KV if any entries were refreshed
-  if (rosterUpdated) {
-    await kv.set(`team:${teamId}:roster`, refreshedRoster);
-    roster = refreshedRoster;
-  }
+  roster = refreshedRoster;
 
   // Load league deadline info for player adds and team size requirements
   let playerAddDeadline: string | null = null;
@@ -128,26 +69,29 @@ export default async function UnifiedTeamPage({
   if (team.leagueId) {
     const league = await readLeagueDoc(team.leagueId);
     if (league) {
-      if (league.playerAddDeadline) {
-        playerAddDeadline = league.playerAddDeadline;
-        playerAddDeadlineOverride = league.playerAddDeadlineOverride || false;
-        const deadlineDate = new Date(league.playerAddDeadline);
+      if (league.playerAddDeadline != null) {
+        playerAddDeadline = String(league.playerAddDeadline);
+        playerAddDeadlineOverride = Boolean(league.playerAddDeadlineOverride);
+        const deadlineDate = new Date(playerAddDeadline);
         const deadlinePassed = deadlineDate < new Date();
         isPlayerAddLocked = deadlinePassed && !playerAddDeadlineOverride;
       }
-      minTeamSize = league.minTeamSize;
-      maxTeamSize = league.maxTeamSize;
+      const rawMin = league.minTeamSize;
+      const rawMax = league.maxTeamSize;
+      minTeamSize =
+        typeof rawMin === "number" ? rawMin : rawMin != null ? Number(rawMin) : undefined;
+      maxTeamSize =
+        typeof rawMax === "number" ? rawMax : rawMax != null ? Number(rawMax) : undefined;
     }
   }
   
   // Count paid players for team size memo
-  const paymentsMap = (await kv.get<Record<string, boolean>>(`team:${teamId}:payments`)) ?? {};
-  const paidPlayerCount = roster.filter(r => paymentsMap[r.userId]).length;
-  
-  // Load games
-  let games = await readArr<Game>(`team:${teamId}:games`);
-  if (!games.length) {
-    const leagueGames = await readArr<Game>(`league:${team.leagueId}:games`);
+  const paymentsMap = await readMap<Record<string, boolean>>(`team:${teamId}:payments`);
+  const paidPlayerCount = roster.filter((r) => paymentsMap[r.userId]).length;
+
+  let games = (await batchGetGames([teamId])).get(teamId) ?? [];
+  if (!games.length && team.leagueId) {
+    const leagueGames = await readLeagueGames(String(team.leagueId));
     games = leagueGames.filter((g) => g.homeTeamId === teamId || g.awayTeamId === teamId);
   }
 
@@ -168,11 +112,7 @@ export default async function UnifiedTeamPage({
   }));
 
   // Check user membership
-  const memberships = user
-    ? await readArr<{ leagueId: string; teamId: string; isManager: boolean }>(
-        `user:${user.id}:memberships`
-      )
-    : [];
+  const memberships = user ? await readMembershipsForUid(user.id) : [];
 
   const meOnThisTeam = memberships.find((m) => m.teamId === teamId);
   const isMember = Boolean(meOnThisTeam);
@@ -184,7 +124,7 @@ export default async function UnifiedTeamPage({
 
   if (permissions.isAdmin()) {
     // Load payment data
-    const paidMap = (await kv.get<Record<string, boolean>>(`team:${teamId}:payments`)) ?? {};
+    const paidMap = paymentsMap;
     
     rosterRows = roster.map((r) => ({
       ...r,
@@ -198,79 +138,64 @@ export default async function UnifiedTeamPage({
     // NEW: ~3-5 batch calls total
     
     // Step 1: Batch fetch all player memberships
-    const membershipKeys = roster.map(r => `user:${r.userId}:memberships`);
-    const membershipResults = await batchGet<any[]>(membershipKeys);
-    
-    // Step 2: Collect all unique team IDs from all memberships
+    const membershipResults = await readMembershipsForUids(roster.map((r) => r.userId));
     const allTeamIds = new Set<string>([teamId]);
-    roster.forEach(r => {
-      const playerMemberships = membershipResults.get(`user:${r.userId}:memberships`) ?? [];
-      const memberships = Array.isArray(playerMemberships) ? playerMemberships : [];
-      memberships.forEach((m: any) => {
-        const tid = m?.teamId ?? m?.id ?? m;
-        if (tid && typeof tid === 'string') allTeamIds.add(tid);
+    roster.forEach((r) => {
+      const playerMemberships = membershipResults.get(r.userId) ?? [];
+      playerMemberships.forEach((m) => {
+        if (m.teamId) allTeamIds.add(m.teamId);
       });
     });
-    
-    // Step 3: Batch fetch all teams and payments at once
     const uniqueTeamIds = Array.from(allTeamIds);
-    const [teamsMap, paymentsMap] = await Promise.all([
+    const [teamsMap, paymentsByTeam] = await Promise.all([
       batchGetTeams(uniqueTeamIds),
       batchGetPayments(uniqueTeamIds),
     ]);
-    
-    // Step 4: Build player teams data using cached data
-    roster.forEach(r => {
-      const playerMemberships = membershipResults.get(`user:${r.userId}:memberships`) ?? [];
-      const memberships = Array.isArray(playerMemberships) ? playerMemberships : [];
-      
+
+    roster.forEach((r) => {
+      const memberships = membershipResults.get(r.userId) ?? [];
+
       if (!memberships.length) {
         playerTeamsByUser[r.userId] = [
           {
             teamId,
-            teamName: team.name,
-            leagueId: team.leagueId ?? undefined,
+            teamName: String(team.name),
+            leagueId: team.leagueId != null ? String(team.leagueId) : undefined,
             isManager: r.isManager,
             paid: Boolean(paidMap[r.userId]),
           },
         ];
         return;
       }
-      
+
       const entries: PlayerTeam[] = [];
-      memberships.forEach((m: any) => {
-        const tid = m?.teamId ?? m?.id ?? m;
-        if (!tid) return;
-        
-        const t = teamsMap.get(`team:${tid}`);
+      memberships.forEach((m) => {
+        const tid = m.teamId;
+        const t = teamsMap.get(`team:${tid}`) ?? teamsMap.get(tid);
         if (!t) return;
-        
-        const teamPayments = paymentsMap.get(tid) ?? {};
+
+        const teamPayments = paymentsByTeam.get(tid) ?? {};
         entries.push({
           teamId: tid,
-          teamName: t.name ?? tid,
-          leagueId: t.leagueId ?? undefined,
+          teamName: String(t.name ?? tid),
+          leagueId: t.leagueId != null ? String(t.leagueId) : undefined,
           isManager: Boolean(m.isManager),
           paid: teamPayments[r.userId] ?? false,
         });
       });
-      
+
       playerTeamsByUser[r.userId] = entries;
     });
   }
-
-  // Standings for record display (public view)
-  const standings = ((await kv.get<StandingRow[]>(`league:${team.leagueId}:standings`)) ?? []) as StandingRow[];
 
   /* ---------------- Server Actions ---------------- */
 
   const toggleApproval = async () => {
     "use server";
-    const t = (await kv.get<Team>(`team:${teamId}`)) || null;
-    if (!t) return;
-    await kv.set(`team:${teamId}`, { ...t, approved: !t.approved });
+    await toggleTeamApproved(teamId);
     await revalidatePath(`/team/${teamId}`);
-    if (t.leagueId) {
+    const t = await readDoc<Team>(`team:${teamId}`);
+    if (t?.leagueId) {
       await revalidatePath(`/leagues/${t.leagueId}`);
     }
   };
@@ -279,11 +204,9 @@ export default async function UnifiedTeamPage({
     "use server";
     const uid = String(formData.get("userId") || "");
     if (!uid) return;
-    const map = (await kv.get<Record<string, boolean>>(`team:${teamId}:payments`)) ?? {};
-    map[uid] = !Boolean(map[uid]);
-    await kv.set(`team:${teamId}:payments`, map);
+    await toggleMemberPaid(teamId, uid);
     await revalidatePath(`/team/${teamId}`);
-    const t = (await kv.get<Team>(`team:${teamId}`)) || null;
+    const t = await readDoc<Team>(`team:${teamId}`);
     if (t?.leagueId) {
       await revalidatePath(`/leagues/${t.leagueId}`);
     }
@@ -291,25 +214,7 @@ export default async function UnifiedTeamPage({
 
   const toggleTeamFeePaid = async () => {
     "use server";
-    const t = (await kv.get<Team>(`team:${teamId}`)) || null;
-    if (!t) return;
-
-    const now = new Date().toISOString();
-    const nextPaid = !(t.teamFee?.paid ?? false);
-
-    const teamFee = {
-      required: t.teamFee?.required ?? false,
-      amountCents: t.teamFee?.amountCents,
-      paid: nextPaid,
-      paidAt: nextPaid ? now : undefined,
-      payerNote: t.teamFee?.payerNote,
-    };
-
-    await kv.set(`team:${teamId}`, { ...t, teamFee, updatedAt: now });
-    await revalidatePath(`/team/${teamId}`);
-    if (t.leagueId) {
-      await revalidatePath(`/leagues/${t.leagueId}`);
-    }
+    await toggleTeamFeePaidAction(teamId);
   };
 
   /* ---------------- Render ---------------- */

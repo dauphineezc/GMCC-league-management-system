@@ -1,36 +1,14 @@
 // Leagues List Page (Superadmin Only)
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
+import { smembersSafe, readDoc } from "@/lib/kvHelpers";
 import CreateLeagueClient from "../(superadmin)/superadmin/leagues/createLeagueClient";
 import Collapsible from "@/components/collapsible";
-
-
-/* ---------- tolerant helpers ---------- */
-async function smembers(key: string): Promise<string[]> {
-  const v = (await kv.smembers(key)) as unknown;
-  return Array.isArray(v) ? (v as string[]) : [];
-}
-async function readDoc<T extends Record<string, any>>(key: string): Promise<T | null> {
-  // try hash first
-  try {
-    const h = (await kv.hgetall(key)) as unknown;
-    if (h && typeof h === "object" && Object.keys(h as object).length) return h as T;
-  } catch {}
-  // then fall back to get()
-  const raw = (await kv.get(key)) as unknown;
-  if (!raw) return null;
-  if (typeof raw === "string") {
-    try { return JSON.parse(raw) as T; } catch { return null; }
-  }
-  if (typeof raw === "object") return raw as T;
-  return null;
-}
 
 const title = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 const norm  = (v: unknown) => String(v ?? "").trim().toLowerCase();
@@ -88,7 +66,7 @@ export default async function LeaguesListPage({
   if (!user.superadmin) notFound(); // Only superadmins can access
 
   // 1) load leagueIds from the index
-  const rawSetMembers = await smembers("leagues:index");
+  const rawSetMembers = await smembersSafe("leagues:index");
   const leagueIds = Array.from(new Set(rawSetMembers.flatMap(explodeIds))).filter(Boolean);
 
   // 2) build rows

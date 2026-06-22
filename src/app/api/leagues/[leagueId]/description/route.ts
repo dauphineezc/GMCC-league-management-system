@@ -1,73 +1,44 @@
-// API endpoint to update league description
-// Only admins and superadmins can update
-
+// src/app/api/leagues/[leagueId]/description/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
-import { getServerUser } from "@/lib/serverUser";
-import { PermissionChecker } from "@/lib/permissions";
+import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
 import { revalidatePath } from "next/cache";
+import { updateLeagueFields } from "@/lib/repositories/leaguesRepo";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const user = await getServerUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
-  }
-
   const { leagueId } = await params;
+  const auth = await assertLeagueAdmin(leagueId);
+  if (isAuthFailure(auth)) return auth.response;
 
   try {
-    // Check permissions
-    const permissions = await PermissionChecker.create(user, leagueId);
-
-    // Only admins and superadmins can update league descriptions
-    if (!permissions.isAdmin()) {
-      return NextResponse.json(
-        { error: 'Only admins can update the league description' },
-        { status: 403 }
-      );
-    }
-
-    // Get existing league data
-    const league = await kv.get<any>(`league:${leagueId}`);
-    if (!league) {
-      return NextResponse.json({ error: 'League not found' }, { status: 404 });
-    }
-
-    // Parse request body
     const body = await req.json();
     const { description } = body;
 
-    if (typeof description !== 'string') {
-      return NextResponse.json(
-        { error: 'Description must be a string' },
-        { status: 400 }
-      );
+    if (typeof description !== "string") {
+      return NextResponse.json({ error: "Description must be a string" }, { status: 400 });
     }
 
-    // Update league with new description
-    const now = new Date().toISOString();
-    await kv.set(`league:${leagueId}`, {
-      ...league,
+    const updated = await updateLeagueFields(leagueId, {
       description: description.trim(),
-      updatedAt: now,
     });
 
-    // Revalidate the league page
+    if (!updated) {
+      return NextResponse.json({ error: "League not found" }, { status: 404 });
+    }
+
     revalidatePath(`/leagues/${leagueId}`);
 
-    return NextResponse.json({ 
-      success: true, 
-      description: description.trim() 
+    return NextResponse.json({
+      success: true,
+      description: description.trim(),
     });
   } catch (error: any) {
-    console.error('Error updating league description:', error);
+    console.error("Error updating league description:", error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: error.message || "Internal server error" },
       { status: 500 }
     );
   }
 }
-

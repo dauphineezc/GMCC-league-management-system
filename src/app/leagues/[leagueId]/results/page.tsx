@@ -1,6 +1,6 @@
 // Unified Results Management Page (Admin-only)
 // Uses new permission system for consistency
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 import ResultsClient from "./resultsClient";
 import { readLeagueName } from "@/lib/readLeagueName";

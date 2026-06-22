@@ -1,6 +1,6 @@
 // Server-side schedule viewer - eliminates client-side fetch latency
-import { kv } from "@vercel/kv";
-import { parseArrayFromKV } from "@/lib/kvBatch";
+import { getLeagueScheduleView } from "@/lib/leagueData";
+import { getSchedulePdfInfo } from "@/lib/repositories/schedulePdfsRepo";
 import { ScheduleViewerShared } from "./scheduleViewer.shared";
 
 type Props = {
@@ -15,75 +15,34 @@ type PDFInfo = {
   uploadedAt: string;
 };
 
-type Game = {
-  id: string;
-  dateTimeISO: string;
-  homeTeamName: string;
-  awayTeamName: string;
-  location: string;
-  status: string;
-};
+export default async function ScheduleViewerServer({
+  leagueId,
+  teamId,
+  teamName,
+}: Props) {
+  const teamFilter = teamName || teamId || "";
 
-async function getPDFInfo(leagueId: string): Promise<PDFInfo | null> {
-  try {
-    const key = `league:${leagueId}:schedule:pdf`;
-    const raw = await kv.hgetall(key);
-    
-    if (!raw || typeof raw !== 'object') return null;
-    
-    const info = raw as any;
-    if (info.filename && info.size && info.uploadedAt) {
-      return {
-        filename: String(info.filename),
-        size: Number(info.size),
-        uploadedAt: String(info.uploadedAt),
-      };
-    }
-  } catch (err) {
-    console.error('Error fetching PDF info:', err);
-  }
-  return null;
-}
-
-async function getGames(leagueId: string, teamFilter?: string): Promise<Game[]> {
-  try {
-    const key = `league:${leagueId}:games`;
-    const raw = await kv.get(key);
-    const games = parseArrayFromKV<Game>(raw);
-    
-    if (teamFilter) {
-      return games.filter(
-        (g) =>
-          g.homeTeamName === teamFilter ||
-          g.awayTeamName === teamFilter ||
-          (g as any).homeTeamId === teamFilter ||
-          (g as any).awayTeamId === teamFilter
-      );
-    }
-    
-    return games;
-  } catch (err) {
-    console.error('Error fetching games:', err);
-    return [];
-  }
-}
-
-export default async function ScheduleViewerServer({ leagueId, teamId, teamName }: Props) {
-  // Fetch data in parallel on the server
-  const [pdfInfo, games] = await Promise.all([
-    getPDFInfo(leagueId),
-    getGames(leagueId, teamName || teamId),
+  const [pdfMeta, games] = await Promise.all([
+    getSchedulePdfInfo(leagueId),
+    getLeagueScheduleView(leagueId, teamFilter),
   ]);
 
-  // Separate games into scheduled vs completed
+  const pdfInfo: PDFInfo | null = pdfMeta
+    ? {
+        filename: pdfMeta.filename,
+        size: pdfMeta.size ?? 0,
+        uploadedAt: pdfMeta.uploadedAt,
+      }
+    : null;
+
   const now = new Date();
-  const scheduledGames = games.filter(game => {
+  const scheduledGames = games.filter((game) => {
+    if (!game.dateTimeISO) return false;
     const gameDate = new Date(game.dateTimeISO);
-    const status = (game.status || '').toLowerCase();
-    return gameDate >= now || status === 'scheduled';
+    const status = (game.status || "").toLowerCase();
+    return gameDate >= now || status === "scheduled";
   });
 
-  // No schedule data at all
   if (!pdfInfo && scheduledGames.length === 0) {
     return (
       <div className="p-4 text-center">
@@ -92,7 +51,6 @@ export default async function ScheduleViewerServer({ leagueId, teamId, teamName 
     );
   }
 
-  // Case 1: PDF only, no manual scheduled games
   if (pdfInfo && scheduledGames.length === 0) {
     return (
       <div className="space-y-4">
@@ -120,11 +78,15 @@ export default async function ScheduleViewerServer({ leagueId, teamId, teamName 
             src={`/api/leagues/${leagueId}/schedule/pdf?t=${Date.now()}`}
             width="100%"
             height="600"
-            style={{ border: 'none' }}
+            style={{ border: "none" }}
             title={`Schedule: ${pdfInfo.filename}`}
           >
-            <p>Your browser doesn&apos;t support PDF viewing. 
-              <a href={`/api/leagues/${leagueId}/schedule/pdf`} className="text-blue-600 underline ml-1">
+            <p>
+              Your browser doesn&apos;t support PDF viewing.
+              <a
+                href={`/api/leagues/${leagueId}/schedule/pdf`}
+                className="text-blue-600 underline ml-1"
+              >
                 Download the PDF
               </a>
             </p>
@@ -134,7 +96,6 @@ export default async function ScheduleViewerServer({ leagueId, teamId, teamName 
     );
   }
 
-  // Case 2 & 3: Manual games (with or without PDF)
   return (
     <ScheduleViewerShared
       pdfInfo={pdfInfo}

@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  // Must be superadmin via session cookie
-  const cookieStore = await cookies();
-  const cookie = cookieStore.get("fb:session")?.value;
-  if (!cookie) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  const caller = await adminAuth.verifySessionCookie(cookie, true);
-  if (!caller.superadmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await assertSuperAdmin();
+  if (isAuthFailure(auth)) return auth.response;
 
   const { uidOrEmail, patch } = await req.json() as {
     uidOrEmail: string;

@@ -1,65 +1,73 @@
 // POST create invite (link/code)
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
-import { getServerUser } from "@/lib/serverUser";
+import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { PermissionChecker } from "@/lib/permissions";
+import { readLeagueDocJSON } from "@/lib/leagueDoc";
+import {
+  getTeamById,
+  getTeamRosterMeta,
+  isUserTeamManager,
+} from "@/lib/repositories/teamsRepo";
 import { createLinkInvite, createCodeInvite } from "@/server/invites";
 
 export async function POST(req: NextRequest) {
-  const user = await getServerUser();
-  if (!user) return Response.json({ error: { code: "UNAUTHENTICATED" }}, { status: 401 });
-  
+  const auth = await assertAuthenticated();
+  if (isAuthFailure(auth)) return auth.response;
+  const user = auth.user;
+
   const { teamId, type, ttlHours, email, phone } = await req.json();
 
-  // Validate invite type
-  if (type !== 'link' && type !== 'code') {
-    return Response.json({ error: { code: "INVALID_TYPE", message: "Type must be 'link' or 'code'" }}, { status: 400 });
+  if (type !== "link" && type !== "code") {
+    return Response.json(
+      { error: { code: "INVALID_TYPE", message: "Type must be 'link' or 'code'" } },
+      { status: 400 }
+    );
   }
 
-  const team = await kv.get<any>(`team:${teamId}`);
-  if (!team) return Response.json({ error: { code: "NOT_FOUND" }}, { status: 404 });
-  
-  // Check if user is manager - look in roster
-  const roster = await kv.get<any[]>(`team:${teamId}:roster`) || [];
-  const userInRoster = roster.find(r => r.userId === user.id);
-  const isManager = userInRoster?.isManager === true;
-  
-  if (!isManager && team.managerUserId !== user.id && team.leadUserId !== user.id) {
-    return Response.json({ error: { code: "NOT_MANAGER", message: "Only team managers can create invites" }}, { status: 403 });
+  const team = await getTeamById(teamId);
+  if (!team) return Response.json({ error: { code: "NOT_FOUND" } }, { status: 404 });
+
+  const isManager = await isUserTeamManager(teamId, user.id);
+  if (!isManager) {
+    return Response.json(
+      { error: { code: "NOT_MANAGER", message: "Only team managers can create invites" } },
+      { status: 403 }
+    );
   }
 
-  // Check league player add deadline (only for non-admin users)
-  if (team.leagueId) {
-    const league = await kv.get<any>(`league:${team.leagueId}`);
+  const leagueId = typeof team.leagueId === "string" ? team.leagueId : null;
+  if (leagueId) {
+    const league = await readLeagueDocJSON(leagueId);
     if (league?.playerAddDeadline) {
-      const deadlinePassed = new Date(league.playerAddDeadline) < new Date();
-      const overrideActive = league.playerAddDeadlineOverride || false;
-      
+      const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
+      const overrideActive = Boolean(league.playerAddDeadlineOverride);
       if (deadlinePassed && !overrideActive) {
-        // Check if user is a league admin or superadmin
-        const { PermissionChecker } = await import("@/lib/permissions");
-        const permissions = await PermissionChecker.create(user, team.leagueId);
-        
+        const permissions = await PermissionChecker.create(user, leagueId);
         if (!permissions.isAdmin()) {
-          return Response.json({ 
-            error: { 
-              code: "DEADLINE_PASSED", 
-              message: "The player add deadline for this league has passed. Contact your league admin if you need to add a player." 
-            }
-          }, { status: 403 });
+          return Response.json(
+            {
+              error: {
+                code: "DEADLINE_PASSED",
+                message:
+                  "The player add deadline for this league has passed. Contact your league admin if you need to add a player.",
+              },
+            },
+            { status: 403 }
+          );
         }
       }
     }
   }
 
-  if (roster.length >= (team.rosterLimit ?? 8)) {
-    return Response.json({ error: { code: "TEAM_FULL", message: "Roster is full." }}, { status: 400 });
+  const { size: rosterSize } = await getTeamRosterMeta(teamId);
+  const rosterLimit = 8;
+  if (rosterSize >= rosterLimit) {
+    return Response.json(
+      { error: { code: "TEAM_FULL", message: "Roster is full." } },
+      { status: 400 }
+    );
   }
 
-  // rate limit
-  const limKey = `ratelimit:invite-create:${user.id}`;
-  const count = await kv.incr(limKey);
-  if (count === 1) await kv.expire(limKey, 60);
-  if (count > 10) return Response.json({ error: { code: "RATE_LIMIT" }}, { status: 429 });
 
   const options = {
     ttlHours: ttlHours || 24,
@@ -68,19 +76,19 @@ export async function POST(req: NextRequest) {
     createdBy: user.id,
   };
 
-  if (type === 'link') {
+  if (type === "link") {
     const result = await createLinkInvite(teamId, options);
-    return Response.json({ 
-      token: result.token, 
+    return Response.json({
+      token: result.token,
       expiresIn: result.expiresIn,
-      type: 'link' 
-    });
-  } else {
-    const result = await createCodeInvite(teamId, options);
-    return Response.json({ 
-      code: result.code, 
-      expiresIn: result.expiresIn,
-      type: 'code' 
+      type: "link",
     });
   }
+
+  const result = await createCodeInvite(teamId, options);
+  return Response.json({
+    code: result.code,
+    expiresIn: result.expiresIn,
+    type: "code",
+  });
 }

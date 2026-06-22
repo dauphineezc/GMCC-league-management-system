@@ -1,51 +1,27 @@
 // src/lib/adminIndex.ts
-import { kv } from "@vercel/kv";
+import {
+  addLeagueAdmin,
+  listLeagueRefsForAdminUser,
+  removeLeagueAdmin,
+} from "@/lib/repositories/leaguesRepo";
 
-/** Tolerant reader: supports both legacy string and new SET */
+/** Tolerant reader: league slugs this admin manages. */
 export async function readAdminLeagues(uid: string): Promise<string[]> {
-  const key = `admin:${uid}:leagues`;
-
-  // Prefer SET
-  try {
-    const raw = (await kv.smembers(key)) as unknown;
-    if (Array.isArray(raw)) {
-      return raw.map(String);
-    }
-  } catch {
-    // ignore WRONGTYPE / missing
-  }
-
-  // Legacy single string
-  try {
-    const legacy = (await kv.get(key)) as unknown;
-    if (typeof legacy === "string" && legacy.trim()) {
-      return [legacy.trim()];
-    }
-  } catch {
-    // ignore
-  }
-
-  return [];
+  return listLeagueRefsForAdminUser(uid);
 }
 
-/** Idempotent migration: if legacy string exists, add it into the SET */
-export async function migrateAdminLeaguesToSet(uid: string): Promise<void> {
-  const key = `admin:${uid}:leagues`;
-  try {
-    const current = (await kv.get(key)) as unknown;
-    if (typeof current === "string" && current.trim()) {
-      await kv.sadd(key, current.trim());
-    }
-  } catch {
-    // ignore
-  }
-}
+/** Legacy no-op — Postgres is already normalized. */
+export async function migrateAdminLeaguesToSet(_uid: string): Promise<void> {}
 
-/** Writers to maintain the reverse index */
 export async function addLeagueToAdmin(uid: string, leagueId: string) {
-  await kv.sadd(`admin:${uid}:leagues`, leagueId);
+  await addLeagueAdmin(leagueId, uid);
 }
 
 export async function removeLeagueFromAdmin(uid: string, leagueId: string) {
-  await kv.srem(`admin:${uid}:leagues`, leagueId);
+  await removeLeagueAdmin(leagueId, uid);
 }
+
+export { listLeagueRefsForAdminUser as readAdminLeagueIds };
+
+/** @deprecated use writeAdminLeaguesAsSet via leaguesRepo if needed */
+export async function writeAdminLeaguesAsSet(_uid: string, _leagueIds: string[]) {}

@@ -1,7 +1,7 @@
 // /src/app/api/admin/migrate-league-team-sets/route.ts
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { getServerUser } from "@/lib/serverUser";
+import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
 
 function coerceTeamId(v: unknown): string | null {
   if (!v) return null;
@@ -61,10 +61,8 @@ async function readCardObjs(key: string): Promise<any[]> {
 }
 
 export async function POST(req: Request) {
-  const user = await getServerUser();
-  if (!user?.superadmin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const auth = await assertSuperAdmin();
+  if (isAuthFailure(auth)) return auth.response;
 
   const { searchParams } = new URL(req.url);
   const dry = searchParams.get("dry") === "1";

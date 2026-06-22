@@ -1,18 +1,14 @@
 // Players Page (Superadmin Only)
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
-import { kv } from "@vercel/kv";
 import { redirect, notFound } from "next/navigation";
 import { getServerUser } from "@/lib/serverUser";
 import SuperPlayerList from "@/components/superPlayerList";
-import type { PlayerTeam, RosterRow, Team } from "@/types/domain";
+import type { PlayerTeam, RosterRow } from "@/types/domain";
 import type { CSSProperties } from "react";
-
-async function smembers(key: string): Promise<string[]> {
-  const v = (await kv.smembers(key)) as unknown;
-  return Array.isArray(v) ? (v as string[]) : [];
-}
+import { smembersSafe } from "@/lib/kvHelpers";
+import { batchGetTeams, batchGetRosters, batchGetPayments } from "@/lib/kvBatch";
 
 type SearchParams = { displayName?: string };
 
@@ -25,57 +21,54 @@ export default async function PlayersPage({
   if (!user) redirect("/login");
   if (!user.superadmin) notFound();
 
-  // Build roster rows (one per team membership) + teams-by-user map
-  const teamIds = await smembers("teams:index");
+  const teamIds = await smembersSafe("teams:index");
+  const [teamsMap, rostersMap, paymentsMap] = await Promise.all([
+    batchGetTeams(teamIds),
+    batchGetRosters(teamIds),
+    batchGetPayments(teamIds),
+  ]);
+
   const roster: RosterRow[] = [];
   const playerTeamsByUser: Record<string, PlayerTeam[]> = {};
 
-  await Promise.all(
-    teamIds.map(async (teamId) => {
-      const team = (await kv.get<Team>(`team:${teamId}`)) || null;
-      if (!team) return;
-      const teamName = team.name ?? teamId;
-      const leagueId = team.leagueId ?? undefined;
+  for (const teamId of teamIds) {
+    const team = teamsMap.get(`team:${teamId}`) as Record<string, unknown> | null | undefined;
+    if (!team) continue;
 
-      const teamRoster =
-        ((await kv.get<any[]>(`team:${teamId}:roster`)) as any[]) ?? [];
-      const payments =
-        ((await kv.get<Record<string, boolean>>(
-          `team:${teamId}:payments`
-        )) as Record<string, boolean>) ?? {};
+    const teamName = (team.name as string | undefined) ?? teamId;
+    const leagueId = (team.leagueId as string | undefined) ?? undefined;
+    const teamRoster = rostersMap.get(teamId) ?? [];
+    const payments = paymentsMap.get(teamId) ?? {};
 
-      for (const r of teamRoster) {
-        const paid = Boolean(payments[r.userId]);
-        roster.push({
-          userId: r.userId,
-          displayName: r.displayName,
-          isManager: Boolean(r.isManager),
-          paid,
-          teamId,
-          teamName,
-        });
+    for (const r of teamRoster) {
+      const paid = Boolean(payments[r.userId]);
+      roster.push({
+        userId: r.userId,
+        displayName: r.displayName,
+        isManager: Boolean(r.isManager),
+        paid,
+        teamId,
+        teamName,
+      });
 
-        const bucket = (playerTeamsByUser[r.userId] ||= []);
-        bucket.push({
-          teamId,
-          leagueId,
-          teamName,
-          isManager: Boolean(r.isManager),
-          paid,
-        });
-      }
-    })
-  );
+      const bucket = (playerTeamsByUser[r.userId] ||= []);
+      bucket.push({
+        teamId,
+        leagueId,
+        teamName,
+        isManager: Boolean(r.isManager),
+        paid,
+      });
+    }
+  }
 
   roster.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-  // Apply search
   const q = (searchParams.displayName ?? "").trim().toLowerCase();
   const filteredRows = q
     ? roster.filter((r) => r.displayName.toLowerCase().includes(q))
     : roster;
 
-  // ✅ Deduplicate by userId so counts and list match (unique players)
   const uniqByUser = Array.from(
     new Map(filteredRows.map((r) => [r.userId, r])).values()
   );
@@ -88,14 +81,12 @@ export default async function PlayersPage({
     <main style={{ display: "grid", gap: 16 }}>
       <h1 className="page-title" style={{ marginBottom: 0 }}>Players</h1>
 
-      {/* Download CSV */}
       <div style={{ display: "flex", justifyContent: "end" }}>
       <a className="btn btn--outline" href="/export/players.csv">
         Download CSV
       </a>
       </div>
 
-      {/* Filters (compact: search + buttons on same row) */}
       <form method="GET" className="card--soft" style={{ display: "grid", gap: 8 }}>
         <div
           style={{

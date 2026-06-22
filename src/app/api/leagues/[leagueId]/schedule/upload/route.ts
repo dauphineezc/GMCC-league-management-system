@@ -1,34 +1,53 @@
 // src/app/api/leagues/[leagueId]/schedule/upload/route.ts
-import { kvSetRaw, SCHEDULE_KEY } from "@/lib/scheduleKv";
+import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
+import { upsertSchedulePdf } from "@/lib/repositories/schedulePdfsRepo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ leagueId: string }> }
+) {
   const { leagueId: lid } = await params;
-  const key = SCHEDULE_KEY(lid);
+  const auth = await assertLeagueAdmin(lid);
+  if (isAuthFailure(auth)) return auth.response;
 
   const form = await req.formData();
   const picked = (form.get("pdf") || form.get("file")) as File | null;
   if (!picked) {
-    return new Response(JSON.stringify({ error: "Missing file (field 'pdf' or 'file')" }), {
-      status: 400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Missing file (field 'pdf' or 'file')" }),
+      {
+        status: 400,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      }
+    );
   }
 
   const buf = Buffer.from(await picked.arrayBuffer());
-  const doc = {
+  const info = await upsertSchedulePdf(lid, {
     filename: picked.name,
-    size: buf.length,
-    uploadedAt: new Date().toISOString(),
-    data: buf.toString("base64"),
-  };
-
-  // Overwrite in one shot (no multiple keys)
-  await kvSetRaw(key, doc);
-
-  return new Response(JSON.stringify({ ok: true, key, filename: picked.name, size: buf.length }), {
-    status: 200,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+    bytes: buf,
   });
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      leagueId: lid,
+      filename: info.filename,
+      size: info.size,
+      uploadedAt: info.uploadedAt,
+    }),
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    }
+  );
 }

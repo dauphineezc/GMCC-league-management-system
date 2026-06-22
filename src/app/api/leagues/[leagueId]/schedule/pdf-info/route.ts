@@ -1,30 +1,43 @@
 // src/app/api/leagues/[leagueId]/schedule/pdf-info/route.ts
-import { kvGetRaw, parseDoc, SCHEDULE_KEY } from "@/lib/scheduleKv";
+import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { getSchedulePdfInfo } from "@/lib/repositories/schedulePdfsRepo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ leagueId: string }> }
+) {
+  const auth = await assertAuthenticated();
+  if (isAuthFailure(auth)) return auth.response;
+
   const { leagueId: lid } = await params;
-  const key = SCHEDULE_KEY(lid);
+  const info = await getSchedulePdfInfo(lid);
 
-  const raw = await kvGetRaw(key);
-  const doc = parseDoc(raw);
-
-  if (!doc) {
-    return new Response(JSON.stringify({ error: "not-found", key }), {
+  if (!info) {
+    return new Response(JSON.stringify({ error: "not-found", leagueId: lid }), {
       status: 404,
-      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+      },
     });
   }
 
-  return new Response(JSON.stringify({
-    key,
-    filename: doc.filename ?? "",
-    size: doc.size ?? null,
-    uploadedAt: doc.uploadedAt ?? null,
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
+  return new Response(
+    JSON.stringify({
+      leagueId: lid,
+      filename: info.filename,
+      size: info.size,
+      uploadedAt: info.uploadedAt,
+    }),
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    }
+  );
 }

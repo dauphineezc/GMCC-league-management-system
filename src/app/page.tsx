@@ -1,9 +1,8 @@
 // Unified Home Page - Uses permission-based rendering
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 import Link from "next/link";
-import { kv } from "@vercel/kv";
 import { DIVISIONS } from "@/lib/divisions";
 import { getServerUser } from "@/lib/serverUser";
 import TeamSummaryCard from "@/components/playerTeamSummaryCard";
@@ -11,50 +10,16 @@ import AdminLeagueCard from "@/components/adminLeagueSummaryCard";
 import PublicLeagueTabsServer from "@/components/publicLeagueTabs.server";
 import { readMembershipsForUid } from "@/lib/kvread";
 import type { Game } from "@/types/domain";
-import { batchGetTeams, batchGetTeamNames, batchGet, parseArrayFromKV } from "@/lib/kvBatch";
-
-/* ---------------- helpers ---------------- */
+import { batchGetTeams, batchGetTeamNames, batchGetGames } from "@/lib/kvBatch";
+import { readLeagueGames } from "@/lib/leagueData";
+import {
+  getTeamsForLeague,
+  resolveManagedLeagueIds,
+  type TeamCard,
+} from "@/lib/kvHelpers";
+import { readLeagueName } from "@/lib/readLeagueName";
 
 const norm = (s: string | undefined | null) => String(s ?? "").trim().toLowerCase();
-
-async function smembersSafe(key: string): Promise<string[]> {
-  try {
-    const v = (await kv.smembers<string[]>(key)) ?? [];
-    return Array.isArray(v) ? v.map(String).filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-}
-
-async function readLeagueName(leagueId: string): Promise<string> {
-  try {
-    const h = (await kv.hgetall(`league:${leagueId}`)) as Record<string, unknown> | null;
-    if (h && typeof h === "object" && "name" in h && h.name) return String(h.name);
-  } catch {}
-  const g = (await kv.get(`league:${leagueId}`)) as any;
-  if (g && typeof g === "object" && g?.name) return String(g.name);
-  return DIVISIONS.find(d => d.id === leagueId)?.name ?? leagueId;
-}
-
-type TeamCard = { teamId: string; name: string; approved?: boolean };
-
-async function getMergedTeams(leagueId: string): Promise<TeamCard[]> {
-  const teamIds = await smembersSafe(`league:${leagueId}:teams`);
-  const rows = await Promise.all(
-    teamIds.map(async (id) => {
-      const t = (await kv.get<Record<string, any>>(`team:${id}`)) || null;
-      return {
-        teamId: id,
-        name: t?.name ?? id,
-        approved: Boolean(t?.approved),
-      } as TeamCard;
-    })
-  );
-  rows.sort((a, b) =>
-    (a.name || a.teamId).localeCompare(b.name || b.teamId, undefined, { sensitivity: "base" })
-  );
-  return rows;
-}
 
 /* ---------------- Page Component ---------------- */
 
@@ -70,52 +35,8 @@ export default async function UnifiedHome() {
     if (user.superadmin) {
       homeRole = "superadmin";
     } else {
-      // Check if user is admin of any league
-      const adminKey = `admin:${user.id}:leagues`;
-      let managed = await smembersSafe(adminKey);
-
-      // Legacy email set check
-      if (!managed.length && user.email) {
-        const legacy = await smembersSafe(`admin:${user.email}:leagues`);
-        if (legacy.length) {
-          await kv.sadd(adminKey, ...legacy);
-          managed = legacy;
-        }
-      }
-
-      // Infer from league docs
-      const idx = await smembersSafe("leagues:index");
-      const inferred: string[] = [];
-      await Promise.all(
-        idx.map(async (id) => {
-          let L: Record<string, any> | null = null;
-          try {
-            const h = (await kv.hgetall(`league:${id}`)) as Record<string, any> | null;
-            if (h && typeof h === "object" && Object.keys(h).length) L = h;
-          } catch {}
-          if (!L) {
-            const g = (await kv.get(`league:${id}`)) as any;
-            if (g && typeof g === "object") L = g;
-          }
-          const adminUserId = L ? (L.adminUserId ?? L.ownerUserId ?? L.managerUserId ?? null) : null;
-          if (adminUserId && String(adminUserId) === user.id) inferred.push(id);
-        })
-      );
-
-      // Claims
-      const claims = Array.isArray(user.leagueAdminOf) ? user.leagueAdminOf : [];
-
-      // Merge
-      managed = Array.from(new Set([...managed, ...inferred, ...claims])).filter(Boolean);
-
-      if (managed.length) {
-        homeRole = "admin";
-        // Normalize back to set
-        await kv.del(adminKey);
-        await kv.sadd(adminKey, ...managed);
-      } else {
-        homeRole = "player";
-      }
+      const managed = await resolveManagedLeagueIds(user);
+      homeRole = managed.length ? "admin" : "player";
     }
   }
 
@@ -145,16 +66,18 @@ export default async function UnifiedHome() {
     // Step 1: Batch fetch all teams
     const teamIds = memberships.map(m => m.teamId);
     const teamsMap = await batchGetTeams(teamIds);
-    
-    // Step 2: Batch fetch all team games and league games
-    const teamGamesKeys = teamIds.map(id => `team:${id}:games`);
-    const leagueIds = [...new Set(memberships.map(m => m.leagueId).filter(Boolean))];
-    const leagueGamesKeys = leagueIds.map(id => `league:${id}:games`);
-    
-    const [teamGamesResults, leagueGamesResults] = await Promise.all([
-      batchGet<any>(teamGamesKeys),
-      batchGet<any>(leagueGamesKeys),
-    ]);
+    const teamGamesMap = await batchGetGames(teamIds);
+
+    const leagueIds = [...new Set(
+      memberships
+        .map((m) => m.leagueId)
+        .filter((id): id is string => Boolean(id))
+    )];
+    const leagueGamesById = new Map<string, any[]>(
+      await Promise.all(
+        leagueIds.map(async (id) => [id, await readLeagueGames(id)] as const)
+      )
+    );
     
     // Step 3: Collect all team IDs mentioned in all games for name lookup
     const allGameTeamIds = new Set<string>(teamIds);
@@ -165,10 +88,10 @@ export default async function UnifiedHome() {
       });
     };
     
-    teamGamesResults.forEach(games => {
+    teamGamesMap.forEach((games) => {
       if (Array.isArray(games)) addTeamIdsFromGames(games);
     });
-    leagueGamesResults.forEach(games => {
+    leagueGamesById.forEach((games) => {
       if (Array.isArray(games)) addTeamIdsFromGames(games);
     });
     
@@ -177,64 +100,55 @@ export default async function UnifiedHome() {
 
     // Step 5: Batch fetch league names for leagues not in DIVISIONS
     // Collect leagueIds from both memberships and teams
-    const membershipLeagueIds = memberships.map(m => m.leagueId).filter((id): id is string => Boolean(id));
-    const teamLeagueIds = Array.from(teamsMap.values()).map(t => t?.leagueId).filter((id): id is string => Boolean(id));
+    const membershipLeagueIds = memberships
+      .map((m) => m.leagueId)
+      .filter((id): id is string => Boolean(id));
+    const teamLeagueIds = teamIds
+      .map((id) => {
+        const t = teamsMap.get(`team:${id}`) ?? teamsMap.get(id);
+        const leagueId = t?.leagueId;
+        return typeof leagueId === "string" ? leagueId : null;
+      })
+      .filter((id): id is string => Boolean(id));
     const uniqueLeagueIds = [...new Set([...membershipLeagueIds, ...teamLeagueIds])];
     const leagueNameMap = new Map<string, string>();
-    
-    // First, add DIVISIONS leagues to the map
-    DIVISIONS.forEach(d => {
+
+    DIVISIONS.forEach((d) => {
       if (uniqueLeagueIds.includes(d.id)) {
         leagueNameMap.set(d.id, d.name);
       }
     });
-    
-    // Then, fetch league names for leagues not in DIVISIONS
-    const leaguesToFetch = uniqueLeagueIds.filter(id => !leagueNameMap.has(id));
+
+    const leaguesToFetch = uniqueLeagueIds.filter((id) => !leagueNameMap.has(id));
     if (leaguesToFetch.length > 0) {
-      // Fetch leagues - try both hash and JSON formats
-      const leaguePromises = leaguesToFetch.map(async (leagueId) => {
-        const key = `league:${leagueId}`;
-        // Try reading as hash first (for leagues created with writePatch)
-        try {
-          const h = (await kv.hgetall(key)) as Record<string, any> | null;
-          if (h && typeof h === "object" && Object.keys(h).length) {
-            return { leagueId, name: h.name };
-          }
-        } catch {}
-        
-        // Fall back to JSON format
-        try {
-          const g = (await kv.get(key)) as any;
-          if (g && typeof g === "object" && g.name) {
-            return { leagueId, name: g.name };
-          }
-        } catch {}
-        
-        return { leagueId, name: null };
-      });
-      
-      const leagueResults = await Promise.all(leaguePromises);
+      const leagueResults = await Promise.all(
+        leaguesToFetch.map(async (leagueId) => ({
+          leagueId,
+          name: await readLeagueName(leagueId),
+        }))
+      );
       leagueResults.forEach(({ leagueId, name }) => {
-        if (name && typeof name === 'string') {
-          leagueNameMap.set(leagueId, name);
-        }
+        if (name) leagueNameMap.set(leagueId, name);
       });
     }
 
     // Step 6: Process each membership using cached data
     playerTeams = memberships.map((m) => {
-      const team = teamsMap.get(`team:${m.teamId}`) ?? {
-        id: m.teamId,
-        leagueId: m.leagueId,
-        name: m.teamId,
-        approved: false,
-      };
-      
-      // Use team's leagueId if membership doesn't have it
-      const effectiveLeagueId = m.leagueId ?? team.leagueId ?? "";
+      const team =
+        teamsMap.get(`team:${m.teamId}`) ??
+        teamsMap.get(m.teamId) ?? {
+          id: m.teamId,
+          leagueId: m.leagueId,
+          name: m.teamName ?? m.teamId,
+          approved: false,
+        };
 
-      let games = parseArrayFromKV(teamGamesResults.get(`team:${m.teamId}:games`));
+      const teamName = String(team.name ?? m.teamName ?? m.teamId);
+      const teamLeagueId =
+        typeof team.leagueId === "string" ? team.leagueId : null;
+      const effectiveLeagueId = m.leagueId ?? teamLeagueId ?? "";
+
+      let games = [...(teamGamesMap.get(m.teamId) ?? [])];
       
       // Normalize dateTimeISO for team games
       games = games.map((g: any) => ({
@@ -244,9 +158,9 @@ export default async function UnifiedHome() {
       
       // Always check league games if we have a leagueId (games might only be stored at league level)
       if (effectiveLeagueId) {
-        const leagueGames = parseArrayFromKV(leagueGamesResults.get(`league:${effectiveLeagueId}:games`));
-        const thisTeamName = norm(team.name ?? m.teamId);
-        const thisTeamNameExact = team.name ?? m.teamId;
+        const leagueGames = leagueGamesById.get(effectiveLeagueId) ?? [];
+        const thisTeamName = norm(teamName);
+        const thisTeamNameExact = teamName;
 
         const leagueGamesForTeam = leagueGames
           .filter((g: any) => {
@@ -304,7 +218,7 @@ export default async function UnifiedHome() {
           minute: "2-digit",
         }).format(dt);
 
-        const thisName = norm(team.name ?? m.teamId);
+        const thisName = norm(teamName);
         const isHome =
           (next.homeTeamId && next.homeTeamId === m.teamId) ||
           norm(next.homeTeamName) === thisName;
@@ -326,8 +240,8 @@ export default async function UnifiedHome() {
 
       return {
         id: m.teamId,
-        name: team.name ?? m.teamId,
-        approved: !!team.approved,
+        name: teamName,
+        approved: Boolean(team.approved),
         leagueId: effectiveLeagueId,
         leagueName,
         isManager: m.isManager,
@@ -343,14 +257,13 @@ export default async function UnifiedHome() {
 
   // Admin data
   if (homeRole === "admin" && user) {
-    const adminKey = `admin:${user.id}:leagues`;
-    const managed = await smembersSafe(adminKey);
+    const managed = await resolveManagedLeagueIds(user);
     const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
     adminLeagues = (await Promise.all(
       managed.map(async (leagueId) => {
         const leagueName = await readLeagueName(leagueId);
-        const teams = await getMergedTeams(leagueId);
+        const teams = await getTeamsForLeague(leagueId);
         return { leagueId, leagueName, teams };
       })
     )).sort((a, b) => {

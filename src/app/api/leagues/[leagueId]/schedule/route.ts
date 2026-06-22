@@ -1,142 +1,36 @@
-// /src/app/api/leagues/[leagueId]/schedule/route.ts
-
-import { kv } from "@vercel/kv";
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import tz from 'dayjs/plugin/timezone';
-import cpf from 'dayjs/plugin/customParseFormat';
-import { batchGetTeamNames } from '@/lib/kvBatch';
+import { assertAuthenticated, assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
+import { createScheduledGame } from "@/lib/repositories/gamesRepo";
+import { getLeagueTeamNames } from "@/lib/repositories/teamsRepo";
+import { getLeagueScheduleView, parseKVArray } from "@/lib/leagueData";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import tz from "dayjs/plugin/timezone";
+import cpf from "dayjs/plugin/customParseFormat";
 
 dayjs.extend(utc);
 dayjs.extend(tz);
 dayjs.extend(cpf);
 
 export const runtime = "nodejs";
-// OPTIMIZED: Use revalidation instead of force-dynamic
-export const revalidate = 60; // Revalidate every 60 seconds
+export const revalidate = 60;
 
-const COMPLETION_GRACE_MINUTES = 120; // how long after scheduled start we consider it "completed"
-
-function parseKV(raw: unknown): any[] {
-  if (Array.isArray(raw)) {
-    return raw;
-  }
-  if (typeof raw === "string") {
-    const parsed = raw.trim() ? JSON.parse(raw) : [];
-    return parsed;
-  }
-  return [];
-}
-
-function toNewShape(g: any, idToName: Map<string, string>) {
-  const dateTimeISO = g.dateTimeISO || g.date || g.startTimeISO || g.start || null;
-  const location = g.location || g.court || g.venue || "";
-  const homeTeamName =
-    g.homeTeamName || g.homeName || (g.homeTeamId ? idToName.get(g.homeTeamId) : "") || "";
-  const awayTeamName =
-    g.awayTeamName || g.awayName || (g.awayTeamId ? idToName.get(g.awayTeamId) : "") || "";
-
-  // Check if results have been entered
-  const hasResults = (g.score?.home != null && g.score?.away != null) || (g.homeScore != null && g.awayScore != null);
-
-  // normalize raw status first
-  const statusRaw = (g.status || "scheduled") + "";
-  let status =
-    /final/i.test(statusRaw) ? "final"
-    : /canceled/i.test(statusRaw) ? "canceled"
-    : /completed/i.test(statusRaw) ? "completed"
-    : "scheduled";
-
-  // Auto-classify past scheduled games as completed if:
-  // 1. Status is "scheduled" (whether set manually or automatically)
-  // 2. Game time has passed + grace period
-  // 3. Results have NOT been entered (once results are in, status becomes "final")
-  // 4. NOT canceled (canceled games stay canceled)
-  if (status === "scheduled" && !hasResults && dateTimeISO) {
-    const start = new Date(dateTimeISO).getTime();
-    const now   = Date.now();
-    if (Number.isFinite(start) && start + COMPLETION_GRACE_MINUTES * 60_000 < now) {
-      status = "completed";
-    }
-  }
-
-  return {
-    id: g.id || `game:${g.leagueId || ""}:${dateTimeISO || ""}:${homeTeamName}-${awayTeamName}`,
-    leagueId: g.leagueId,
-    dateTimeISO,
-    location,
-    homeTeamName,
-    awayTeamName,
-    homeTeamId: g.homeTeamId,
-    awayTeamId: g.awayTeamId,
-    status,
-    homeScore: g.score?.home ?? g.homeScore,
-    awayScore: g.score?.away ?? g.awayScore,
-  };
-}
+const parseKV = parseKVArray;
 
 export async function GET(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
+  const auth = await assertAuthenticated();
+  if (isAuthFailure(auth)) return auth.response;
+
   try {
     const url = new URL(req.url);
     const teamFilter = url.searchParams.get("team") ?? "";
     const { leagueId } = await params;
-
-    // Use the same reliable pattern as PDFs
-    const key = `league:${leagueId}:games`;
-    
-    let rawGames = await kv.get(key);
-    
-    // Always try REST API since it's more reliable
-    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      const url = `${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`;
-      const r = await fetch(url, {
-        headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
-        cache: "no-store",
-      });
-      const body = await r.json().catch(() => ({}));
-      if (r.ok && body?.result) {
-        const restGames = parseKV(body.result);
-        const sdkGames = parseKV(rawGames);
-        if (restGames.length >= sdkGames.length) {
-          rawGames = body.result;
-        }
-      }
-    }
-    
-    const gamesArr = parseKV(rawGames);
-    const sourceGames = gamesArr;
-
-    const teamIds = Array.from(
-      new Set(
-        sourceGames
-          .flatMap((g) => [g.homeTeamId, g.awayTeamId])
-          .filter(Boolean) as string[]
-      )
-    );
-
-    // OPTIMIZED: Batch fetch team names instead of N individual queries
-    const idToName = await batchGetTeamNames(teamIds);
-
-    const deduped = sourceGames.map((g) => toNewShape(g, idToName));
-
-    const filtered = teamFilter
-      ? deduped.filter(
-          (g) =>
-            g.homeTeamName === teamFilter ||
-            g.awayTeamName === teamFilter ||
-            g.homeTeamId === teamFilter ||
-            g.awayTeamId === teamFilter
-        )
-      : deduped;
-
-    filtered.sort((a, b) => String(a.dateTimeISO).localeCompare(String(b.dateTimeISO)));
+    const filtered = await getLeagueScheduleView(leagueId, teamFilter);
 
     return new Response(JSON.stringify(filtered), {
       status: 200,
       headers: {
-        'content-type': 'application/json; charset=utf-8',
-        // OPTIMIZED: Cache for 60 seconds, revalidate in background
-        'cache-control': 'public, s-maxage=60, stale-while-revalidate=30',
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "public, s-maxage=60, stale-while-revalidate=30",
       },
     });
   } catch (e: any) {
@@ -149,148 +43,94 @@ export async function GET(req: Request, { params }: { params: Promise<{ leagueId
 
 export async function POST(req: Request, { params }: { params: Promise<{ leagueId: string }> }) {
   try {
-    const { homeTeamName, awayTeamName, location, date, time, timezone } = await req.json();
     const { leagueId } = await params;
+    const auth = await assertLeagueAdmin(leagueId);
+    if (isAuthFailure(auth)) return auth.response;
 
-    // Validate input
+    const { homeTeamName, awayTeamName, location, date, time, timezone } = await req.json();
+
     if (!homeTeamName?.trim() || !awayTeamName?.trim()) {
-      return new Response(JSON.stringify({ error: 'Home team and away team names are required' }), { 
-        status: 400,
-        headers: { 'content-type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Home team and away team names are required" }),
+        { status: 400, headers: { "content-type": "application/json" } }
+      );
     }
 
     if (homeTeamName.trim() === awayTeamName.trim()) {
-      return new Response(JSON.stringify({ error: 'Home team and away team cannot be the same' }), { 
-        status: 400,
-        headers: { 'content-type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Home team and away team cannot be the same" }),
+        { status: 400, headers: { "content-type": "application/json" } }
+      );
     }
 
-    // Validate that teams exist in the league
-    const teamIds = await kv.smembers(`league:${leagueId}:teams`) as string[];
-    const { batchGetTeams } = await import("@/lib/kvBatch");
-    const teamsMap = await batchGetTeams(teamIds);
-    
-    // Get all team names in the league
-    const leagueTeamNames = new Set<string>();
-    teamsMap.forEach((team) => {
-      if (team?.name) {
-        leagueTeamNames.add(team.name.trim());
-      }
-    });
-    
-    // Also check players list as fallback
-    if (leagueTeamNames.size === 0) {
-      const players = await kv.get<any[]>(`league:${leagueId}:players`) || [];
-      players.forEach((p: any) => {
-        if (p?.teamName) {
-          leagueTeamNames.add(String(p.teamName).trim());
-        }
-      });
-    }
-    
+    const leagueTeamNames = await getLeagueTeamNames(leagueId);
     const homeTeamNameTrimmed = homeTeamName.trim();
     const awayTeamNameTrimmed = awayTeamName.trim();
-    
+
     if (!leagueTeamNames.has(homeTeamNameTrimmed)) {
-      return new Response(JSON.stringify({ 
-        error: `Home team "${homeTeamNameTrimmed}" is not in this league. Please select a team from the dropdown.` 
-      }), { 
-        status: 400,
-        headers: { 'content-type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({
+          error: `Home team "${homeTeamNameTrimmed}" is not in this league. Please select a team from the dropdown.`,
+        }),
+        { status: 400, headers: { "content-type": "application/json" } }
+      );
     }
-    
+
     if (!leagueTeamNames.has(awayTeamNameTrimmed)) {
-      return new Response(JSON.stringify({ 
-        error: `Away team "${awayTeamNameTrimmed}" is not in this league. Please select a team from the dropdown.` 
-      }), { 
-        status: 400,
-        headers: { 'content-type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({
+          error: `Away team "${awayTeamNameTrimmed}" is not in this league. Please select a team from the dropdown.`,
+        }),
+        { status: 400, headers: { "content-type": "application/json" } }
+      );
     }
 
     if (!date || !time) {
-      return new Response(JSON.stringify({ error: 'Date and time are required' }), { 
+      return new Response(JSON.stringify({ error: "Date and time are required" }), {
         status: 400,
-        headers: { 'content-type': 'application/json' }
+        headers: { "content-type": "application/json" },
       });
     }
 
     if (!location?.trim()) {
-      return new Response(JSON.stringify({ error: 'Location is required' }), { 
+      return new Response(JSON.stringify({ error: "Location is required" }), {
         status: 400,
-        headers: { 'content-type': 'application/json' }
+        headers: { "content-type": "application/json" },
       });
     }
 
-    console.log(`Adding new game: ${homeTeamName} vs ${awayTeamName} on ${date} at ${time}`);
-
-    const key = `league:${leagueId}:games`;
-    
-    // Use reliable retrieval pattern
-    let raw = await kv.get(key);
-    if (!raw && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      const url = `${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`;
-      const r = await fetch(url, {
-        headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
-        cache: "no-store",
-      });
-      const body = await r.json().catch(() => ({}));
-      if (r.ok && body?.result) {
-        raw = body.result;
-      }
-    }
-
-    const games = parseKV(raw);
-    
-    // Create new dateTimeISO from date and time
-    const timezoneToUse = timezone || 'America/Detroit';
+    const timezoneToUse = timezone || "America/Detroit";
     const dateTimeStr = `${date}T${time}`;
-    const dateTimeISO = dayjs.tz(dateTimeStr, timezoneToUse).toISOString();
+    const startsAt = dayjs.tz(dateTimeStr, timezoneToUse).toDate();
 
-    // Create new game
-    const newGame = {
-      id: crypto.randomUUID(),
-      leagueId,
-      homeTeamName: homeTeamName.trim(),
-      awayTeamName: awayTeamName.trim(),
+    const newGame = await createScheduledGame({
+      leagueRef: leagueId,
+      homeTeamName: homeTeamNameTrimmed,
+      awayTeamName: awayTeamNameTrimmed,
       location: location.trim(),
-      dateTimeISO,
-      status: 'scheduled'
-    };
-
-    // Add the new game
-    games.push(newGame);
-
-    // Save updated games
-    const dataToWrite = JSON.stringify(games);
-    const backupKey = `${key}:backup`;
-    
-    await Promise.all([
-      kv.set(key, dataToWrite),
-      kv.set(backupKey, dataToWrite),
-    ]);
-
-    console.log(`Successfully added game ${newGame.id}`);
-
-    return new Response(JSON.stringify({ 
-      ok: true, 
-      gameId: newGame.id,
-      message: 'Game added successfully'
-    }), {
-      status: 200,
-      headers: { 'content-type': 'application/json' }
+      startsAt,
     });
 
+    if (!newGame) {
+      return new Response(JSON.stringify({ error: "League not found" }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        gameId: newGame.id,
+        message: "Game added successfully",
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
   } catch (e: any) {
-    console.error('Error adding game:', e);
-    return new Response(JSON.stringify({ 
-      error: e?.message || 'Failed to add game' 
-    }), {
+    console.error("Error adding game:", e);
+    return new Response(JSON.stringify({ error: e?.message || "Failed to add game" }), {
       status: 500,
-      headers: { 'content-type': 'application/json' }
+      headers: { "content-type": "application/json" },
     });
   }
 }

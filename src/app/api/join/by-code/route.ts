@@ -1,87 +1,73 @@
 // POST join via code
+export const runtime = "nodejs";
 
-export const runtime = 'nodejs';
-
-import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
-import { getServerUser } from '@/lib/serverUser';
-import { consumeCodeInvite } from '@/server/invites';
-import { addPlayerToTeam } from '@/server/memberships';
-
-async function readArr<T = any>(key: string): Promise<T[]> {
-  const raw = await kv.get(key);
-  if (Array.isArray(raw)) return raw as T[];
-  if (typeof raw === 'string') return raw.trim() ? (JSON.parse(raw) as T[]) : [];
-  return [];
-}
+import { NextRequest, NextResponse } from "next/server";
+import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { readLeagueDocJSON } from "@/lib/leagueDoc";
+import { readMembershipsForUid } from "@/lib/repositories/usersRepo";
+import { getTeamById, getTeamRosterMeta } from "@/lib/repositories/teamsRepo";
+import { consumeCodeInvite } from "@/server/invites";
+import { addPlayerToTeam } from "@/server/memberships";
 
 export async function POST(req: NextRequest) {
-  const user = await getServerUser();
-  
-  if (!user) {
-    return NextResponse.json({ error: 'Please sign in to join a team' }, { status: 401 });
+  const auth = await assertAuthenticated();
+  if (isAuthFailure(auth)) {
+    return NextResponse.json({ error: "Please sign in to join a team" }, { status: 401 });
   }
+  const user = auth.user;
 
   const { code } = await req.json();
-
   if (!code) {
-    return NextResponse.json({ error: 'Code is required' }, { status: 400 });
+    return NextResponse.json({ error: "Code is required" }, { status: 400 });
   }
 
   try {
-    const teamId = await consumeCodeInvite(code);
-    const team = await kv.get<any>(`team:${teamId}`);
-    
+    const teamId = await consumeCodeInvite(code, user.id);
+    const team = await getTeamById(teamId);
+
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
-    const leagueId = team.leagueId || 'unknown';
+    const leagueId = typeof team.leagueId === "string" ? team.leagueId : null;
 
-    // Check league player add deadline
-    if (team.leagueId) {
-      const league = await kv.get<any>(`league:${team.leagueId}`);
+    if (leagueId) {
+      const league = await readLeagueDocJSON(leagueId);
       if (league?.playerAddDeadline) {
-        const deadlinePassed = new Date(league.playerAddDeadline) < new Date();
-        const overrideActive = league.playerAddDeadlineOverride || false;
-        
+        const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
+        const overrideActive = Boolean(league.playerAddDeadlineOverride);
         if (deadlinePassed && !overrideActive) {
-          return NextResponse.json({ 
-            error: 'The player add deadline for this league has passed. This invite code is no longer valid.' 
-          }, { status: 403 });
+          return NextResponse.json(
+            {
+              error:
+                "The player add deadline for this league has passed. This invite code is no longer valid.",
+            },
+            { status: 403 }
+          );
         }
       }
     }
 
-    // Check if user is already on a team in this league
-    const memberships = await readArr<any>(`user:${user.id}:memberships`);
-    if (memberships.some((m) => m.leagueId === leagueId)) {
-      return NextResponse.json({ error: 'Already on a team' }, { status: 409 });
+    const memberships = await readMembershipsForUid(user.id);
+    if (leagueId && memberships.some((m) => m.leagueId === leagueId)) {
+      return NextResponse.json({ error: "Already on a team" }, { status: 409 });
     }
 
-    // Check if team is full
-    const roster = await readArr<any>(`team:${teamId}:roster`);
-    const rosterLimit = team.rosterLimit ?? 8;
-    if (roster.length >= rosterLimit) {
-      return NextResponse.json({ error: 'Team is full' }, { status: 400 });
+    const { size: rosterSize } = await getTeamRosterMeta(teamId);
+    const rosterLimit = 8;
+    if (rosterSize >= rosterLimit) {
+      return NextResponse.json({ error: "Team is full" }, { status: 400 });
     }
 
-    // Add player to team
     await addPlayerToTeam(user.id, teamId);
 
-    // Set up payment record
-    const payKey = `team:${teamId}:payments`;
-    const payMap = (await kv.get<Record<string, boolean>>(payKey)) || {};
-    payMap[user.id] = false; // mark unpaid on join
-    await kv.set(payKey, payMap);
-
-    return NextResponse.json({ 
-      ok: true, 
-      team: { 
-        id: team.id, 
-        name: team.name, 
-        leagueId: team.leagueId 
-      } 
+    return NextResponse.json({
+      ok: true,
+      team: {
+        id: teamId,
+        name: team.name,
+        leagueId: team.leagueId ?? null,
+      },
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: e.status || 500 });

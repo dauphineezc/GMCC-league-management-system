@@ -1,7 +1,7 @@
 // src/app/api/superadmin/leagues/[leagueId]/assign-admin/route.ts
 import { NextRequest } from "next/server";
 import { getAuth } from "firebase-admin/auth";
-import { getServerUser, isSuperAdmin } from "@/lib/serverUser";
+import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { addLeagueToAdmin, removeLeagueFromAdmin, migrateAdminLeaguesToSet } from "@/lib/adminIndex";
 import { readLeagueDocJSON, writeLeagueAdminJSON } from "@/lib/leagueDoc";
@@ -10,9 +10,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ leagueId: string }> }) {
-  const me = await getServerUser();
-  if (!me) return new Response("Unauthorized", { status: 401 });
-  if (!(await isSuperAdmin(me))) return new Response("Forbidden", { status: 403 });
+  const auth = await assertSuperAdmin();
+  if (isAuthFailure(auth)) return auth.response;
 
   const { leagueId } = await params;
 

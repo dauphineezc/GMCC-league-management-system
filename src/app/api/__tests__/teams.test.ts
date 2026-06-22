@@ -1,6 +1,7 @@
 /**
  * Integration tests for team creation API
  * These tests mock the KV database to avoid external dependencies
+ * @jest-environment node
  */
 import { POST } from '../teams/route';
 import type { NextRequest } from 'next/server';
@@ -19,15 +20,29 @@ jest.mock('@/server/memberships', () => ({
   upsertMembership: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@/lib/serverUser', () => ({
+  getServerUser: jest.fn(),
+}));
+
 import { kv } from '@vercel/kv';
 import { upsertMembership } from '@/server/memberships';
+import { getServerUser } from '@/lib/serverUser';
+
+const mockUser = {
+  id: 'user123',
+  email: 'test@example.com',
+  superadmin: false,
+};
 
 describe('/api/teams POST', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (getServerUser as jest.Mock).mockResolvedValue(mockUser);
   });
 
   it('rejects requests without authentication', async () => {
+    (getServerUser as jest.Mock).mockResolvedValue(null);
+
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,7 +52,7 @@ describe('/api/teams POST', () => {
     const res = await POST(req as NextRequest);
     expect(res.status).toBe(401);
     const data = await res.json();
-    expect(data.error.code).toBe('UNAUTHENTICATED');
+    expect(data.error).toBe('Unauthorized');
   });
 
   it('rejects requests without team name (after trim)', async () => {
@@ -45,7 +60,6 @@ describe('/api/teams POST', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-id': 'user123',
       },
       body: JSON.stringify({ name: '   \n\t  ' }),
     });
@@ -61,7 +75,6 @@ describe('/api/teams POST', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-id': 'user123',
       },
       body: JSON.stringify({
         name: 'Test Team',
@@ -125,7 +138,6 @@ describe('/api/teams POST', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-id': 'user123',
       },
       body: JSON.stringify({
         name: 'League Team',
@@ -161,7 +173,6 @@ describe('/api/teams POST', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-id': 'user123',
       },
       body: JSON.stringify({
         name: 'Test Team',
@@ -180,7 +191,6 @@ describe('/api/teams POST', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-user-id': 'user123',
       },
       body: JSON.stringify({
         name: 'Test Team',

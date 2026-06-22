@@ -1,20 +1,11 @@
 // src/app/leagues/[leagueId]/sendAnnouncement/actions.ts
 "use server";
 
-import { kv } from "@vercel/kv";
 import { redirect } from "next/navigation";
-import { getServerUser } from "@/lib/serverUser";
+import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
 import { adminAuth } from "@/lib/firebaseAdmin";
-
-/** ================== Types ================== */
-type LeaguePlayerRow = {
-  userId: string;
-  displayName: string;
-  teamId: string;
-  teamName: string;
-  isManager: boolean;
-  paymentStatus?: "PAID" | "UNPAID";
-};
+import { getUserDoc } from "@/lib/repositories/usersRepo";
+import { getLeaguePlayerRows } from "@/lib/repositories/teamsRepo";
 
 type UserProfile = {
   id?: string;
@@ -53,38 +44,6 @@ function extractIdFromHref(href?: string | null): string | null {
   return m?.[1] ?? null;
 }
 
-async function isAdminOfLeague(userId: string, leagueId: string) {
-  try {
-    const inPerLeagueSet = await kv.sismember<string>(
-      `league:${leagueId}:admins`,
-      userId
-    );
-    if (inPerLeagueSet) return true;
-  } catch {}
-
-  try {
-    const isMember = await kv.sismember<string>(
-      `admin:${userId}:leagues`,
-      leagueId
-    );
-    if (isMember) return true;
-  } catch {}
-
-  // also support legacy JSON list
-  try {
-    const val = await kv.get<any>(`admin:${userId}:leagues`);
-    if (Array.isArray(val)) return val.includes(leagueId);
-    if (typeof val === "string") {
-      try {
-        const arr = JSON.parse(val);
-        if (Array.isArray(arr)) return arr.includes(leagueId);
-      } catch {}
-    }
-  } catch {}
-
-  return false;
-}
-
 /** ================== Core Action ================== */
 export async function sendAnnouncementAction(formData: FormData) {
   const subject = (formData.get("subject") as string)?.trim();
@@ -104,16 +63,16 @@ export async function sendAnnouncementAction(formData: FormData) {
     }
   }
 
-  const user = await getServerUser();
-  if (!user) redirect("/login");
-
-  const ok = await isAdminOfLeague(user.id, leagueId);
-  if (!ok) throw new Error("You do not have admin access to this league.");
+  const auth = await assertLeagueAdmin(leagueId);
+  if (isAuthFailure(auth)) {
+    if (auth.response.status === 401) redirect("/login");
+    throw new Error("You do not have admin access to this league.");
+  }
+  const user = auth.user;
   if (!subject || !message) throw new Error("Subject and message are required.");
 
   // --- Load & filter league players ---
-  const leaguePlayersKey = `league:${leagueId}:players`;
-  const leaguePlayers = (await kv.get<LeaguePlayerRow[]>(leaguePlayersKey)) ?? [];
+  const leaguePlayers = await getLeaguePlayerRows(leagueId);
 
   let filtered = managersOnly
     ? leaguePlayers.filter((p) => p.isManager)
@@ -137,7 +96,7 @@ export async function sendAnnouncementAction(formData: FormData) {
     uniqueUserIds.length
   );
 
-  // --- Resolve user profiles/emails from Firebase Auth, fallback KV ---
+  // --- Resolve user profiles/emails from Firebase Auth, fallback Postgres ---
   const profiles = await Promise.all(
     uniqueUserIds.map(async (uid) => {
       try {
@@ -145,7 +104,7 @@ export async function sendAnnouncementAction(formData: FormData) {
         if (fu.email) {
           return {
             email: fu.email,
-            name: fu.displayName || fu.email,   // <- always a string
+            name: fu.displayName || fu.email,
           } as UserProfile;
         }
       } catch (e: any) {
@@ -153,20 +112,19 @@ export async function sendAnnouncementAction(formData: FormData) {
           console.error(`Failed to get Firebase user for ${uid}:`, e?.code);
         }
       }
-  
-      const profile = await kv.get<any>(`user:${uid}`);
+
+      const profile = await getUserDoc(uid);
       if (profile?.email) {
-        const nm =
-          String(profile.displayName || profile.name || profile.email).trim();
+        const nm = String(profile.displayName || profile.email).trim();
         return {
           email: String(profile.email),
-          name: nm,                            // <- always a string
+          name: nm,
         } as UserProfile;
       }
-  
-      return null; // keep nulls when no email
+
+      return null;
     })
-  );  
+  );
 
   function notNull<T>(v: T | null | undefined): v is T {
     return v != null;

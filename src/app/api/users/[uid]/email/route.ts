@@ -1,39 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { getServerUser } from "@/lib/serverUser";
+import { assertAuthenticated, assertLeagueAdminForUser, isAuthFailure } from "@/lib/authGuards";
 import { adminAuth } from "@/lib/firebaseAdmin";
-
-// Keep in sync with your actions.ts check
-async function isAdminOfLeague(userId: string, leagueId?: string) {
-  if (!leagueId) return false;
-  try {
-    if (await kv.sismember<string>(`league:${leagueId}:admins`, userId)) return true;
-  } catch {}
-  try {
-    if (await kv.sismember<string>(`admin:${userId}:leagues`, leagueId)) return true;
-  } catch {}
-  // legacy JSON list
-  try {
-    const val = await kv.get<any>(`admin:${userId}:leagues`);
-    if (Array.isArray(val)) return val.includes(leagueId);
-    if (typeof val === "string") {
-      const arr = JSON.parse(val);
-      if (Array.isArray(arr)) return arr.includes(leagueId);
-    }
-  } catch {}
-  return false;
-}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
   try {
-    const me = await getServerUser();
-    if (!me) return new NextResponse("Unauthorized", { status: 401 });
+    const auth = await assertAuthenticated();
+    if (isAuthFailure(auth)) return auth.response;
+    const me = auth.user;
 
     const { uid } = await params;
     const leagueId = new URL(req.url).searchParams.get("leagueId") || undefined;
 
-    // Authorization: you're allowed if you're superadmin, the user yourself, or an admin of the league
-    const allowed = me.superadmin || me.id === uid || (await isAdminOfLeague(me.id, leagueId));
+    // Authorization: superadmin, self, or league admin when leagueId is provided
+    let allowed = me.superadmin || me.id === uid;
+    if (!allowed && leagueId) {
+      const leagueAuth = await assertLeagueAdminForUser(me, leagueId);
+      allowed = !isAuthFailure(leagueAuth);
+    }
     if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
     // Prefer Firebase Auth

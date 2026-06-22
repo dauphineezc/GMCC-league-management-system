@@ -1,7 +1,7 @@
 // src/app/create-team/page.tsx
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -53,19 +53,19 @@ async function createTeam(formData: FormData) {
   if (!user?.id) {
     throw new Error("Not authenticated. Please log in first.");
   }
-  const userId = user.id;
-
   const origin =
     (await headers()).get("origin") ||
     process.env.NEXT_PUBLIC_APP_URL ||
     "http://localhost:3000";
+
+  const session = (await cookies()).get("fb:session")?.value;
 
   // NOTE: leagueId is intentionally null at creation time
   const res = await fetch(new URL("/api/teams", origin), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-user-id": userId,
+      ...(session ? { cookie: `fb:session=${session}` } : {}),
     },
     body: JSON.stringify({
       name,

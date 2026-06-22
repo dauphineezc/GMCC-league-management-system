@@ -1,33 +1,15 @@
 // Unified Teams Page - Adapts based on user role
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { kv } from "@vercel/kv";
 import { getServerUser } from "@/lib/serverUser";
+import { readDoc, smembersSafe } from "@/lib/kvHelpers";
+import { batchGetTeams } from "@/lib/kvBatch";
 import EditableLeagueAssignment from "../(superadmin)/superadmin/teams/editableLeagueAssignment";
 
 /* ---------------- helpers ---------------- */
-
-async function smembers(key: string): Promise<string[]> {
-  const v = (await kv.smembers(key)) as unknown;
-  return Array.isArray(v) ? (v as string[]) : [];
-}
-
-async function readDoc<T extends Record<string, any>>(key: string): Promise<T | null> {
-  try {
-    const h = (await kv.hgetall(key)) as unknown;
-    if (h && typeof h === "object" && Object.keys(h as object).length) return h as T;
-  } catch {}
-  const raw = (await kv.get(key)) as unknown;
-  if (!raw) return null;
-  if (typeof raw === "string") {
-    try { return JSON.parse(raw) as T; } catch { return null; }
-  }
-  if (typeof raw === "object") return raw as T;
-  return null;
-}
 
 const CANONICAL_SPORTS  = ["basketball","volleyball"] as const;
 const CANONICAL_GENDERS = ["mens","womens","coed"] as const;
@@ -84,28 +66,27 @@ export default async function TeamsPage({
 
   // Superadmin: Show all teams with management features
   if (user.superadmin) {
-    const teamIds = await smembers("teams:index");
+    const teamIds = await smembersSafe("teams:index");
+    const teamsMap = await batchGetTeams(teamIds);
 
-    const allTeams: TeamRow[] = (await Promise.all(
-      teamIds.map(async (id) => {
-        const t = await readDoc<Record<string, any>>(`team:${id}`);
-        if (!t) {
-          return { teamId: id, name: id, approved: false, leagueId: null } as TeamRow;
-        }
-        return {
-          teamId: id,
-          name: String(t.name ?? id).trim(),
-          approved: Boolean(t.approved),
-          leagueId: t.leagueId ?? null,
-          sport: normalizeSport(t.sport),
-          gender: normalizeGender(t.gender),
-          division: normalizeDivision(t.estimatedDivision ?? t.division),
-        } as TeamRow;
-      })
-    )).filter(Boolean) as TeamRow[];
+    const allTeams: TeamRow[] = teamIds.map((id) => {
+      const t = teamsMap.get(`team:${id}`) as Record<string, unknown> | null | undefined;
+      if (!t) {
+        return { teamId: id, name: id, approved: false, leagueId: null } as TeamRow;
+      }
+      return {
+        teamId: id,
+        name: String(t.name ?? id).trim(),
+        approved: Boolean(t.approved),
+        leagueId: (t.leagueId as string | null | undefined) ?? null,
+        sport: normalizeSport(t.sport),
+        gender: normalizeGender(t.gender),
+        division: normalizeDivision(t.estimatedDivision ?? t.division),
+      } as TeamRow;
+    });
 
     // Build league list
-    const indexIds = await smembers("leagues:index");
+    const indexIds = await smembersSafe("leagues:index");
     const teamLeagueIds = Array.from(new Set(allTeams.map(t => t.leagueId).filter(Boolean))) as string[];
     const allLeagueIds = Array.from(new Set([...indexIds, ...teamLeagueIds]));
 

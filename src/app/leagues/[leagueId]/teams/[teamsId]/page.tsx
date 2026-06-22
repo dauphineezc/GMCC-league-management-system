@@ -1,11 +1,13 @@
 // src/app/leagues/[leagueId]/teams/[teamSlug]/page.tsx
 import { ScheduleList } from '@/components/scheduleList';
-import { absoluteUrl } from '@/lib/absoluteUrl';
+import { getLeagueScheduleView } from '@/lib/leagueData';
 
-async function fetchTeamGames(leagueId: string, teamName: string) {
-  const url = await absoluteUrl(`/api/leagues/${leagueId}/schedule?team=${encodeURIComponent(teamName)}`);
-  const res = await fetch(url, { cache: 'no-store' });
-  return (await res.json()) as any[];
+async function fetchTeamGames(leagueId: string, teamName: string): Promise<any[]> {
+  try {
+    return await getLeagueScheduleView(leagueId, teamName);
+  } catch {
+    return [];
+  }
 }
 
 export default async function TeamPage({ params }: { params: { leagueId: string; teamSlug: string } }) {
@@ -15,7 +17,7 @@ export default async function TeamPage({ params }: { params: { leagueId: string;
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{teamName} • Schedule</h1>
-      <ScheduleList games={games} />
+      <ScheduleList games={games as any} />
     </div>
   );
 }

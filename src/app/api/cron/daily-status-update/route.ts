@@ -1,26 +1,33 @@
 // src/app/api/cron/daily-status-update/route.ts
 import { NextRequest } from 'next/server';
+import { assertCronJob, isAuthFailure } from '@/lib/authGuards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify this is coming from Vercel Cron (optional security)
-    const authHeader = req.headers.get('authorization');
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
+    const auth = await assertCronJob(req);
+    if (isAuthFailure(auth)) return auth.response;
     
     console.log(`[${new Date().toISOString()}] Daily cron job triggered`);
     
     // Call our game status update endpoint
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
+    if (process.env.NODE_ENV === 'production' && !process.env.CRON_SECRET) {
+      return new Response(JSON.stringify({ error: 'CRON_SECRET is not configured' }), { status: 500 });
+    }
+
+    const cronHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (process.env.CRON_SECRET) {
+      cronHeaders.Authorization = `Bearer ${process.env.CRON_SECRET}`;
+    }
+
     const updateResponse = await fetch(`${baseUrl}/api/admin/update-game-statuses`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: cronHeaders,
     });
     
     const result = await updateResponse.json();
