@@ -4,23 +4,31 @@ export const SESSION_COOKIE = "fb:session";
 
 const isProd = process.env.NODE_ENV === "production";
 
-export function sessionCookieOptions(
-  embedded: boolean,
-  maxAge: number
-): ResponseCookie {
-  if (embedded) {
-    return {
+export function clearSessionCookieOptions(): ResponseCookie[] {
+  return [
+    {
+      name: SESSION_COOKIE,
+      value: "",
+      httpOnly: true,
+      secure: isProd,
+      sameSite: "lax",
+      maxAge: 0,
+      path: "/",
+    },
+    {
       name: SESSION_COOKIE,
       value: "",
       httpOnly: true,
       secure: true,
       sameSite: "none",
       partitioned: true,
-      maxAge,
+      maxAge: 0,
       path: "/",
-    };
-  }
+    },
+  ];
+}
 
+export function createSessionCookieOptions(maxAge: number): ResponseCookie {
   return {
     name: SESSION_COOKIE,
     value: "",

@@ -1,8 +1,9 @@
 // /src/components/navbar.tsx
 "use client";
 
-import Link from "next/link";
+import EmbedSignInLink from "@/components/embedSignInLink";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 type NavbarProps = {
@@ -109,7 +110,7 @@ export default function Navbar({ user, hasAdminLeagues = false }: NavbarProps) {
                 </svg>
               </summary>
               <div className="account-menu">
-                <Link className="block px-3 py-2 hover:bg-gray-50" href="/login">Sign in</Link>
+                <EmbedSignInLink className="block px-3 py-2 hover:bg-gray-50">Sign in</EmbedSignInLink>
               </div>
             </details>
           )}

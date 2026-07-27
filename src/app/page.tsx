@@ -2,6 +2,7 @@
 export const runtime = "nodejs";
 export const revalidate = 30;
 
+import EmbedSignInLink from "@/components/embedSignInLink";
 import Link from "next/link";
 import { DIVISIONS } from "@/lib/divisions";
 import { getServerUser } from "@/lib/serverUser";
@@ -279,9 +280,9 @@ export default async function UnifiedHome() {
         <h1 className="page-title">Welcome</h1>
         {homeRole === "public" ? (
           <>
-            <Link className="btn btn--primary" href="/login" style={{ marginTop: 10 }}>
+            <EmbedSignInLink className="btn btn--primary" href="/login" style={{ marginTop: 10 }}>
               Sign in
-            </Link>
+            </EmbedSignInLink>
           </>
         ) : (
           <>

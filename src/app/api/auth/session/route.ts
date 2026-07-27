@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/sessionCookie";
+import { clearSessionCookieOptions, createSessionCookieOptions } from "@/lib/sessionCookie";
 
 export async function POST(req: Request) {
-  const { idToken, embedded: embeddedBody } = await req.json();
+  const { idToken } = await req.json();
   if (!idToken) return NextResponse.json({ error: "missing token" }, { status: 400 });
-
-  const embedded = Boolean(embeddedBody);
 
   const decoded = await adminAuth.verifyIdToken(idToken, true);
 
@@ -14,14 +12,15 @@ export async function POST(req: Request) {
   const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn: expiresInMs });
 
   const res = NextResponse.json({ ok: true, uid: decoded.uid });
-  const cookie = sessionCookieOptions(embedded, expiresInMs / 1000);
+  const cookie = createSessionCookieOptions(expiresInMs / 1000);
   res.cookies.set({ ...cookie, value: sessionCookie });
   return res;
 }
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set({ ...sessionCookieOptions(false, 0), value: "" });
-  res.cookies.set({ ...sessionCookieOptions(true, 0), value: "" });
+  for (const cookie of clearSessionCookieOptions()) {
+    res.cookies.set(cookie);
+  }
   return res;
 }

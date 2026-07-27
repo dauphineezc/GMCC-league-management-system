@@ -10,12 +10,7 @@ import {
   signInWithPopup,
   getAdditionalUserInfo,
 } from "firebase/auth";
-import {
-  completeEmbeddedGoogleSignIn,
-  finalizeClientSession,
-  isEmbedded,
-  waitForEmbeddedGoogleAuth,
-} from "@/lib/embedAuth";
+import { finalizeClientSession, isEmbedded, openAppInNewTab } from "@/lib/embedAuth";
 
 type Gender = "FEMALE" | "MALE" | "NONBINARY" | "PREFER_NOT_TO_SAY" | "OTHER";
 
@@ -28,11 +23,13 @@ function CreateAccountContent() {
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [embedded, setEmbedded] = useState(false);
 
   const router = useRouter();
   const params = useSearchParams();
   const prefillEmail = params.get("email");
   useEffect(() => { if (prefillEmail) setEmail(prefillEmail); }, [prefillEmail]);
+  useEffect(() => { setEmbedded(isEmbedded()); }, []);
 
   const profilePayload = useMemo(() => ({
     firstName: firstName.trim(),
@@ -60,12 +57,6 @@ function CreateAccountContent() {
     }
   }
 
-  async function completeWithToken(idToken: string) {
-    await completeEmbeddedGoogleSignIn(idToken);
-    await postProfile();
-    router.replace("/player");
-  }
-
   async function complete() {
     await finalizeClientSession();
     await postProfile();
@@ -91,16 +82,6 @@ function CreateAccountContent() {
     if (v) { setErr(v); return; }
     setErr(null); setBusy(true);
     try {
-      if (isEmbedded()) {
-        const { idToken, isNewUser } = await waitForEmbeddedGoogleAuth();
-        if (!isNewUser) {
-          setErr("This sign-in already exists. Please sign in instead.");
-          return;
-        }
-        await completeWithToken(idToken);
-        return;
-      }
-
       const cred = await signInWithPopup(auth, provider);
       const info = getAdditionalUserInfo(cred);
       if (!info?.isNewUser) {
@@ -114,6 +95,44 @@ function CreateAccountContent() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (embedded) {
+    const createPath = prefillEmail
+      ? `/create-account?email=${encodeURIComponent(prefillEmail)}`
+      : "/create-account";
+
+    return (
+      <main style={{ padding: 20, display: "grid", gap: 10 }}>
+        <section
+          className="auth-card w-full"
+          style={{
+            justifySelf: "center",
+            justifyItems: "center",
+            minHeight: "320px",
+            padding: "32px",
+            maxWidth: "640px",
+            width: "100%",
+            textAlign: "center",
+          }}
+        >
+          <h2 className="content-title" style={{ marginBottom: 16 }}>
+            Create your account
+          </h2>
+          <p style={{ margin: "0 0 24px", lineHeight: 1.5, color: "var(--muted)" }}>
+            Account creation opens the full app in a new tab so you can sign up without browser
+            restrictions.
+          </p>
+          <button
+            type="button"
+            className="brand-btn auth-primary"
+            onClick={() => openAppInNewTab(createPath)}
+          >
+            Open account creation
+          </button>
+        </section>
+      </main>
+    );
   }
 
   return (
