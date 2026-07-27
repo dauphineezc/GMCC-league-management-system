@@ -8,20 +8,12 @@ import { auth, googleProvider, appleProvider, microsoftProvider } from "@/lib/fi
 import {
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   getAdditionalUserInfo,
 } from "firebase/auth";
+import { finalizeClientSession, isEmbedded } from "@/lib/embedAuth";
 
 type Gender = "FEMALE" | "MALE" | "NONBINARY" | "PREFER_NOT_TO_SAY" | "OTHER";
-
-async function establishSession() {
-  const idToken = await auth.currentUser?.getIdToken(true);
-  await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ idToken }),
-  });
-}
 
 function CreateAccountContent() {
   const [firstName, setFirst] = useState("");
@@ -65,9 +57,9 @@ function CreateAccountContent() {
   }
 
   async function complete() {
-    await establishSession();
+    await finalizeClientSession();
     await postProfile();
-    router.replace("/player"); // neutral landing; can navigate to create/join team from here
+    router.replace("/player");
   }
 
   async function createWithEmail() {
@@ -89,9 +81,13 @@ function CreateAccountContent() {
     if (v) { setErr(v); return; }
     setErr(null); setBusy(true);
     try {
+      if (isEmbedded()) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
       const cred = await signInWithPopup(auth, provider);
       const info = getAdditionalUserInfo(cred);
-      // If this provider maps to an existing user, this is not “create”—send to login.
       if (!info?.isNewUser) {
         await auth.signOut();
         setErr("This sign-in already exists. Please sign in instead.");

@@ -1,26 +1,23 @@
 // /src/app/login/page.tsx
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth, googleProvider } from "@/lib/firebaseClient";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   getAdditionalUserInfo,
   sendPasswordResetEmail,
 } from "firebase/auth";
+import {
+  embedFallbackUrl,
+  finalizeClientSession,
+  isEmbedded,
+} from "@/lib/embedAuth";
 
-// ---------- helpers ----------
-async function establishSession() {
-  const idToken = await auth.currentUser?.getIdToken(true);
-  await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ idToken }),
-  });
-}
 async function getMe() {
   const r = await fetch("/api/me", { credentials: "include", cache: "no-store" });
   try { return await r.json(); } catch { return {}; }
@@ -31,15 +28,6 @@ function targetFromMe(me: any) {
   if (Array.isArray(a.leagueAdminOf) && a.leagueAdminOf.length) return "/admin";
   return "/player";
 }
-async function waitForServerSession(): Promise<boolean> {
-  for (let i = 0; i < 8; i++) {
-    const r = await fetch("/api/me", { credentials: "include", cache: "no-store" });
-    const j = await r.json().catch(() => ({}));
-    if (j?.auth?.uid) return true;
-    await new Promise(res => setTimeout(res, 120));
-  }
-  return false;
-}
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -48,14 +36,49 @@ function LoginContent() {
   const [busy, setBusy] = useState(false);
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [embedded, setEmbedded] = useState(false);
 
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
 
+  useEffect(() => {
+    setEmbedded(isEmbedded());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const cred = await getRedirectResult(auth);
+        if (!cred || cancelled) return;
+
+        setBusy(true);
+        const info = getAdditionalUserInfo(cred);
+        if (info?.isNewUser) {
+          await auth.signOut();
+          const prefillEmail = cred.user?.email
+            ? `?email=${encodeURIComponent(cred.user.email)}`
+            : "";
+          router.push(`/create-account${prefillEmail}`);
+          return;
+        }
+        await finish();
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message ?? "Authentication failed");
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [next, router]);
+
   async function finish() {
-    await establishSession();
-    await waitForServerSession();
+    await finalizeClientSession();
     const me = await getMe();
     const target = next && next !== "/" ? next : targetFromMe(me);
     location.assign(target);
@@ -84,9 +107,13 @@ function LoginContent() {
   }
 
   async function signInExistingWithProvider(provider: any) {
+    if (isEmbedded()) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
     const cred = await signInWithPopup(auth, provider);
     const info = getAdditionalUserInfo(cred);
-    // If Firebase marks this as a new user, don't allow sign-in here.
     if (info?.isNewUser) {
       await auth.signOut();
       const prefillEmail = cred.user?.email ? `?email=${encodeURIComponent(cred.user.email)}` : "";
@@ -122,6 +149,20 @@ function LoginContent() {
         <h2 className="content-title" style={{ marginBottom: "35px", textAlign: "center" }}>
           {forgotPasswordMode ? "Reset your password" : "Welcome back! Please enter your details."}
         </h2>
+
+        {embedded && !forgotPasswordMode && !resetEmailSent && (
+          <p className="text-sm text-slate-600" style={{ margin: "0 0 20px", textAlign: "center", lineHeight: 1.5 }}>
+            Having trouble signing in here?{" "}
+            <a
+              href={embedFallbackUrl(next ? `/login?next=${encodeURIComponent(next)}` : "/login")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-700 hover:underline"
+            >
+              Open sign-in in a new tab
+            </a>
+          </p>
+        )}
 
         {resetEmailSent ? (
           <div className="space-y-6" style={{ width: "100%" }}>

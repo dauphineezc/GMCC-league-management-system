@@ -2,12 +2,13 @@
 "use client";
 import { useEffect } from "react";
 import { auth } from "@/lib/firebaseClient";
+import { clearSession } from "@/lib/embedAuth";
 
 export default function LogoutPage() {
   useEffect(() => {
     (async () => {
       try {
-        await fetch("/api/auth/session", { method: "DELETE", credentials: "include" });
+        await clearSession();
       } catch {}
       try {
         await auth.signOut();
