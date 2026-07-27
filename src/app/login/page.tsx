@@ -353,6 +353,12 @@ function LoginContent() {
           </>
         )}
 
+        {embedded && !forgotPasswordMode && !resetEmailSent && (
+          <p className="text-xs text-slate-600" style={{ margin: "0 0 5px", textAlign: "center", lineHeight: 1.5, width: "50%" }}>
+            Google sign-in opens in a popup because Google blocks sign-in inside embedded pages.
+          </p>
+        )}
+
         {err && <p role="alert" className="mt-4 text-sm text-red-600">{err}</p>}
 
         {!forgotPasswordMode && !resetEmailSent && (
