@@ -33,7 +33,13 @@ export async function requestEmbedStorageAccess(): Promise<boolean> {
 export async function establishSession(embedded = isEmbedded()): Promise<void> {
   const idToken = await auth.currentUser?.getIdToken(true);
   if (!idToken) throw new Error("Missing authentication token");
+  await establishSessionWithToken(idToken, embedded);
+}
 
+export async function establishSessionWithToken(
+  idToken: string,
+  embedded = isEmbedded()
+): Promise<void> {
   const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -91,5 +97,104 @@ export async function clearSession(): Promise<void> {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ embedded: isEmbedded() }),
+  });
+}
+
+export type GoogleAuthMessage =
+  | {
+      type: "gmcc-google-auth";
+      status: "success";
+      idToken: string;
+      isNewUser?: boolean;
+      email?: string | null;
+    }
+  | { type: "gmcc-google-auth"; status: "cancelled" }
+  | { type: "gmcc-google-auth"; status: "error"; error: string };
+
+const GOOGLE_BRIDGE_PATH = "/login/google-bridge";
+
+export function isGoogleAuthMessage(data: unknown): data is GoogleAuthMessage {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as GoogleAuthMessage).type === "gmcc-google-auth"
+  );
+}
+
+export function openEmbeddedGoogleSignIn(): Window | null {
+  const url = embedFallbackUrl(GOOGLE_BRIDGE_PATH);
+  return window.open(
+    url,
+    "gmcc-google-signin",
+    "popup=yes,width=520,height=640,noopener=no,noreferrer=no"
+  );
+}
+
+export async function completeEmbeddedGoogleSignIn(idToken: string): Promise<void> {
+  await prepareEmbeddedSession();
+  await establishSessionWithToken(idToken, true);
+  const ok = await waitForServerSession();
+  if (!ok) {
+    throw new Error(
+      "Google sign-in succeeded but the session cookie was blocked. Try refreshing the page."
+    );
+  }
+}
+
+export function waitForEmbeddedGoogleAuth(): Promise<{
+  idToken: string;
+  isNewUser: boolean;
+  email: string | null;
+}> {
+  const popup = openEmbeddedGoogleSignIn();
+  if (!popup) {
+    return Promise.reject(
+      new Error(
+        "Your browser blocked the Google sign-in popup. Allow popups for this site, or use email sign-in."
+      )
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const timeout = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("Google sign-in timed out. Please try again."));
+    }, 5 * 60 * 1000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      window.removeEventListener("message", onMessage);
+    }
+
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (!isGoogleAuthMessage(event.data)) return;
+
+      if (settled) return;
+      settled = true;
+      cleanup();
+
+      if (event.data.status === "success") {
+        resolve({
+          idToken: event.data.idToken,
+          isNewUser: Boolean(event.data.isNewUser),
+          email: event.data.email ?? null,
+        });
+        return;
+      }
+
+      if (event.data.status === "cancelled") {
+        reject(new Error("Google sign-in was cancelled."));
+        return;
+      }
+
+      reject(new Error(event.data.error ?? "Google sign-in failed."));
+    }
+
+    window.addEventListener("message", onMessage);
   });
 }

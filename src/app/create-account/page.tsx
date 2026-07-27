@@ -8,10 +8,14 @@ import { auth, googleProvider, appleProvider, microsoftProvider } from "@/lib/fi
 import {
   createUserWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
   getAdditionalUserInfo,
 } from "firebase/auth";
-import { finalizeClientSession, isEmbedded } from "@/lib/embedAuth";
+import {
+  completeEmbeddedGoogleSignIn,
+  finalizeClientSession,
+  isEmbedded,
+  waitForEmbeddedGoogleAuth,
+} from "@/lib/embedAuth";
 
 type Gender = "FEMALE" | "MALE" | "NONBINARY" | "PREFER_NOT_TO_SAY" | "OTHER";
 
@@ -56,6 +60,12 @@ function CreateAccountContent() {
     }
   }
 
+  async function completeWithToken(idToken: string) {
+    await completeEmbeddedGoogleSignIn(idToken);
+    await postProfile();
+    router.replace("/player");
+  }
+
   async function complete() {
     await finalizeClientSession();
     await postProfile();
@@ -82,7 +92,12 @@ function CreateAccountContent() {
     setErr(null); setBusy(true);
     try {
       if (isEmbedded()) {
-        await signInWithRedirect(auth, provider);
+        const { idToken, isNewUser } = await waitForEmbeddedGoogleAuth();
+        if (!isNewUser) {
+          setErr("This sign-in already exists. Please sign in instead.");
+          return;
+        }
+        await completeWithToken(idToken);
         return;
       }
 
