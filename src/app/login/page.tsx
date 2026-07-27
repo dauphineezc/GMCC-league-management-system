@@ -164,7 +164,6 @@ function LoginContent() {
 
         {embedded && !forgotPasswordMode && !resetEmailSent && (
           <p className="text-sm text-slate-600" style={{ margin: "0 0 20px", textAlign: "center", lineHeight: 1.5 }}>
-            Google sign-in opens in a popup because Google blocks sign-in inside embedded pages.
             {" "}Having trouble?{" "}
             <a
               href={embedFallbackUrl(next ? `/login?next=${encodeURIComponent(next)}` : "/login")}
@@ -354,7 +353,7 @@ function LoginContent() {
         )}
 
         {embedded && !forgotPasswordMode && !resetEmailSent && (
-          <p className="text-xs text-slate-600" style={{ margin: "0 0 5px", textAlign: "center", lineHeight: 1.5, width: "50%" }}>
+          <p className="text-[10px] text-slate-600" style={{ margin: "0 0 5px", textAlign: "center", lineHeight: 1.5, width: "50%" }}>
             Google sign-in opens in a popup because Google blocks sign-in inside embedded pages.
           </p>
         )}
