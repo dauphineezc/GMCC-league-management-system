@@ -49,6 +49,8 @@ export const leagues = pgTable(
       .notNull()
       .default(false),
     approved: boolean("approved").notNull().default(false),
+    /** League-wide team registration fee in cents; null = no fee required. */
+    teamFeeCents: integer("team_fee_cents"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -67,6 +69,7 @@ export const teams = pgTable(
     gender: text("gender").$type<Gender>(),
     estimatedDivision: text("estimated_division").$type<Division>(),
     paymentRequired: boolean("payment_required").notNull().default(false),
+    teamFeePaid: boolean("team_fee_paid").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

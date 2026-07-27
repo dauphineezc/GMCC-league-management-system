@@ -38,6 +38,7 @@ export type ExportTeam = {
   gender: Gender | null;
   estimatedDivision: Division | null;
   paymentRequired: boolean;
+  teamFeePaid: boolean;
   createdAt: string | null;
   managerUserId: string | null;
 };

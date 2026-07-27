@@ -1,7 +1,6 @@
 import { db } from "@/db/index";
 import { schedulePdfs } from "@/db/schema";
 import { resolveLeagueByRef } from "@/lib/db/resolveLeague";
-import { kvDelRaw, kvGetRaw, parseDoc, SCHEDULE_KEY } from "@/lib/scheduleKv";
 import { eq } from "drizzle-orm";
 
 export type SchedulePdfInfo = {
@@ -10,24 +9,19 @@ export type SchedulePdfInfo = {
   uploadedAt: string;
 };
 
-const KV_LEGACY_PREFIX = "kv-legacy://";
 const B64_PREFIX = "b64:";
 
-function kvLegacyKey(blobUrl: string): string | null {
-  if (!blobUrl.startsWith(KV_LEGACY_PREFIX)) return null;
-  return blobUrl.slice(KV_LEGACY_PREFIX.length);
+export function isSchedulePdfInPostgres(blobUrl: string): boolean {
+  return blobUrl.startsWith(B64_PREFIX);
+}
+
+export function schedulePdfBlobUrlFromBytes(bytes: Buffer): string {
+  return B64_PREFIX + bytes.toString("base64");
 }
 
 async function bytesFromBlobUrl(blobUrl: string): Promise<Buffer | null> {
   if (blobUrl.startsWith(B64_PREFIX)) {
     return Buffer.from(blobUrl.slice(B64_PREFIX.length), "base64");
-  }
-
-  const legacyKey = kvLegacyKey(blobUrl);
-  if (legacyKey) {
-    const doc = parseDoc(await kvGetRaw(legacyKey));
-    if (doc?.data) return Buffer.from(String(doc.data), "base64");
-    return null;
   }
 
   if (blobUrl.startsWith("http://") || blobUrl.startsWith("https://")) {
@@ -52,23 +46,12 @@ export async function getSchedulePdfInfo(
     .limit(1);
 
   const row = rows[0];
-  if (row) {
-    return {
-      filename: row.filename ?? "schedule.pdf",
-      size: row.size,
-      uploadedAt: row.uploadedAt.toISOString(),
-    };
-  }
-
-  // Fallback: PDF exists in KV but no Postgres row yet (pre-backfill / drift)
-  const legacyKey = SCHEDULE_KEY(leagueRef);
-  const doc = parseDoc(await kvGetRaw(legacyKey));
-  if (!doc?.data) return null;
+  if (!row) return null;
 
   return {
-    filename: String(doc.filename ?? "schedule.pdf"),
-    size: doc.size != null ? Number(doc.size) : null,
-    uploadedAt: String(doc.uploadedAt ?? new Date().toISOString()),
+    filename: row.filename ?? "schedule.pdf",
+    size: row.size,
+    uploadedAt: row.uploadedAt.toISOString(),
   };
 }
 
@@ -86,20 +69,12 @@ export async function getSchedulePdfBytes(leagueRef: string): Promise<{
     .limit(1);
 
   const row = rows[0];
-  if (row) {
-    const bytes = await bytesFromBlobUrl(row.blobUrl);
-    if (!bytes) return null;
-    return { bytes, filename: row.filename ?? "schedule.pdf" };
-  }
+  if (!row) return null;
 
-  const legacyKey = SCHEDULE_KEY(leagueRef);
-  const doc = parseDoc(await kvGetRaw(legacyKey));
-  if (!doc?.data) return null;
+  const bytes = await bytesFromBlobUrl(row.blobUrl);
+  if (!bytes) return null;
 
-  return {
-    bytes: Buffer.from(String(doc.data), "base64"),
-    filename: String(doc.filename ?? "schedule.pdf"),
-  };
+  return { bytes, filename: row.filename ?? "schedule.pdf" };
 }
 
 export async function upsertSchedulePdf(
@@ -110,7 +85,7 @@ export async function upsertSchedulePdf(
   if (!league) throw new Error("League not found");
 
   const now = new Date();
-  const blobUrl = B64_PREFIX + input.bytes.toString("base64");
+  const blobUrl = schedulePdfBlobUrlFromBytes(input.bytes);
 
   const [row] = await db
     .insert(schedulePdfs)
@@ -132,14 +107,6 @@ export async function upsertSchedulePdf(
     })
     .returning();
 
-  // Remove legacy KV copy if present
-  const legacyKey = SCHEDULE_KEY(leagueRef);
-  try {
-    await kvDelRaw(legacyKey);
-  } catch {
-    /* best-effort */
-  }
-
   return {
     filename: row.filename ?? input.filename,
     size: row.size,
@@ -157,26 +124,8 @@ export async function deleteSchedulePdf(leagueRef: string): Promise<boolean> {
     .where(eq(schedulePdfs.leagueId, league.id))
     .limit(1);
 
-  const row = rows[0];
-  if (row) {
-    await db.delete(schedulePdfs).where(eq(schedulePdfs.leagueId, league.id));
-    const legacyKey = kvLegacyKey(row.blobUrl);
-    if (legacyKey) {
-      try {
-        await kvDelRaw(legacyKey);
-      } catch {
-        /* best-effort */
-      }
-    }
-    return true;
-  }
+  if (!rows[0]) return false;
 
-  const legacyKey = SCHEDULE_KEY(leagueRef);
-  const doc = parseDoc(await kvGetRaw(legacyKey));
-  if (doc?.data) {
-    await kvDelRaw(legacyKey);
-    return true;
-  }
-
-  return false;
+  await db.delete(schedulePdfs).where(eq(schedulePdfs.leagueId, league.id));
+  return true;
 }

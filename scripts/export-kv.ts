@@ -10,9 +10,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { config } from "dotenv";
-import { exportKvSnapshot } from "../src/lib/kvExport/exportSnapshot";
 
-config({ path: ".env.local" });
+config({ path: resolve(process.cwd(), ".env.local") });
+config({ path: resolve(process.cwd(), ".env") });
 
 function parseArgs(argv: string[]) {
   let outPath: string | null = null;
@@ -46,6 +46,7 @@ function parseArgs(argv: string[]) {
 }
 
 async function main() {
+  const { exportKvSnapshot } = await import("../src/lib/kvExport/exportSnapshot");
   const { outPath, includeFirebase, includeInviteScan } = parseArgs(process.argv.slice(2));
 
   console.log("Exporting KV snapshot...");

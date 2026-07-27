@@ -1,7 +1,7 @@
 import { db } from "@/db/index";
-import { leagueAdmins, leagues } from "@/db/schema";
+import { leagueAdmins, leagues, teams } from "@/db/schema";
 import { leaguePublicRef, resolveLeagueByRef, type LeagueRow } from "@/lib/db/resolveLeague";
-import { and, asc, eq, or } from "drizzle-orm";
+import { and, asc, eq, like, or } from "drizzle-orm";
 
 export type LeagueDocRecord = Record<string, unknown>;
 
@@ -50,6 +50,7 @@ export function leagueRowToDoc(
     playerAddDeadline: league.playerAddDeadline?.toISOString() ?? null,
     playerAddDeadlineOverride: league.playerAddDeadlineOverride,
     approved: league.approved,
+    teamFeeCents: league.teamFeeCents,
     adminUserId,
     createdAt: league.createdAt?.toISOString(),
     updatedAt: league.updatedAt?.toISOString(),
@@ -145,6 +146,7 @@ export async function updateLeagueFields(
     playerAddDeadline: Date | null;
     playerAddDeadlineOverride: boolean;
     approved: boolean;
+    teamFeeCents: number | null;
   }>
 ): Promise<LeagueDocRecord | null> {
   const league = await resolveLeagueByRef(leagueRef);
@@ -185,6 +187,49 @@ export async function listLeagueRefsForAdminUser(userId: string): Promise<string
     .innerJoin(leagues, eq(leagueAdmins.leagueId, leagues.id))
     .where(eq(leagueAdmins.userId, userId));
   return rows.map((r) => r.slug);
+}
+
+/** Upsert league_admins rows for the given league refs (slug or uuid). Returns merged slugs. */
+export async function syncLeagueAdminsFromRefs(
+  userId: string,
+  leagueRefs: string[],
+  dry = false
+): Promise<string[]> {
+  const merged = new Set(await listLeagueRefsForAdminUser(userId));
+  const refs = Array.from(new Set(leagueRefs.map(String).filter(Boolean)));
+
+  if (!dry) {
+    for (const ref of refs) {
+      const league = await resolveLeagueByRef(ref);
+      if (!league) continue;
+      merged.add(league.slug);
+      await db
+        .insert(leagueAdmins)
+        .values({ leagueId: league.id, userId })
+        .onConflictDoNothing();
+    }
+  } else {
+    for (const ref of refs) {
+      const league = await resolveLeagueByRef(ref);
+      if (league) merged.add(league.slug);
+    }
+  }
+
+  return Array.from(merged).filter(Boolean);
+}
+
+export async function removeAllLeagueAdminsForUser(userId: string): Promise<void> {
+  await db.delete(leagueAdmins).where(eq(leagueAdmins.userId, userId));
+}
+
+export async function listEmailBasedLeagueAdminRows(): Promise<
+  Array<{ slug: string; userId: string }>
+> {
+  return db
+    .select({ slug: leagues.slug, userId: leagueAdmins.userId })
+    .from(leagueAdmins)
+    .innerJoin(leagues, eq(leagueAdmins.leagueId, leagues.id))
+    .where(like(leagueAdmins.userId, "%@%"));
 }
 
 export async function listAllLeaguesLite(opts?: {
@@ -265,6 +310,31 @@ export async function createLeagueRecord(input: {
   }
 
   return { id: league.id, slug: league.slug, name: league.name };
+}
+
+/** Set the league-wide team fee and mark all teams in the league as requiring payment. */
+export async function setLeagueTeamFeeCents(
+  leagueRef: string,
+  amountCents: number
+): Promise<{ teamsUpdated: number; amountCents: number }> {
+  const league = await resolveLeagueByRef(leagueRef);
+  if (!league) throw new Error("League not found");
+
+  const feeCents = amountCents > 0 ? amountCents : null;
+  const paymentRequired = feeCents != null;
+
+  await db
+    .update(leagues)
+    .set({ teamFeeCents: feeCents, updatedAt: new Date() })
+    .where(eq(leagues.id, league.id));
+
+  const updated = await db
+    .update(teams)
+    .set({ paymentRequired })
+    .where(eq(teams.leagueId, league.id))
+    .returning({ id: teams.id });
+
+  return { teamsUpdated: updated.length, amountCents: feeCents ?? 0 };
 }
 
 export async function deleteLeagueByRef(leagueRef: string): Promise<boolean> {

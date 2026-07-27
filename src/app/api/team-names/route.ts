@@ -1,9 +1,9 @@
 // src/app/api/team-names/route.ts
-import { kv } from '@vercel/kv';
-import { assertAuthenticated, isAuthFailure } from '@/lib/authGuards';
+import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { listTeamNames } from "@/lib/repositories/teamsRepo";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const auth = await assertAuthenticated();
@@ -11,11 +11,12 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(req.url);
-    const leagueId = url.searchParams.get('leagueId') || '';
-    const global = (await kv.smembers('teams:names')) || [];
-    const league = leagueId ? (await kv.smembers(`league:${leagueId}:teamNames`)) || [] : [];
-    const unique = Array.from(new Set([...global, ...league])).sort();
-    return new Response(JSON.stringify(unique), { status: 200 });
+    const leagueId = url.searchParams.get("leagueId")?.trim() || undefined;
+    const names = await listTeamNames(leagueId);
+    return new Response(JSON.stringify(names), {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8" },
+    });
   } catch {
     return new Response(JSON.stringify([]), { status: 200 });
   }

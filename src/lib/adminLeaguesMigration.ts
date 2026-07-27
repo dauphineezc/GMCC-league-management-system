@@ -1,49 +1,48 @@
-import { kv } from "@vercel/kv";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { smembersSafe, readLeagueDoc } from "@/lib/kvHelpers";
-import { writeLeagueAdminJSON } from "@/lib/leagueDoc";
+import {
+  listEmailBasedLeagueAdminRows,
+  listLeagueRefsForAdminUser,
+  listLeagueSlugs,
+  readLeagueDocByRef,
+  removeAllLeagueAdminsForUser,
+  setLeaguePrimaryAdmin,
+  syncLeagueAdminsFromRefs,
+} from "@/lib/repositories/leaguesRepo";
 
-/** Read league IDs from any legacy storage shape (SET, JSON array, CSV, single string). */
-export async function readAdminLeagueIds(key: string): Promise<string[]> {
-  const fromSet = await smembersSafe(key);
-  if (fromSet.length) return fromSet;
-
-  let raw: unknown;
-  try {
-    raw = await kv.get(key);
-  } catch {
-    return [];
-  }
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
-
-  if (typeof raw === "string") {
-    const s = raw.trim();
-    if (!s) return [];
-    try {
-      const parsed = JSON.parse(s);
-      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
-    } catch {
-      if (s.includes(",")) {
-        return s.split(",").map((t) => t.trim()).filter(Boolean);
-      }
-      return [s];
-    }
-  }
-
-  return [];
+function parseAdminLeaguesKey(key: string): string | null {
+  const match = key.match(/^admin:(.+):leagues$/);
+  return match ? match[1] : null;
 }
 
-/** Persist admin leagues as a Redis SET (canonical format). */
+async function resolveAdminUserId(identifier: string): Promise<string | null> {
+  if (!identifier.includes("@")) return identifier;
+  try {
+    return (await adminAuth.getUserByEmail(identifier.trim().toLowerCase())).uid;
+  } catch {
+    return null;
+  }
+}
+
+/** Read league slugs managed by admin:{uid|email}:leagues from Postgres. */
+export async function readAdminLeagueIds(key: string): Promise<string[]> {
+  const identifier = parseAdminLeaguesKey(key);
+  if (!identifier) return [];
+  const uid = await resolveAdminUserId(identifier);
+  if (!uid) return [];
+  return listLeagueRefsForAdminUser(uid);
+}
+
+/** Persist admin leagues in Postgres league_admins (replaces legacy KV SET). */
 export async function writeAdminLeaguesAsSet(
   key: string,
   leagueIds: string[],
   dry = false
 ): Promise<void> {
-  const ids = Array.from(new Set(leagueIds.map(String).filter(Boolean)));
-  if (dry) return;
-  await kv.del(key);
-  if (ids.length) await kv.sadd(key, ...ids);
+  const identifier = parseAdminLeaguesKey(key);
+  if (!identifier) return;
+  const uid = await resolveAdminUserId(identifier);
+  if (!uid) return;
+  await syncLeagueAdminsFromRefs(uid, leagueIds, dry);
 }
 
 export type EmailAdminMigrationRow = {
@@ -77,7 +76,7 @@ export type AdminLeaguesMigrationReport = {
 };
 
 /**
- * Copy admin:{email}:leagues → admin:{uid}:leagues (SET) and optionally delete the email key.
+ * Merge admin leagues for an email-identified user into the canonical uid rows.
  * Idempotent — safe to run multiple times.
  */
 export async function migrateEmailAdminKeyToUid(
@@ -85,27 +84,31 @@ export async function migrateEmailAdminKeyToUid(
   uid: string,
   opts: { dry?: boolean; deleteLegacy?: boolean } = {}
 ): Promise<EmailAdminMigrationRow> {
+  void opts.deleteLegacy;
   const dry = opts.dry ?? false;
-  const deleteLegacy = opts.deleteLegacy ?? !dry;
-  const emailKey = `admin:${email}:leagues`;
-  const uidKey = `admin:${uid}:leagues`;
 
-  const emailLeagues = await readAdminLeagueIds(emailKey);
-  const uidLeaguesBefore = await readAdminLeagueIds(uidKey);
-  const merged = Array.from(new Set([...uidLeaguesBefore, ...emailLeagues])).filter(Boolean);
-
-  const uidWasSet = (await smembersSafe(uidKey)).length > 0;
-  const uidKeyNormalized = merged.length > 0 && (!uidWasSet || emailLeagues.length > 0);
-
-  if (!dry && uidKeyNormalized) {
-    await writeAdminLeaguesAsSet(uidKey, merged);
+  let emailUid: string | null = null;
+  try {
+    emailUid = (await adminAuth.getUserByEmail(email.trim().toLowerCase())).uid;
+  } catch {
+    emailUid = null;
   }
 
-  let emailKeyDeleted = false;
-  if (!dry && deleteLegacy && emailLeagues.length > 0) {
-    await kv.del(emailKey);
-    emailKeyDeleted = true;
+  const uidLeaguesBefore = await listLeagueRefsForAdminUser(uid);
+  let emailLeagues: string[] = [];
+
+  if (emailUid && emailUid !== uid) {
+    emailLeagues = await listLeagueRefsForAdminUser(emailUid);
+    if (!dry && emailLeagues.length) {
+      await syncLeagueAdminsFromRefs(uid, emailLeagues);
+      await removeAllLeagueAdminsForUser(emailUid);
+    }
   }
+
+  const merged = dry
+    ? Array.from(new Set([...uidLeaguesBefore, ...emailLeagues]))
+    : await syncLeagueAdminsFromRefs(uid, [...uidLeaguesBefore, ...emailLeagues]);
+  const uidKeyNormalized = merged.length > uidLeaguesBefore.length;
 
   return {
     email,
@@ -113,45 +116,60 @@ export async function migrateEmailAdminKeyToUid(
     emailLeagues,
     uidLeaguesBefore,
     merged,
-    emailKeyDeleted,
+    emailKeyDeleted: false,
     uidKeyNormalized,
   };
 }
 
-/** Normalize admin:{uid}:leagues from legacy string/array/JSON into a SET. */
+/** @deprecated Postgres league_admins is already normalized — returns current slugs. */
 export async function normalizeAdminLeaguesToSet(
   uid: string,
-  opts: { dry?: boolean } = {}
+  _opts: { dry?: boolean } = {}
 ): Promise<string[]> {
-  const key = `admin:${uid}:leagues`;
-  const ids = await readAdminLeagueIds(key);
-  const alreadySet = (await smembersSafe(key)).length > 0;
-  if (!opts.dry && ids.length > 0 && !alreadySet) {
-    await writeAdminLeaguesAsSet(key, ids);
-  }
-  return ids;
+  return listLeagueRefsForAdminUser(uid);
 }
 
-/** Fix league docs whose adminUserId is still an email address. */
+/** Fix league admins stored with an email address instead of a Firebase uid. */
 export async function migrateLeagueDocAdminEmails(
   opts: { dry?: boolean } = {}
 ): Promise<LeagueDocAdminMigrationRow[]> {
   const dry = opts.dry ?? false;
   const rows: LeagueDocAdminMigrationRow[] = [];
-  const leagueIds = await smembersSafe("leagues:index");
+  const fixed = new Set<string>();
 
-  for (const leagueId of leagueIds) {
-    const doc = await readLeagueDoc(leagueId);
+  const emailAdminRows = await listEmailBasedLeagueAdminRows();
+
+  for (const row of emailAdminRows) {
+    const email = row.userId.trim().toLowerCase();
+    const key = `${row.slug}:${email}`;
+    if (fixed.has(key)) continue;
+    try {
+      const fbUser = await adminAuth.getUserByEmail(email);
+      rows.push({ leagueId: row.slug, from: email, to: fbUser.uid });
+      fixed.add(key);
+      if (!dry) {
+        await setLeaguePrimaryAdmin(row.slug, fbUser.uid);
+      }
+    } catch {
+      // User not in Firebase — leave row unchanged
+    }
+  }
+
+  const slugs = await listLeagueSlugs({ onlyApproved: false });
+  for (const slug of slugs) {
+    const doc = await readLeagueDocByRef(slug);
     const adminId = doc?.adminUserId;
     if (!adminId || !String(adminId).includes("@")) continue;
 
     const email = String(adminId).trim().toLowerCase();
+    const key = `${slug}:${email}`;
+    if (fixed.has(key)) continue;
     try {
       const fbUser = await adminAuth.getUserByEmail(email);
-      rows.push({ leagueId, from: email, to: fbUser.uid });
+      rows.push({ leagueId: slug, from: email, to: fbUser.uid });
+      fixed.add(key);
       if (!dry) {
-        await writeLeagueAdminJSON(leagueId, fbUser.uid);
-        await migrateEmailAdminKeyToUid(email, fbUser.uid, { dry: false, deleteLegacy: true });
+        await setLeaguePrimaryAdmin(slug, fbUser.uid);
       }
     } catch {
       // User not in Firebase — leave doc unchanged
@@ -162,8 +180,7 @@ export async function migrateLeagueDocAdminEmails(
 }
 
 /**
- * One-time migration: email-based admin keys → uid-based SETs for all Firebase users,
- * plus normalize any remaining legacy uid key formats.
+ * Sync Firebase custom claims and email-based admin ids into Postgres league_admins.
  */
 export async function migrateAllAdminLeaguesFromEmail(
   opts: { dry?: boolean } = {}
@@ -177,27 +194,35 @@ export async function migrateAllAdminLeaguesFromEmail(
     const res = await adminAuth.listUsers(1000, token);
     for (const u of res.users) {
       usersScanned++;
-      if (!u.email) continue;
+      const claims = (u.customClaims ?? {}) as { leagueAdminOf?: string[] };
+      const claimLeagues = Array.isArray(claims.leagueAdminOf) ? claims.leagueAdminOf : [];
+
       try {
-        const row = await migrateEmailAdminKeyToUid(u.email, u.uid, {
-          dry,
-          deleteLegacy: !dry,
-        });
-        if (row.emailLeagues.length > 0 || row.uidKeyNormalized) {
-          emailMigrations.push(row);
-        } else {
-          const normalized = await normalizeAdminLeaguesToSet(u.uid, { dry });
-          if (normalized.length > 0 && !dry) {
+        if (u.email) {
+          const row = await migrateEmailAdminKeyToUid(u.email, u.uid, { dry });
+          if (row.emailLeagues.length > 0 || row.uidKeyNormalized) {
+            emailMigrations.push(row);
+          }
+        }
+
+        if (claimLeagues.length) {
+          const before = await listLeagueRefsForAdminUser(u.uid);
+          const merged = await syncLeagueAdminsFromRefs(u.uid, claimLeagues, dry);
+          if (merged.length > before.length) {
             emailMigrations.push({
-              ...row,
+              email: u.email ?? "",
+              uid: u.uid,
+              emailLeagues: [],
+              uidLeaguesBefore: before,
+              merged,
+              emailKeyDeleted: false,
               uidKeyNormalized: true,
-              merged: normalized,
             });
           }
         }
       } catch (e) {
         emailMigrations.push({
-          email: u.email,
+          email: u.email ?? "",
           uid: u.uid,
           emailLeagues: [],
           uidLeaguesBefore: [],

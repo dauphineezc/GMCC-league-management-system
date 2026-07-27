@@ -1020,26 +1020,6 @@ export default function ScheduleClient({
             </div>
           </>
         )}
-        <button
-          className="link-danger"
-          onClick={async () => {
-            if (!confirm("Clear all games? This cannot be undone!")) return;
-            try {
-              const res = await fetch(`/api/debug/clear-games?leagueId=${leagueId}`, { method: "POST" });
-              const result = await res.json();
-              if (res.ok) {
-                setGames([]);
-                setMsg("All games cleared.");
-              } else {
-                setMsg(`Clear failed: ${result.error}`);
-              }
-            } catch {
-              setMsg("Failed to clear games.");
-            }
-          }}
-        >
-          Clear All Games
-        </button>
     </main>
   );
 }

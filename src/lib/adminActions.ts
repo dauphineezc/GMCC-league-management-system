@@ -6,18 +6,16 @@ import {
   assignTeamToLeagueRef,
   getTeamById,
   toggleMemberPaid,
+  toggleTeamFeePaid as toggleTeamFeePaidInDb,
   unassignTeamFromLeagueRef,
 } from "@/lib/repositories/teamsRepo";
 
-/* =========================================================
-   TEAM FEE: legacy KV field — not persisted in Postgres yet
-   ========================================================= */
 export async function toggleTeamFeePaid(teamId: string) {
-  const t = await getTeamById(teamId);
-  if (!t) return;
+  await toggleTeamFeePaidInDb(teamId);
 
   await revalidatePath(`/admin/team/${teamId}`);
-  const leagueId = typeof t.leagueId === "string" ? t.leagueId : null;
+  const t = await getTeamById(teamId);
+  const leagueId = typeof t?.leagueId === "string" ? t.leagueId : null;
   if (leagueId) {
     await revalidatePath(`/admin/leagues/${leagueId}`);
     await revalidatePath(`/leagues/${leagueId}`);
@@ -25,8 +23,7 @@ export async function toggleTeamFeePaid(teamId: string) {
   await revalidatePath(`/team/${teamId}`);
 }
 
-export async function toggleTeamFeePaidAction(formData: FormData) {
-  const teamId = String(formData.get("teamId") || "");
+export async function toggleTeamFeePaidAction(teamId: string) {
   if (!teamId) return;
   await toggleTeamFeePaid(teamId);
 }

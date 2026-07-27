@@ -32,6 +32,16 @@ export type LeaguePlayerRow = {
 };
 
 function teamRowToDoc(team: typeof teams.$inferSelect, league: LeagueRow | null): TeamDocRecord {
+  const feeCents = league?.teamFeeCents ?? null;
+  const teamFee =
+    feeCents != null && feeCents > 0
+      ? {
+          required: true,
+          amountCents: feeCents,
+          paid: team.teamFeePaid,
+        }
+      : undefined;
+
   return {
     id: team.id,
     name: team.name,
@@ -44,6 +54,7 @@ function teamRowToDoc(team: typeof teams.$inferSelect, league: LeagueRow | null)
     estimatedDivision: team.estimatedDivision,
     teamPaymentRequired: team.paymentRequired,
     paymentRequired: team.paymentRequired,
+    teamFee,
     createdAt: team.createdAt?.toISOString(),
     updatedAt: team.createdAt?.toISOString(),
   };
@@ -357,6 +368,24 @@ export async function getLeagueTeamNames(leagueRef: string): Promise<Set<string>
   return new Set(cards.map((c) => c.name.trim()).filter(Boolean));
 }
 
+/** Distinct team names for autocomplete (optionally scoped to a league). */
+export async function listTeamNames(leagueRef?: string): Promise<string[]> {
+  const names = new Set<string>();
+
+  const allRows = await db.select({ name: teams.name }).from(teams);
+  for (const row of allRows) {
+    const n = row.name.trim();
+    if (n) names.add(n);
+  }
+
+  if (leagueRef) {
+    const leagueNames = await getLeagueTeamNames(leagueRef);
+    for (const n of leagueNames) names.add(n);
+  }
+
+  return Array.from(names).sort((a, b) => a.localeCompare(b));
+}
+
 export async function deleteTeamById(teamId: string): Promise<boolean> {
   const rows = await db.delete(teams).where(eq(teams.id, teamId)).returning({ id: teams.id });
   return rows.length > 0;
@@ -434,5 +463,15 @@ export async function setLeagueTeamsPaymentRequired(
     .where(eq(teams.leagueId, league.id))
     .returning({ id: teams.id });
   return rows.length;
+}
+
+export async function toggleTeamFeePaid(teamId: string): Promise<boolean> {
+  const rows = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1);
+  const team = rows[0];
+  if (!team) throw new Error("Team not found");
+
+  const next = !team.teamFeePaid;
+  await db.update(teams).set({ teamFeePaid: next }).where(eq(teams.id, teamId));
+  return next;
 }
 

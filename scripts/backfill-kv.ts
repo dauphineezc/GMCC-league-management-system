@@ -10,13 +10,9 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { config } from "dotenv";
-import {
-  backfillSnapshotFromFile,
-  countPostgresRows,
-  loadSnapshot,
-} from "../src/lib/kvExport/backfillSnapshot";
 
-config({ path: ".env.local" });
+config({ path: resolve(process.cwd(), ".env.local") });
+config({ path: resolve(process.cwd(), ".env") });
 
 function findLatestSnapshot(): string | null {
   const base = resolve("data/kv-export");
@@ -47,54 +43,51 @@ function parseArgs(argv: string[]) {
       fresh = true;
     } else if (arg === "--help" || arg === "-h") {
       console.log(
-        "Usage: npm run backfill:kv [-- --in <snapshot.json>] [--dry] [--fresh]"
+        "Usage: npm run backfill:kv [-- --in snapshot.json] [--dry] [--fresh]"
       );
       process.exit(0);
     }
   }
 
+  if (!inPath) inPath = findLatestSnapshot();
   if (!inPath) {
-    inPath = findLatestSnapshot();
-    if (!inPath) {
-      throw new Error("No snapshot found. Pass --in path/to/snapshot.json");
-    }
-    console.log(`Using latest snapshot: ${inPath}`);
+    throw new Error("No snapshot found. Run npm run export:kv first or pass --in");
   }
 
   return { inPath, dry, fresh };
 }
 
 async function main() {
-  const { inPath, dry, fresh } = parseArgs(process.argv.slice(2));
-  const snapshot = loadSnapshot(inPath);
-
-  console.log(`Snapshot exported at ${snapshot.exportedAt}`);
-  console.log("Source counts:", snapshot.counts);
-
-  if (fresh && !dry) {
-    console.log("WARNING: --fresh will TRUNCATE all app tables before import.");
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is not set");
   }
+
+  const { backfillSnapshotFromFile, countPostgresRows, loadSnapshot } = await import(
+    "../src/lib/kvExport/backfillSnapshot"
+  );
+
+  const { inPath, dry, fresh } = parseArgs(process.argv.slice(2));
+
+  console.log(`Backfill from ${inPath}${dry ? " (dry run)" : ""}${fresh ? " (fresh)" : ""}`);
+
+  const snapshot = loadSnapshot(inPath);
+  console.log("Snapshot counts:", snapshot.counts);
+
+  const before = await countPostgresRows();
+  console.log("Before:", before);
 
   const report = await backfillSnapshotFromFile(inPath, { dry, fresh });
+  console.log("\nBackfill upserted:", report.upserted);
+  console.log("Backfill skipped:", report.skipped);
 
-  if (dry) {
-    console.log("Dry run — no database writes.");
-    console.log("Would upsert:", report.upserted);
-    return;
+  if (!dry) {
+    const after = await countPostgresRows();
+    console.log("\nAfter:", after);
   }
 
-  console.log("Upserted:", report.upserted);
-  if (Object.keys(report.skipped).length) console.log("Skipped:", report.skipped);
-
-  const dbCounts = await countPostgresRows();
-  console.log("Postgres row counts:", dbCounts);
-
-  const newWarnings = report.warnings.length - snapshot.warnings.length;
-  if (newWarnings > 0) {
-    console.log(`Backfill warnings (${newWarnings} new):`);
-    for (const w of report.warnings.slice(-newWarnings).slice(0, 20)) {
-      console.log(`  - ${w}`);
-    }
+  if (report.warnings.length) {
+    console.log(`\nWarnings (${report.warnings.length}):`);
+    for (const w of report.warnings.slice(0, 15)) console.log(`  - ${w}`);
   }
 }
 

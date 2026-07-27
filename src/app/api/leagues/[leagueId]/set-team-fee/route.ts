@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
 import { revalidatePath } from "next/cache";
 import { getTeamIdsForLeague } from "@/lib/kvHelpers";
-import { setLeagueTeamsPaymentRequired } from "@/lib/repositories/teamsRepo";
+import { setLeagueTeamFeeCents } from "@/lib/repositories/leaguesRepo";
 
 export async function POST(
   req: NextRequest,
@@ -28,7 +28,7 @@ export async function POST(
       );
     }
 
-    const teamsUpdated = await setLeagueTeamsPaymentRequired(leagueId, true);
+    const { teamsUpdated } = await setLeagueTeamFeeCents(leagueId, amountCents);
 
     revalidatePath(`/leagues/${leagueId}`);
     for (const teamId of teamIds) {

@@ -233,11 +233,6 @@ export async function calculateStandings(leagueId: string): Promise<StandingRow[
   return [...teamsWithGames, ...teamsWithoutGames];
 }
 
-/** @deprecated Standings are derived; alias for calculateStandings. */
-export async function calculateAndSaveStandings(leagueId: string): Promise<StandingRow[]> {
-  return calculateStandings(leagueId);
-}
-
 export async function readLeagueStandings(leagueId: string): Promise<StandingRow[]> {
   return calculateStandings(leagueId);
 }

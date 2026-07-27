@@ -10,8 +10,6 @@ import {
   readLeagueDoc,
   smembersSafe,
 } from "@/lib/kvHelpers";
-import { readLeagueGames } from "@/lib/leagueData";
-import { SCHEDULE_KEY } from "@/lib/scheduleKv";
 import {
   dedupeStrings,
   leagueSlugFromLegacyId,
@@ -37,6 +35,26 @@ import type {
   ExportUser,
   KvExportSnapshot,
 } from "@/lib/kvExport/types";
+
+const schedulePdfKvKey = (legacyLeagueId: string) => `league:${legacyLeagueId}:schedule:pdf`;
+
+async function readKvLeagueGames(legacyLeagueId: string): Promise<unknown[]> {
+  let raw: unknown;
+  try {
+    raw = await kv.get(`league:${legacyLeagueId}:games`);
+  } catch {
+    return [];
+  }
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      return raw.trim() ? (JSON.parse(raw) as unknown[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 function explodeIndexMembers(raw: unknown): string[] {
   if (raw == null) return [];
@@ -249,6 +267,7 @@ export async function exportKvSnapshot(
       gender: normalizeGender(doc.gender),
       estimatedDivision: normalizeDivision(doc.estimatedDivision),
       paymentRequired: truthy(doc.teamPaymentRequired ?? doc.paymentRequired),
+      teamFeePaid: truthy((doc.teamFee as { paid?: unknown } | undefined)?.paid),
       createdAt: parseIsoTimestamp(doc.createdAt),
       managerUserId,
     });
@@ -288,7 +307,7 @@ export async function exportKvSnapshot(
 
   for (const legacyId of Object.keys(legacyLeagueIdToUuid)) {
     const leagueUuid = legacyLeagueIdToUuid[legacyId];
-    const rawGames = await readLeagueGames(legacyId);
+    const rawGames = await readKvLeagueGames(legacyId);
 
     for (const raw of rawGames) {
       if (!raw || typeof raw !== "object") continue;
@@ -445,7 +464,7 @@ export async function exportKvSnapshot(
   const schedulePdfs: ExportSchedulePdf[] = [];
   for (const legacyId of Object.keys(legacyLeagueIdToUuid)) {
     const leagueUuid = legacyLeagueIdToUuid[legacyId];
-    const legacyKvKey = SCHEDULE_KEY(legacyId);
+    const legacyKvKey = schedulePdfKvKey(legacyId);
     let raw: unknown;
     try {
       raw = await kv.get(legacyKvKey);

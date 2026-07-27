@@ -4,10 +4,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebaseAdmin";
 import {
-  migrateEmailAdminKeyToUid,
-  readAdminLeagueIds,
-  writeAdminLeaguesAsSet,
-} from "@/lib/adminLeaguesMigration";
+  listLeagueRefsForAdminUser,
+  syncLeagueAdminsFromRefs,
+} from "@/lib/repositories/leaguesRepo";
 import { resolveManagedLeagueIds } from "@/lib/kvHelpers";
 
 export async function POST() {
@@ -30,15 +29,11 @@ export async function POST() {
     const isAdmin = isSuper || managed.length > 0;
     const target = isSuper ? "/superadmin" : isAdmin ? "/admin" : "/player";
 
-    // Admin index: migrate legacy email key → uid SET; seed from claims if empty
-    if (email) {
-      await migrateEmailAdminKeyToUid(email, uid, { deleteLegacy: true });
-    }
+    // Seed Postgres league_admins from Firebase claims when the user has none yet
     if (Array.isArray(claims.leagueAdminOf) && claims.leagueAdminOf.length) {
-      const uidKey = `admin:${uid}:leagues`;
-      const existing = await readAdminLeagueIds(uidKey);
+      const existing = await listLeagueRefsForAdminUser(uid);
       if (!existing.length) {
-        await writeAdminLeaguesAsSet(uidKey, claims.leagueAdminOf);
+        await syncLeagueAdminsFromRefs(uid, claims.leagueAdminOf);
       }
     }
 

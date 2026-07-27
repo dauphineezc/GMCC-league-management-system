@@ -26,10 +26,6 @@ function isCronBearerPath(pathname: string): boolean {
 
   if (pathname === "/api/admin/update-game-statuses") return true;
 
-  if (pathname === "/api/admin/migrate-admin-leagues") return true;
-
-  if (/^\/api\/leagues\/[^/]+\/standings\/calculate$/.test(pathname)) return true;
-
   return false;
 
 }

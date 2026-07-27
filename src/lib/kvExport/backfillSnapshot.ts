@@ -194,27 +194,11 @@ export async function backfillSnapshotFromFile(
 
   // 2. leagues
   for (const l of snapshot.leagues) {
-    await db
-      .insert(leagues)
-      .values({
-        id: l.id,
-        slug: l.slug,
-        name: l.name,
-        sport: l.sport,
-        gender: l.gender,
-        division: l.division,
-        description: l.description,
-        minTeamSize: l.minTeamSize,
-        maxTeamSize: l.maxTeamSize,
-        playerAddDeadline: toDate(l.playerAddDeadline),
-        playerAddDeadlineOverride: l.playerAddDeadlineOverride,
-        approved: l.approved,
-        createdAt: toDate(l.createdAt) ?? new Date(),
-        updatedAt: toDate(l.updatedAt) ?? toDate(l.createdAt) ?? new Date(),
-      })
-      .onConflictDoUpdate({
-        target: leagues.id,
-        set: {
+    try {
+      await db
+        .insert(leagues)
+        .values({
+          id: l.id,
           slug: l.slug,
           name: l.name,
           sport: l.sport,
@@ -226,10 +210,33 @@ export async function backfillSnapshotFromFile(
           playerAddDeadline: toDate(l.playerAddDeadline),
           playerAddDeadlineOverride: l.playerAddDeadlineOverride,
           approved: l.approved,
-          updatedAt: toDate(l.updatedAt) ?? new Date(),
-        },
-      });
-    bump("leagues", "upserted");
+          createdAt: toDate(l.createdAt) ?? new Date(),
+          updatedAt: toDate(l.updatedAt) ?? toDate(l.createdAt) ?? new Date(),
+        })
+        .onConflictDoUpdate({
+          target: leagues.id,
+          set: {
+            slug: l.slug,
+            name: l.name,
+            sport: l.sport,
+            gender: l.gender,
+            division: l.division,
+            description: l.description,
+            minTeamSize: l.minTeamSize,
+            maxTeamSize: l.maxTeamSize,
+            playerAddDeadline: toDate(l.playerAddDeadline),
+            playerAddDeadlineOverride: l.playerAddDeadlineOverride,
+            approved: l.approved,
+            updatedAt: toDate(l.updatedAt) ?? new Date(),
+          },
+        });
+      bump("leagues", "upserted");
+    } catch (err) {
+      warnings.push(
+        `Failed league ${l.slug}: ${err instanceof Error ? err.message : String(err)}`
+      );
+      bump("leagues", "skipped");
+    }
   }
 
   // 3. teams
@@ -253,6 +260,7 @@ export async function backfillSnapshotFromFile(
           gender: t.gender,
           estimatedDivision: t.estimatedDivision,
           paymentRequired: t.paymentRequired,
+          teamFeePaid: t.teamFeePaid,
           createdAt: toDate(t.createdAt) ?? new Date(),
         })
         .onConflictDoUpdate({
@@ -266,6 +274,7 @@ export async function backfillSnapshotFromFile(
             gender: t.gender,
             estimatedDivision: t.estimatedDivision,
             paymentRequired: t.paymentRequired,
+            teamFeePaid: t.teamFeePaid,
           },
         });
       bump("teams", "upserted");
@@ -301,10 +310,8 @@ export async function backfillSnapshotFromFile(
         joinedAt: toDate(m.joinedAt) ?? new Date(),
       })
       .onConflictDoUpdate({
-        target: teamMembers.id,
+        target: [teamMembers.teamId, teamMembers.userId],
         set: {
-          teamId: m.teamId,
-          userId: m.userId,
           isManager: m.isManager,
           paid: m.paid,
           joinedAt: toDate(m.joinedAt) ?? new Date(),
@@ -420,31 +427,10 @@ export async function backfillSnapshotFromFile(
     bump("invites", "upserted");
   }
 
-  // 8. schedule_pdfs (metadata placeholder until blob upload)
+  // 8. schedule_pdfs — bytes are stored inline (b64:) after cutover; skip KV placeholders.
   for (const pdf of snapshot.schedulePdfs) {
-    if (!leagueIds.has(pdf.leagueId)) {
-      bump("schedulePdfs", "skipped");
-      continue;
-    }
-
-    await db
-      .insert(schedulePdfs)
-      .values({
-        leagueId: pdf.leagueId,
-        blobUrl: `kv-legacy://${pdf.legacyKvKey}`,
-        filename: pdf.filename,
-        size: pdf.contentLength,
-        uploadedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: schedulePdfs.leagueId,
-        set: {
-          blobUrl: `kv-legacy://${pdf.legacyKvKey}`,
-          filename: pdf.filename,
-          size: pdf.contentLength,
-        },
-      });
-    bump("schedulePdfs", "upserted");
+    void pdf;
+    bump("schedulePdfs", "skipped");
   }
 
   report.warnings = warnings;
