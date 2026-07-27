@@ -12,13 +12,6 @@ jest.mock('next/headers', () => ({
   })),
 }));
 
-// Mock Vercel KV
-jest.mock('@vercel/kv', () => ({
-  kv: {
-    sismember: jest.fn().mockResolvedValue(0),
-  },
-}));
-
 import { hasLeaguePermission, getUserLeagueRole, PermissionChecker } from '../permissions';
 import type { ServerUser } from '../serverUser';
 

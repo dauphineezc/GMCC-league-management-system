@@ -14,13 +14,11 @@
         "db:migrate": "drizzle-kit migrate",
         "db:push": "drizzle-kit push",
         "db:studio": "drizzle-kit studio",
-        "export:kv": "tsx scripts/export-kv.ts",
         "backfill:kv": "tsx scripts/backfill-kv.ts",
         "smoke:postgres": "tsx scripts/smoke-postgres.ts"
     },
     "dependencies": {
         "@neondatabase/serverless": "^1.1.0",
-        "@vercel/kv": "^1.0.1",
         "dayjs": "^1.11.18",
         "drizzle-orm": "^0.45.2",
         "eslint-config-next": "^15.4.6",

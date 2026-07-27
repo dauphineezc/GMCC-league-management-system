@@ -556,6 +556,40 @@ button.card-cta {
   cursor: pointer;
 }
 
+.external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 10px 16px;
+  font-family: var(--font-body), system-ui;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--navy);
+  background: color-mix(in srgb, var(--navy) 6%, white);
+  border: 1px solid color-mix(in srgb, var(--navy) 18%, transparent);
+  border-radius: 8px;
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.external-link:hover {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 8%, white);
+  border-color: color-mix(in srgb, var(--green) 28%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--navy) 12%, transparent);
+}
+
+.external-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--navy) 30%, transparent);
+  outline-offset: 2px;
+}
+
 /* List rows for Leagues list inside a gradient card */
 .league-row{
   display:flex; align-items:center; justify-content:space-between;

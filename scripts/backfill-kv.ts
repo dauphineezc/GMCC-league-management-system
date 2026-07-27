@@ -51,7 +51,7 @@ function parseArgs(argv: string[]) {
 
   if (!inPath) inPath = findLatestSnapshot();
   if (!inPath) {
-    throw new Error("No snapshot found. Run npm run export:kv first or pass --in");
+    throw new Error("No snapshot found. Pass --in path/to/snapshot.json");
   }
 
   return { inPath, dry, fresh };

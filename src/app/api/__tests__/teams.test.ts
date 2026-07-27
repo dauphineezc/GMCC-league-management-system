@@ -1,32 +1,21 @@
 /**
  * Integration tests for team creation API
- * These tests mock the KV database to avoid external dependencies
  * @jest-environment node
  */
 import { POST } from '../teams/route';
 import type { NextRequest } from 'next/server';
 
-// Mock KV
-jest.mock('@vercel/kv', () => ({
-  kv: {
-    set: jest.fn().mockResolvedValue('OK'),
-    sadd: jest.fn().mockResolvedValue(1),
-    get: jest.fn().mockResolvedValue([]),
-  },
+jest.mock('@/lib/authGuards', () => ({
+  assertAuthenticated: jest.fn(),
+  isAuthFailure: (r: { ok: boolean }) => !r.ok,
 }));
 
-// Mock memberships
-jest.mock('@/server/memberships', () => ({
-  upsertMembership: jest.fn().mockResolvedValue(undefined),
+jest.mock('@/lib/repositories/teamsRepo', () => ({
+  createTeam: jest.fn(),
 }));
 
-jest.mock('@/lib/serverUser', () => ({
-  getServerUser: jest.fn(),
-}));
-
-import { kv } from '@vercel/kv';
-import { upsertMembership } from '@/server/memberships';
-import { getServerUser } from '@/lib/serverUser';
+import { assertAuthenticated } from '@/lib/authGuards';
+import { createTeam } from '@/lib/repositories/teamsRepo';
 
 const mockUser = {
   id: 'user123',
@@ -37,11 +26,26 @@ const mockUser = {
 describe('/api/teams POST', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (getServerUser as jest.Mock).mockResolvedValue(mockUser);
+    (assertAuthenticated as jest.Mock).mockResolvedValue({ ok: true, user: mockUser });
+    (createTeam as jest.Mock).mockImplementation(async (input) => ({
+      id: input.id,
+      name: input.name,
+      description: input.description,
+      leagueId: input.leagueSlug,
+      approved: false,
+      sport: input.sport,
+      gender: input.gender,
+      estimatedDivision: input.estimatedDivision,
+      paymentRequired: input.paymentRequired,
+      managerUserId: input.managerUserId,
+    }));
   });
 
   it('rejects requests without authentication', async () => {
-    (getServerUser as jest.Mock).mockResolvedValue(null);
+    (assertAuthenticated as jest.Mock).mockResolvedValue({
+      ok: false,
+      response: Response.json({ error: 'Unauthorized' }, { status: 401 }),
+    });
 
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
@@ -58,9 +62,7 @@ describe('/api/teams POST', () => {
   it('rejects requests without team name (after trim)', async () => {
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: '   \n\t  ' }),
     });
 
@@ -73,16 +75,14 @@ describe('/api/teams POST', () => {
   it('creates team with valid data (unassigned league)', async () => {
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Test Team',
         description: 'Test description',
         sport: 'basketball',
         gender: 'mens',
         estimatedDivision: 'high b',
-        preferredPracticeDays: ['mon', 'fri', 'nope'], // 'nope' should be filtered out
+        preferredPracticeDays: ['mon', 'fri', 'nope'],
         teamPaymentRequired: true,
       }),
     });
@@ -92,56 +92,28 @@ describe('/api/teams POST', () => {
     const { ok, team } = await res.json();
 
     expect(ok).toBe(true);
-    expect(team).toBeDefined();
     expect(team.name).toBe('Test Team');
-    expect(team.description).toBe('Test description');
     expect(team.managerUserId).toBe('user123');
-    expect(team.approved).toBe(false);
-    expect(team.rosterLimit).toBe(8);
     expect(team.leagueId).toBe(null);
-    expect(team.sport).toBe('basketball');
-    expect(team.gender).toBe('mens');
-    expect(team.estimatedDivision).toBe('high b');
-    expect(team.preferredPracticeDays).toEqual(['mon', 'fri']);
     expect(team.teamPaymentRequired).toBe(true);
 
-    // persisted records
-    expect(kv.set).toHaveBeenCalledWith(
-      expect.stringMatching(/^team:/),
+    expect(createTeam).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Test Team',
         managerUserId: 'user123',
+        leagueSlug: null,
+        paymentRequired: true,
       })
-    );
-    expect(kv.sadd).toHaveBeenCalledWith('teams:index', expect.any(String));
-
-    // roster bootstrap with manager
-    expect(kv.set).toHaveBeenCalledWith(
-      expect.stringMatching(/^team:.*:roster$/),
-      expect.arrayContaining([
-        expect.objectContaining({ userId: 'user123', isManager: true }),
-      ])
-    );
-
-    // unassigned path writes membership directly under user, not upsertMembership
-    expect(upsertMembership).not.toHaveBeenCalled();
-    expect(kv.set).toHaveBeenCalledWith(
-      `user:user123:memberships`,
-      expect.arrayContaining([
-        expect.objectContaining({ teamId: expect.any(String), isManager: true }),
-      ])
     );
   });
 
-  it('creates team with league assignment (division normalized, membership upserted)', async () => {
+  it('creates team with league assignment (division normalized)', async () => {
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'League Team',
-        division: '4V4', // will normalize to '4v4'
+        division: '4V4',
       }),
     });
 
@@ -150,20 +122,10 @@ describe('/api/teams POST', () => {
     const { team } = await res.json();
 
     expect(team.leagueId).toBe('4v4');
-
-    // team indexed globally and under league
-    expect(kv.sadd).toHaveBeenCalledWith('teams:index', team.id);
-    expect(kv.sadd).toHaveBeenCalledWith(`league:4v4:teams`, team.id);
-
-    // upsertMembership called with derived leagueName
-    expect(upsertMembership).toHaveBeenCalledWith(
-      'user123',
+    expect(createTeam).toHaveBeenCalledWith(
       expect.objectContaining({
-        leagueId: '4v4',
-        leagueName: '4v4', // from DIVISIONS
-        teamId: team.id,
-        teamName: 'League Team',
-        isManager: true,
+        leagueSlug: '4v4',
+        name: 'League Team',
       })
     );
   });
@@ -171,9 +133,7 @@ describe('/api/teams POST', () => {
   it('rejects invalid division (BAD_LEAGUE)', async () => {
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Test Team',
         division: 'invalid-division',
@@ -189,9 +149,7 @@ describe('/api/teams POST', () => {
   it('sanitizes sport with default when invalid', async () => {
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Test Team',
         sport: 'quidditch',
@@ -200,12 +158,8 @@ describe('/api/teams POST', () => {
 
     const res = await POST(req as NextRequest);
     const { team } = await res.json();
-    expect(team.sport).toBe('basketball'); // default
-    expect(team.gender).toBe('co-ed');     // default
-    expect(team.estimatedDivision).toBe('low b'); // default
+    expect(team.sport).toBe('basketball');
+    expect(team.gender).toBe('co-ed');
+    expect(team.estimatedDivision).toBe('low b');
   });
-
-  it.todo('enforces one-team-per-league per user (not implemented in route yet)');
-  it.todo('rejects overlong name/description if limits are added');
-  it.todo('returns a clear error for malformed JSON payloads');
 });

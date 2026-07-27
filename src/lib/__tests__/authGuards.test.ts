@@ -12,12 +12,6 @@ jest.mock('next/headers', () => ({
   })),
 }));
 
-jest.mock('@vercel/kv', () => ({
-  kv: {
-    sismember: jest.fn().mockResolvedValue(0),
-  },
-}));
-
 jest.mock('@/lib/serverUser', () => ({
   getServerUser: jest.fn(),
   isLeagueAdminAsync: jest.fn(),
