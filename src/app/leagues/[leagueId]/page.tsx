@@ -22,6 +22,7 @@ import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { batchGetRosters, batchGetPayments } from "@/lib/kvBatch";
 import { buildPlayerTeamsByUserFromMemberships } from "@/lib/playerTeams";
 import { getTeamsForLeague, smembersSafe, readLeagueDoc } from "@/lib/kvHelpers";
+import Link from "next/link";
 
 export async function generateStaticParams() {
   const ids = await smembersSafe("leagues:index");
@@ -138,8 +139,16 @@ export default async function UnifiedLeaguePage({
     }
   }
 
+  const isPublicView = !permissions.isAdmin();
+
   return (
     <main style={{ display: "grid", gap: 16 }}>
+      {isPublicView && (
+        <Link href="/" className="card-cta" style={{ fontSize: 12, width: "fit-content" }}>
+          ← BACK
+        </Link>
+      )}
+
       <header className="team-header">
         <div className="team-title-wrap">
           <h1 className="page-title">{leagueName}</h1>
