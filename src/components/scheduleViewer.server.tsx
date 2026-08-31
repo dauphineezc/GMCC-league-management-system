@@ -38,9 +38,9 @@ export default async function ScheduleViewerServer({
   const now = new Date();
   const scheduledGames = games.filter((game) => {
     if (!game.dateTimeISO) return false;
-    const gameDate = new Date(game.dateTimeISO);
     const status = (game.status || "").toLowerCase();
-    return gameDate >= now || status === "scheduled";
+    if (status !== "scheduled") return false;
+    return new Date(game.dateTimeISO) >= now;
   });
 
   if (!pdfInfo && scheduledGames.length === 0) {

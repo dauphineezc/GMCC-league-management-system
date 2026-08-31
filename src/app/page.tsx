@@ -14,6 +14,12 @@ import type { Game } from "@/types/domain";
 import { batchGetTeams, batchGetTeamNames, batchGetGames } from "@/lib/kvBatch";
 import { readLeagueGames } from "@/lib/leagueData";
 import {
+  formatGameDateTime,
+  isUpcomingScheduledGame,
+  COMPLETION_GRACE_MINUTES,
+} from "@/lib/gameDateTime";
+import { syncPastGameStatuses } from "@/lib/repositories/gamesRepo";
+import {
   getTeamsForLeague,
   resolveManagedLeagueIds,
   type TeamCard,
@@ -63,6 +69,9 @@ export default async function UnifiedHome() {
   // NEW: ~5-10 batch calls total
   if (homeRole === "player" && user) {
     const memberships = await readMembershipsForUid(user.id, user.email ?? null);
+
+    // Persist overdue scheduled → completed / final before computing next games.
+    await syncPastGameStatuses(COMPLETION_GRACE_MINUTES);
 
     // Step 1: Batch fetch all teams
     const teamIds = memberships.map(m => m.teamId);
@@ -200,24 +209,12 @@ export default async function UnifiedHome() {
 
       const now = new Date();
       const next = withNames
-        .filter((g) => {
-          if (!g.dateTimeISO) return false;
-          const gameDate = new Date(g.dateTimeISO);
-          const status = (g.status || '').toLowerCase();
-          // Include games that are in the future OR have status 'scheduled'
-          return gameDate >= now || status === 'scheduled';
-        })
+        .filter((g) => isUpcomingScheduledGame(g, now.getTime()))
         .sort((a, b) => +new Date(a.dateTimeISO!) - +new Date(b.dateTimeISO!))[0];
 
       let nextGameText: string | undefined;
       if (next?.dateTimeISO) {
-        const dt = new Date(next.dateTimeISO);
-        const when = new Intl.DateTimeFormat("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }).format(dt);
+        const when = formatGameDateTime(next.dateTimeISO);
 
         const thisName = norm(teamName);
         const isHome =

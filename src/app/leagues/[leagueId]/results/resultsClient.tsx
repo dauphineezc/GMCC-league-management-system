@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { formatGameDate, formatGameTime } from '@/lib/gameDateTime';
 
 type Game = {
   id: string;
@@ -67,13 +68,9 @@ export default function ResultsClient({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  };
+  const formatDate = (dateString: string) => formatGameDate(dateString);
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  };
+  const formatTime = (dateString: string) => formatGameTime(dateString);
 
   const formatResult = (game: Game) => {
     if (game.homeScore != null && game.awayScore != null) {

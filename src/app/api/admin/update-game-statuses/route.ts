@@ -1,11 +1,10 @@
 // src/app/api/admin/update-game-statuses/route.ts
 import { assertCronOrSuperAdmin, isAuthFailure } from "@/lib/authGuards";
-import { finalizePastGamesWithScores } from "@/lib/repositories/gamesRepo";
+import { COMPLETION_GRACE_MINUTES } from "@/lib/gameDateTime";
+import { syncPastGameStatuses } from "@/lib/repositories/gamesRepo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const COMPLETION_GRACE_MINUTES = 120;
 
 export async function POST(req: Request) {
   try {
@@ -14,12 +13,15 @@ export async function POST(req: Request) {
 
     console.log(`[${new Date().toISOString()}] Starting game status update`);
 
-    const totalUpdated = await finalizePastGamesWithScores(COMPLETION_GRACE_MINUTES);
+    const { completed, finalized } = await syncPastGameStatuses(COMPLETION_GRACE_MINUTES);
+    const totalUpdated = completed + finalized;
 
     return new Response(
       JSON.stringify({
         ok: true,
-        message: `Finalized ${totalUpdated} past games with scores`,
+        message: `Marked ${completed} games completed and ${finalized} games final`,
+        completed,
+        finalized,
         totalUpdated,
         timestamp: new Date().toISOString(),
       }),

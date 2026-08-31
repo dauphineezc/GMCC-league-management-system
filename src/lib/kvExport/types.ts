@@ -63,7 +63,7 @@ export type ExportGame = {
   awayTeamName: string | null;
   location: string | null;
   startsAt: string | null;
-  status: "scheduled" | "final" | "canceled";
+  status: "scheduled" | "final" | "canceled" | "completed";
   homeScore: number | null;
   awayScore: number | null;
   createdAt: string | null;

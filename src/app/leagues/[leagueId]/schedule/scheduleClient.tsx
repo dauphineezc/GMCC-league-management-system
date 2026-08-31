@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import tz from "dayjs/plugin/timezone";
 import cpf from "dayjs/plugin/customParseFormat";
+import { formatGameDate, formatGameTime, LEAGUE_TIMEZONE } from "@/lib/gameDateTime";
 
 
 dayjs.extend(utc); dayjs.extend(tz); dayjs.extend(cpf);
@@ -94,8 +95,8 @@ export default function ScheduleClient({
 
   const toDisplay = (g: any) => {
     const iso = g.dateTimeISO || g.date || g.startTimeISO || g.start || null;
-    const dateText = iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—";
-    const timeText = iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "—";
+    const dateText = iso ? formatGameDate(iso) : "—";
+    const timeText = iso ? formatGameTime(iso) : "—";
     const court = g.location || g.court || g.venue || "—";
     const home = g.homeTeamName || g.homeName || g.home || g.homeTeamId || "";
     const away = g.awayTeamName || g.awayName || g.away || g.awayTeamId || "";
@@ -283,9 +284,9 @@ export default function ScheduleClient({
   }
 
   function startEditing(game: Game) {
-    const gameDate = new Date(game.dateTimeISO);
-    const dateStr = gameDate.toISOString().split('T')[0]; // YYYY-MM-DD
-    const timeStr = gameDate.toTimeString().slice(0, 5); // HH:MM
+    const local = dayjs(game.dateTimeISO).tz(LEAGUE_TIMEZONE);
+    const dateStr = local.format("YYYY-MM-DD");
+    const timeStr = local.format("HH:mm");
     
     setEditingGame({
       id: game.id,

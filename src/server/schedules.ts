@@ -8,7 +8,9 @@ function toDivisionGame(g: Record<string, unknown>, divisionId: DivisionId): Gam
     ? "final"
     : /cancel/i.test(statusRaw)
       ? "canceled"
-      : "scheduled";
+      : /completed/i.test(statusRaw)
+        ? "completed"
+        : "scheduled";
 
   return {
     id: String(g.id),

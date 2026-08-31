@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { formatGameDate, formatGameTime } from '@/lib/gameDateTime';
 
 type Props = {
   leagueId: string;
@@ -54,13 +55,9 @@ export default function GameHistory({ leagueId, teamId, teamName }: Props) {
     fetchCompletedGames();
   }, [fetchCompletedGames]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  };
+  const formatDate = (dateString: string) => formatGameDate(dateString);
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  };
+  const formatTime = (dateString: string) => formatGameTime(dateString);
 
   const formatResult = (game: Game) => {
     if (game.homeScore != null && game.awayScore != null) {

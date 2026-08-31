@@ -71,13 +71,13 @@ export default function ScheduleViewer({ leagueId, teamId, teamName }: Props) {
     }
   };
 
-  // Separate games into upcoming/scheduled vs completed
+  // Upcoming games: still scheduled and not yet started
   const now = new Date();
   const scheduledGames = games.filter(game => {
-    const gameDate = new Date(game.dateTimeISO);
+    if (!game.dateTimeISO) return false;
     const status = (game.status || '').toLowerCase();
-    // Show as scheduled if: future date OR status is explicitly 'scheduled'
-    return gameDate >= now || status === 'scheduled';
+    if (status !== 'scheduled') return false;
+    return new Date(game.dateTimeISO) >= now;
   });
 
   if (loading) {

@@ -3,10 +3,10 @@ import {
   gameRowToLegacy,
   listLeagueGamesRaw,
   getLeagueTeamsForStandings,
+  syncPastGameStatuses,
 } from "@/lib/repositories/gamesRepo";
 import { batchGetTeamNames } from "@/lib/repositories/teamsRepo";
-
-const COMPLETION_GRACE_MINUTES = 120;
+import { COMPLETION_GRACE_MINUTES } from "@/lib/gameDateTime";
 
 export function parseKVArray<T = any>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
@@ -42,6 +42,7 @@ export function toGameView(g: any, idToName: Map<string, string>) {
     ? "completed"
     : "scheduled";
 
+  // Fallback when DB sync hasn't run yet: treat overdue scheduled games as completed.
   if (status === "scheduled" && !hasResults && dateTimeISO) {
     const start = new Date(dateTimeISO).getTime();
     const now = Date.now();
@@ -66,6 +67,9 @@ export function toGameView(g: any, idToName: Map<string, string>) {
 }
 
 export async function getLeagueScheduleView(leagueId: string, teamFilter = "") {
+  // Keep DB statuses aligned before serving schedule/history UIs.
+  await syncPastGameStatuses(COMPLETION_GRACE_MINUTES);
+
   const sourceGames = await readLeagueGames(leagueId);
 
   const teamIds = Array.from(

@@ -2,7 +2,7 @@ import { db } from "@/db/index";
 import { games, teams } from "@/db/schema";
 import { resolveLeagueByRef } from "@/lib/db/resolveLeague";
 import { findTeamInLeagueByName } from "@/lib/repositories/teamsRepo";
-import { and, asc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lt, or } from "drizzle-orm";
 
 export type GameRow = typeof games.$inferSelect;
 
@@ -101,7 +101,7 @@ export async function updateScheduledGameDetails(input: {
   awayTeamName: string;
   location: string;
   startsAt: Date;
-  status?: "scheduled" | "final" | "canceled";
+  status?: "scheduled" | "final" | "canceled" | "completed";
 }): Promise<GameRow | null> {
   const league = await resolveLeagueByRef(input.leagueRef);
   if (!league) return null;
@@ -146,21 +146,48 @@ export async function deleteGame(
   return rows.length > 0;
 }
 
-export async function finalizePastGamesWithScores(graceMinutes: number): Promise<number> {
+/**
+ * Persist status transitions for past games:
+ * - scheduled → completed when start + grace has passed and scores are missing
+ * - scheduled/completed → final when scores are present
+ */
+export async function syncPastGameStatuses(
+  graceMinutes: number
+): Promise<{ completed: number; finalized: number }> {
   const cutoff = new Date(Date.now() - graceMinutes * 60_000);
-  const rows = await db
+
+  const finalized = await db
     .update(games)
     .set({ status: "final" })
     .where(
       and(
-        eq(games.status, "scheduled"),
+        or(eq(games.status, "scheduled"), eq(games.status, "completed")),
         lt(games.startsAt, cutoff),
         isNotNull(games.homeScore),
         isNotNull(games.awayScore)
       )
     )
     .returning({ id: games.id });
-  return rows.length;
+
+  const completed = await db
+    .update(games)
+    .set({ status: "completed" })
+    .where(
+      and(
+        eq(games.status, "scheduled"),
+        lt(games.startsAt, cutoff),
+        or(isNull(games.homeScore), isNull(games.awayScore))
+      )
+    )
+    .returning({ id: games.id });
+
+  return { completed: completed.length, finalized: finalized.length };
+}
+
+/** @deprecated Prefer syncPastGameStatuses — kept for callers that only need a count. */
+export async function finalizePastGamesWithScores(graceMinutes: number): Promise<number> {
+  const { completed, finalized } = await syncPastGameStatuses(graceMinutes);
+  return completed + finalized;
 }
 
 export async function listGamesForTeams(teamIds: string[]): Promise<Map<string, GameRow[]>> {

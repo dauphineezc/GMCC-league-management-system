@@ -1,5 +1,6 @@
 // Shared schedule viewer component - eliminates duplication between client and server versions
 import React from 'react';
+import { formatGameDate, formatGameTime } from '@/lib/gameDateTime';
 
 type PDFInfo = {
   filename: string;
@@ -25,13 +26,9 @@ type Props = {
 };
 
 export function ScheduleViewerShared({ pdfInfo, scheduledGames, onDownloadPDF, downloadHref }: Props) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  };
+  const formatDate = (dateString: string) => formatGameDate(dateString);
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  };
+  const formatTime = (dateString: string) => formatGameTime(dateString);
 
   const renderDownloadButton = () => {
     if (onDownloadPDF) {

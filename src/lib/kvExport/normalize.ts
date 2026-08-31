@@ -63,10 +63,11 @@ export function normalizeDivision(raw: unknown): Division | null {
 export function normalizeGameStatus(
   raw: unknown,
   hasScores: boolean
-): "scheduled" | "final" | "canceled" {
+): "scheduled" | "final" | "canceled" | "completed" {
   const s = String(raw ?? "").toLowerCase();
   if (/cancel/.test(s)) return "canceled";
   if (/final/.test(s) || hasScores) return "final";
+  if (/completed/.test(s)) return "completed";
   return "scheduled";
 }
 

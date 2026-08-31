@@ -5,7 +5,7 @@ export type Sport = "basketball" | "volleyball";
 export type Gender = "mens" | "womens" | "co-ed";
 export type PracticeDay = "Mon"|"Tue"|"Wed"|"Thu"|"Fri"|"Sat"|"Sun";
 export type Role = "player" | "admin";
-export type GameStatus = "scheduled" | "final" | "postponed";
+export type GameStatus = "scheduled" | "final" | "canceled" | "completed" | "postponed";
 
 // ===== CORE DOMAIN TYPES =====
 export type TeamFee = {
@@ -89,7 +89,7 @@ export type Game = {
   awayTeamName: string;
   homeTeamId?: string;
   awayTeamId?: string;
-  status: 'scheduled' | 'final' | 'canceled';
+  status: 'scheduled' | 'final' | 'canceled' | 'completed';
   homeScore?: number;
   awayScore?: number;
 };

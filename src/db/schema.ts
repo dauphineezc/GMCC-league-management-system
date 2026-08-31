@@ -16,7 +16,12 @@ import {
  * fields (sport/gender/division) are kept as text + app-level unions for now,
  * since legacy KV data needs normalizing during backfill.
  */
-export const gameStatus = pgEnum("game_status", ["scheduled", "final", "canceled"]);
+export const gameStatus = pgEnum("game_status", [
+  "scheduled",
+  "final",
+  "canceled",
+  "completed",
+]);
 
 export type Sport = "basketball" | "volleyball";
 export type Gender = "mens" | "womens" | "coed";
