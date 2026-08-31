@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { clearSessionCookieOptions, createSessionCookieOptions } from "@/lib/sessionCookie";
+import { applyClearedSessionCookies, createSessionCookieOptions } from "@/lib/sessionCookie";
 
 export async function POST(req: Request) {
   const { idToken } = await req.json();
@@ -19,8 +19,6 @@ export async function POST(req: Request) {
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  for (const cookie of clearSessionCookieOptions()) {
-    res.cookies.set(cookie);
-  }
+  applyClearedSessionCookies(res);
   return res;
 }
