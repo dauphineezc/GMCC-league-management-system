@@ -105,7 +105,7 @@ async function sendMailjetEmail(to: string, subject: string, text: string): Prom
     `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>` +
     `</div>`;
 
-  const endpoint = `${MJ_BASE}/v8.1/send`;
+  const endpoint = `${MJ_BASE}/v3.1/send`;
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -120,21 +120,19 @@ async function sendMailjetEmail(to: string, subject: string, text: string): Prom
           Subject: subject,
           TextPart: text,
           HTMLPart: html,
-          TrackOpens: "disabled",
-          TrackClicks: "disabled",
           CustomID: `invite_${Date.now()}`,
-          SandboxMode: false,
         },
       ],
     }),
   });
 
   if (!res.ok) {
-    let detail = "";
+    const raw = await res.text().catch(() => "");
+    let detail = raw;
     try {
-      detail = JSON.stringify(await res.json());
+      detail = JSON.stringify(JSON.parse(raw));
     } catch {
-      detail = await res.text();
+      // keep raw text
     }
     throw new Error(`Email failed (${res.status})${detail ? `: ${detail}` : ""}`);
   }
@@ -160,11 +158,12 @@ async function sendMailjetSms(to: string, text: string): Promise<void> {
   });
 
   if (!res.ok) {
-    let detail = "";
+    const raw = await res.text().catch(() => "");
+    let detail = raw;
     try {
-      detail = JSON.stringify(await res.json());
+      detail = JSON.stringify(JSON.parse(raw));
     } catch {
-      detail = await res.text();
+      // keep raw text
     }
     throw new Error(`SMS failed (${res.status})${detail ? `: ${detail}` : ""}`);
   }
