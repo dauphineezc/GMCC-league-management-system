@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 export const revalidate = 60;
 
 import PublicLeagueTabs from "./publicLeagueTabs";
-import { DIVISIONS } from "@/lib/divisions";
 import type { Sport } from "@/types/domain";
 import { readLeagueDoc, smembersSafe } from "@/lib/kvHelpers";
 
@@ -27,9 +26,7 @@ export default async function PublicLeagueTabsServer({
       const doc = await readLeagueDoc(id);
       const sport = normSport(doc?.sport);
       const name =
-        (doc?.name != null ? String(doc.name) : "") ||
-        DIVISIONS.find((d) => d.id === id)?.name ||
-        id;
+        (doc?.name != null ? String(doc.name) : "") || id;
       return { id, name, sport };
     })
   );

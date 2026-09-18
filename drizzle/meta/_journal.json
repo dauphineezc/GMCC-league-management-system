@@ -22,6 +22,34 @@
       "when": 1788193920000,
       "tag": "0002_game_status_completed",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788202395544,
+      "tag": "0003_game_set_scores",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788205000000,
+      "tag": "0004_divisions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788210000000,
+      "tag": "0005_divisions_sport",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788211000000,
+      "tag": "0006_user_pinned_leagues",
+      "breakpoints": true
     }
   ]
 }

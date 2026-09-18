@@ -4,7 +4,6 @@ export const revalidate = 30;
 
 import EmbedSignInLink from "@/components/embedSignInLink";
 import Link from "next/link";
-import { DIVISIONS } from "@/lib/divisions";
 import { getServerUser } from "@/lib/serverUser";
 import TeamSummaryCard from "@/components/playerTeamSummaryCard";
 import AdminLeagueCard from "@/components/adminLeagueSummaryCard";
@@ -25,6 +24,7 @@ import {
   type TeamCard,
 } from "@/lib/kvHelpers";
 import { readLeagueName } from "@/lib/readLeagueName";
+import { listPinnedLeagueRefs } from "@/lib/repositories/pinnedLeaguesRepo";
 
 const norm = (s: string | undefined | null) => String(s ?? "").trim().toLowerCase();
 
@@ -36,7 +36,6 @@ export default async function UnifiedHome() {
   // Determine user's role for home page display
   // Priority: superadmin > admin > player > public
   let homeRole: "public" | "player" | "admin" | "superadmin" = "public";
-  let isAnyLeagueAdmin = false;
 
   if (user) {
     if (user.superadmin) {
@@ -62,11 +61,10 @@ export default async function UnifiedHome() {
     leagueId: string;
     leagueName: string;
     teams: TeamCard[];
+    pinned?: boolean;
   }> = [];
 
-  // Player data - OPTIMIZED with batch operations
-  // OLD: 50-100+ sequential KV calls
-  // NEW: ~5-10 batch calls total
+  // Player data
   if (homeRole === "player" && user) {
     const memberships = await readMembershipsForUid(user.id, user.email ?? null);
 
@@ -108,7 +106,7 @@ export default async function UnifiedHome() {
     // Step 4: Batch fetch all team names
     const nameMap = await batchGetTeamNames(Array.from(allGameTeamIds));
 
-    // Step 5: Batch fetch league names for leagues not in DIVISIONS
+    // Step 5: Batch fetch league names
     // Collect leagueIds from both memberships and teams
     const membershipLeagueIds = memberships
       .map((m) => m.leagueId)
@@ -123,16 +121,9 @@ export default async function UnifiedHome() {
     const uniqueLeagueIds = [...new Set([...membershipLeagueIds, ...teamLeagueIds])];
     const leagueNameMap = new Map<string, string>();
 
-    DIVISIONS.forEach((d) => {
-      if (uniqueLeagueIds.includes(d.id)) {
-        leagueNameMap.set(d.id, d.name);
-      }
-    });
-
-    const leaguesToFetch = uniqueLeagueIds.filter((id) => !leagueNameMap.has(id));
-    if (leaguesToFetch.length > 0) {
+    if (uniqueLeagueIds.length > 0) {
       const leagueResults = await Promise.all(
-        leaguesToFetch.map(async (leagueId) => ({
+        uniqueLeagueIds.map(async (leagueId) => ({
           leagueId,
           name: await readLeagueName(leagueId),
         }))
@@ -253,18 +244,33 @@ export default async function UnifiedHome() {
     );
   }
 
-  // Admin data
-  if (homeRole === "admin" && user) {
+  // Admin / superadmin quick-access cards: managed leagues ∪ pinned (superadmin)
+  if (user && (homeRole === "admin" || homeRole === "superadmin")) {
     const managed = await resolveManagedLeagueIds(user);
+    const pinned =
+      homeRole === "superadmin" ? await listPinnedLeagueRefs(user.id) : [];
+    const pinnedSet = new Set(pinned);
+    const leagueIds = Array.from(new Set([...managed, ...pinned]));
     const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
-    adminLeagues = (await Promise.all(
-      managed.map(async (leagueId) => {
-        const leagueName = await readLeagueName(leagueId);
-        const teams = await getTeamsForLeague(leagueId);
-        return { leagueId, leagueName, teams };
-      })
-    )).sort((a, b) => {
+    adminLeagues = (
+      await Promise.all(
+        leagueIds.map(async (leagueId) => {
+          const leagueName = await readLeagueName(leagueId);
+          const teams = await getTeamsForLeague(leagueId);
+          return {
+            leagueId,
+            leagueName,
+            teams,
+            pinned: pinnedSet.has(leagueId),
+          };
+        })
+      )
+    ).sort((a, b) => {
+      // Pinned-only extras after managed; then alpha
+      const aManaged = managed.includes(a.leagueId) ? 0 : 1;
+      const bManaged = managed.includes(b.leagueId) ? 0 : 1;
+      if (aManaged !== bManaged) return aManaged - bManaged;
       const byName = collator.compare(a.leagueName || a.leagueId, b.leagueName || b.leagueId);
       return byName !== 0 ? byName : collator.compare(a.leagueId, b.leagueId);
     });
@@ -307,7 +313,20 @@ export default async function UnifiedHome() {
                 />
               ))
             ) : (
-              <p style={{ color: "var(--muted)" }}>No teams yet.</p>
+              <div style={{ color: "var(--muted)" }}>
+                <p style={{ margin: "0 0 8px" }}>No teams yet. Get started:</p>
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  <li>
+                    If you&apos;re the team manager, create a new team using the button below.
+                    Invite your teammates to join using the &quot;Invite via Code&quot; button on the team page.
+                  </li>
+                  <li>
+                    You can join an existing team by clicking on the &quot;Join with Code&quot; button below
+                    and entering the invite code, or by clicking the email/text link provided by your
+                    team manager.
+                  </li>
+                </ul>
+              </div>
             )}
           </div>
           <div className="btn-row" style={{ marginTop: 20 }}>
@@ -317,10 +336,12 @@ export default async function UnifiedHome() {
         </section>
       )}
 
-      {/* Admin Section - My Leagues */}
-      {homeRole === "admin" && (
+      {/* Admin / Superadmin Section - My Leagues (+ pinned for SA) */}
+      {adminLeagues.length > 0 && (
         <section id="leagues">
-          <h2 className="section-title">My Leagues</h2>
+          <h2 className="section-title">
+            {homeRole === "superadmin" ? "Quick Access Leagues" : "My Leagues"}
+          </h2>
           <div
             className="cards-grid-fixed admin-leagues-grid"
             style={{
@@ -330,19 +351,15 @@ export default async function UnifiedHome() {
               alignItems: "start",
             }}
           >
-            {adminLeagues.length ? (
-              adminLeagues.map((lg) => (
-                <div key={lg.leagueId}>
-                  <AdminLeagueCard
-                    leagueId={lg.leagueId}
-                    leagueName={lg.leagueName}
-                    teams={lg.teams}
-                  />
-                </div>
-              ))
-            ) : (
-              <p className="muted">No managed leagues yet.</p>
-            )}
+            {adminLeagues.map((lg) => (
+              <div key={lg.leagueId}>
+                <AdminLeagueCard
+                  leagueId={lg.leagueId}
+                  leagueName={lg.leagueName}
+                  teams={lg.teams}
+                />
+              </div>
+            ))}
           </div>
         </section>
       )}

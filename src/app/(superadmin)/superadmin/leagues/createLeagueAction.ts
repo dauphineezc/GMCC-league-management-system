@@ -4,12 +4,12 @@ import { adminAuth } from "@/lib/firebaseAdmin";
 import { assignTeamToLeagueRef } from "@/lib/repositories/teamsRepo";
 import { createLeagueRecord, readLeagueDocByRef } from "@/lib/repositories/leaguesRepo";
 import { listUnassignedTeams } from "@/lib/repositories/teamsRepo";
+import { isKnownDivisionSlug } from "@/lib/repositories/divisionsRepo";
 import { upsertUserProfile } from "@/lib/repositories/usersRepo";
 import type { CreateLeagueState, UnassignedTeam, AddTeamState } from "./createLeagueTypes";
 
 const SPORTS = ["basketball", "volleyball"] as const;
 const GENDERS = ["mens", "womens", "coed"] as const;
-const DIVS = ["low_b", "high_b", "a"] as const;
 
 const normEmail = (e: unknown) => String(e ?? "").trim().toLowerCase();
 
@@ -53,8 +53,8 @@ export async function createLeagueAction(
   if (!name) return { ok: false, error: "Please provide a league name." };
   if (!(SPORTS as readonly string[]).includes(sport))
     return { ok: false, error: "Please choose a valid sport." };
-  if (!(DIVS as readonly string[]).includes(division))
-    return { ok: false, error: "Please choose a valid division." };
+  if (!(await isKnownDivisionSlug(division, sport)))
+    return { ok: false, error: "Please choose a valid division for that sport." };
   if (!(GENDERS as readonly string[]).includes(gender))
     return { ok: false, error: "Please choose a valid gender." };
 

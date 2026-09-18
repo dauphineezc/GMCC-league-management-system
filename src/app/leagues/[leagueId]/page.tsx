@@ -14,14 +14,16 @@ import GameHistory from "@/components/gameHistory";
 import LeagueActionsDropdown from "@/components/leagueActionsDropdown";
 import DeleteResourceButton from "@/components/deleteResourceButton";
 import EditLeagueDescription from "@/components/editLeagueDescription";
-import { DIVISIONS } from "@/lib/divisions";
+import PinLeagueButton from "@/components/pinLeagueButton";
 import { getLeagueScheduleView, getOrCalculateStandings } from "@/lib/leagueData";
+import { isLeagueSchedulePdfOnly } from "@/lib/adminCsvExport";
 import type { RosterEntry } from "@/types/domain";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { batchGetRosters, batchGetPayments } from "@/lib/kvBatch";
 import { buildPlayerTeamsByUserFromMemberships } from "@/lib/playerTeams";
 import { getTeamsForLeague, smembersSafe, readLeagueDoc } from "@/lib/kvHelpers";
+import { isLeaguePinned } from "@/lib/repositories/pinnedLeaguesRepo";
 import Link from "next/link";
 
 export async function generateStaticParams() {
@@ -61,17 +63,16 @@ export default async function UnifiedLeaguePage({
   const permissions = await PermissionChecker.create(user, leagueId);
 
   // Fetch data (everyone needs this)
-  const [leagueDoc, teams, games, standings] = await Promise.all([
+  const [leagueDoc, teams, games, standings, schedulePdfOnly] = await Promise.all([
     readLeagueDoc(leagueId),
     getTeamsForLeague(leagueId),
     fetchGames(leagueId),
     fetchStandings(leagueId),
+    permissions.isAdmin() ? isLeagueSchedulePdfOnly(leagueId) : Promise.resolve(false),
   ]);
 
   const leagueName =
-    (leagueDoc?.name != null ? String(leagueDoc.name) : "") ||
-    DIVISIONS.find((d) => d.id === leagueId)?.name ||
-    leagueId;
+    (leagueDoc?.name != null ? String(leagueDoc.name) : "") || leagueId;
 
   const description =
     leagueDoc?.description != null ? String(leagueDoc.description) : "";
@@ -140,6 +141,10 @@ export default async function UnifiedLeaguePage({
   }
 
   const isPublicView = !permissions.isAdmin();
+  const leaguePinned =
+    permissions.isSuperAdmin() && user
+      ? await isLeaguePinned(user.id, leagueId)
+      : false;
 
   return (
     <main style={{ display: "grid", gap: 16 }}>
@@ -153,6 +158,9 @@ export default async function UnifiedLeaguePage({
         <div className="team-title-wrap">
           <h1 className="page-title">{leagueName}</h1>
         </div>
+        <IfSuperAdmin checker={permissions}>
+          <PinLeagueButton leagueId={leagueId} initiallyPinned={leaguePinned} />
+        </IfSuperAdmin>
       </header>
 
       {/* League Description - editable by admins and superadmins */}
@@ -215,7 +223,12 @@ export default async function UnifiedLeaguePage({
                 </div>
               ),
               schedule: <ScheduleViewerServer leagueId={leagueId} />,
-              history: <GameHistory leagueId={leagueId} />,
+              history: (
+                <GameHistory
+                  leagueId={leagueId}
+                  sport={typeof leagueDoc?.sport === "string" ? leagueDoc.sport : null}
+                />
+              ),
               standings: (
                 <div>
                   {standings.length === 0 ? (
@@ -307,12 +320,15 @@ export default async function UnifiedLeaguePage({
       >
         {/* Admin content */}
         <AdminLeagueSplitTabs 
-          leagueId={leagueId} 
+          leagueId={leagueId}
+          leagueName={leagueName}
           teams={teams} 
           roster={masterRoster} 
           playerTeamsByUser={playerTeamsByUser}
           games={games}
           standings={standings}
+          sport={typeof leagueDoc?.sport === "string" ? leagueDoc.sport : null}
+          scheduleCsvDisabled={schedulePdfOnly}
         />
       </IfAdmin>
 

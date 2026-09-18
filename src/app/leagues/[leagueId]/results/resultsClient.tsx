@@ -3,6 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { formatGameDate, formatGameTime } from '@/lib/gameDateTime';
+import type { Sport } from '@/types/domain';
+
+type SetScore = { homeScore: string; awayScore: string };
 
 type Game = {
   id: string;
@@ -14,19 +17,34 @@ type Game = {
   status?: string;
   homeScore?: number;
   awayScore?: number;
+  setScores?: Array<{ homeScore: number; awayScore: number }> | null;
 };
 
-export default function ResultsClient({ 
+const emptySets = (): SetScore[] => [
+  { homeScore: '', awayScore: '' },
+  { homeScore: '', awayScore: '' },
+  { homeScore: '', awayScore: '' },
+];
+
+export default function ResultsClient({
   leagueId,
   leagueName,
+  sport,
 }: {
   leagueId: string;
   leagueName: string;
+  sport: Sport | string | null;
 }) {
+  const isVolleyball = (sport || '').toLowerCase() === 'volleyball';
 
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingGame, setEditingGame] = useState<any>(null);
+  const [editingGame, setEditingGame] = useState<{
+    id: string;
+    homeScore: string;
+    awayScore: string;
+    sets: SetScore[];
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -46,17 +64,13 @@ export default function ResultsClient({
 
       const completed = allGames.filter((g) => {
         const status = String(g.status || '').toLowerCase();
-        // Show games with "final" or "completed" status, but NOT "canceled"
-        if (status === 'final' || status === 'completed') return true;
-
-        // Don't show scheduled or canceled games in game history
-        return false;
+        return status === 'final' || status === 'completed';
       });
 
       completed.sort((a, b) => {
         const ta = a.dateTimeISO ? new Date(a.dateTimeISO).getTime() : 0;
         const tb = b.dateTimeISO ? new Date(b.dateTimeISO).getTime() : 0;
-        return tb - ta; // most recent first
+        return tb - ta;
       });
 
       setGames(completed);
@@ -66,13 +80,23 @@ export default function ResultsClient({
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const formatDate = (dateString: string) => formatGameDate(dateString);
-
   const formatTime = (dateString: string) => formatGameTime(dateString);
 
   const formatResult = (game: Game) => {
+    if (isVolleyball && game.setScores && game.setScores.length === 3) {
+      return (
+        <div style={{ display: 'grid', gap: 2, fontSize: 12, textAlign: 'left' }}>
+          {game.setScores.map((s, i) => (
+            <div key={i}>
+              Game {i + 1}: {s.homeScore} - {s.awayScore}
+            </div>
+          ))}
+        </div>
+      );
+    }
     if (game.homeScore != null && game.awayScore != null) {
       return `${game.homeScore}-${game.awayScore}`;
     }
@@ -80,10 +104,19 @@ export default function ResultsClient({
   };
 
   const startEditing = (game: Game) => {
+    const sets =
+      game.setScores && game.setScores.length === 3
+        ? game.setScores.map((s) => ({
+            homeScore: String(s.homeScore),
+            awayScore: String(s.awayScore),
+          }))
+        : emptySets();
+
     setEditingGame({
       id: game.id,
       homeScore: game.homeScore?.toString() || '',
-      awayScore: game.awayScore?.toString() || ''
+      awayScore: game.awayScore?.toString() || '',
+      sets,
     });
     setMessage(null);
   };
@@ -96,13 +129,34 @@ export default function ResultsClient({
   const saveResult = async () => {
     if (!editingGame) return;
 
-    const homeScore = parseInt(editingGame.homeScore);
-    const awayScore = parseInt(editingGame.awayScore);
+    let body: Record<string, unknown>;
 
-    // Validate scores
-    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
-      setMessage('Please enter valid scores (0 or positive numbers)');
-      return;
+    if (isVolleyball) {
+      const setScores = editingGame.sets.map((s) => ({
+        homeScore: parseInt(s.homeScore, 10),
+        awayScore: parseInt(s.awayScore, 10),
+      }));
+      if (
+        setScores.some(
+          (s) =>
+            isNaN(s.homeScore) ||
+            isNaN(s.awayScore) ||
+            s.homeScore < 0 ||
+            s.awayScore < 0
+        )
+      ) {
+        setMessage('Please enter valid scores for all 3 games (0 or positive numbers)');
+        return;
+      }
+      body = { setScores };
+    } else {
+      const homeScore = parseInt(editingGame.homeScore, 10);
+      const awayScore = parseInt(editingGame.awayScore, 10);
+      if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+        setMessage('Please enter valid scores (0 or positive numbers)');
+        return;
+      }
+      body = { homeScore, awayScore };
     }
 
     setSaving(true);
@@ -112,16 +166,12 @@ export default function ResultsClient({
       const res = await fetch(`/api/leagues/${leagueId}/games/${editingGame.id}/result`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          homeScore,
-          awayScore
-        })
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
         setMessage('Result saved successfully!');
         setEditingGame(null);
-        // Refresh the games list to show updated result
         setTimeout(() => {
           fetchCompletedGames();
           setMessage(null);
@@ -140,19 +190,141 @@ export default function ResultsClient({
 
   const handleScoreChange = (field: 'homeScore' | 'awayScore', value: string) => {
     if (!editingGame) return;
-    
-    // Only allow numbers - allow up to 3 digits
     if (value === '' || /^\d{1,3}$/.test(value)) {
-      setEditingGame({
-        ...editingGame,
-        [field]: value
-      });
+      setEditingGame({ ...editingGame, [field]: value });
     }
+  };
+
+  const handleSetScoreChange = (
+    setIndex: number,
+    field: 'homeScore' | 'awayScore',
+    value: string
+  ) => {
+    if (!editingGame) return;
+    if (value !== '' && !/^\d{1,3}$/.test(value)) return;
+    const sets = editingGame.sets.map((s, i) =>
+      i === setIndex ? { ...s, [field]: value } : s
+    );
+    setEditingGame({ ...editingGame, sets });
+  };
+
+  const renderScoreEditor = () => {
+    if (!editingGame) return null;
+    if (isVolleyball) {
+      return (
+        <div style={{ display: 'grid', gap: 6 }}>
+          {editingGame.sets.map((s, i) => (
+            <div key={i} className="flex items-center justify-center gap-2">
+              <span style={{ fontSize: 12, width: 56, textAlign: 'right' }}>Game {i + 1}:</span>
+              <input
+                type="text"
+                value={s.homeScore}
+                onChange={(e) => handleSetScoreChange(i, 'homeScore', e.target.value)}
+                className="input"
+                style={{ width: 50, textAlign: 'center', padding: 6 }}
+                placeholder="0"
+                maxLength={3}
+              />
+              <span> - </span>
+              <input
+                type="text"
+                value={s.awayScore}
+                onChange={(e) => handleSetScoreChange(i, 'awayScore', e.target.value)}
+                className="input"
+                style={{ width: 50, textAlign: 'center', padding: 6 }}
+                placeholder="0"
+                maxLength={3}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center gap-2">
+        <input
+          type="text"
+          value={editingGame.homeScore}
+          onChange={(e) => handleScoreChange('homeScore', e.target.value)}
+          className="input"
+          style={{ width: 50, textAlign: 'center', padding: 6 }}
+          placeholder="0"
+          maxLength={3}
+        />
+        <span> - </span>
+        <input
+          type="text"
+          value={editingGame.awayScore}
+          onChange={(e) => handleScoreChange('awayScore', e.target.value)}
+          className="input"
+          style={{ width: 50, textAlign: 'center', padding: 6 }}
+          placeholder="0"
+          maxLength={3}
+        />
+      </div>
+    );
+  };
+
+  const renderMobileScoreEditor = () => {
+    if (!editingGame) return null;
+    if (isVolleyball) {
+      return (
+        <div style={{ display: 'grid', gap: 4, padding: '2px 4px' }}>
+          {editingGame.sets.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
+              <span style={{ fontSize: 10, width: 44 }}>G{i + 1}:</span>
+              <input
+                type="text"
+                value={s.homeScore}
+                onChange={(e) => handleSetScoreChange(i, 'homeScore', e.target.value)}
+                placeholder="0"
+                maxLength={3}
+                className="input score-input-mobile"
+                style={{ textAlign: 'center' }}
+              />
+              <span style={{ fontSize: 10 }}>-</span>
+              <input
+                type="text"
+                value={s.awayScore}
+                onChange={(e) => handleSetScoreChange(i, 'awayScore', e.target.value)}
+                placeholder="0"
+                maxLength={3}
+                className="input score-input-mobile"
+                style={{ textAlign: 'center' }}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 4px' }}>
+        <input
+          type="text"
+          value={editingGame.homeScore}
+          onChange={(e) => handleScoreChange('homeScore', e.target.value)}
+          placeholder="0"
+          maxLength={3}
+          className="input score-input-mobile"
+          style={{ textAlign: 'center' }}
+        />
+        <span style={{ fontSize: 10 }}>-</span>
+        <input
+          type="text"
+          value={editingGame.awayScore}
+          onChange={(e) => handleScoreChange('awayScore', e.target.value)}
+          placeholder="0"
+          maxLength={3}
+          className="input score-input-mobile"
+          style={{ textAlign: 'center' }}
+        />
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <main style={{ display: "grid", gap: 16, maxWidth: 980, margin: "0 auto", padding: 16 }}>
+      <main style={{ display: 'grid', gap: 16, maxWidth: 980, margin: '0 auto', padding: 16 }}>
         <div className="p-4 text-center">
           <div className="text-gray-500">Loading game results...</div>
         </div>
@@ -161,18 +333,26 @@ export default function ResultsClient({
   }
 
   return (
-    <main style={{ display: "grid", gap: 16, maxWidth: 980, margin: "0 auto", padding: 16 }}>
+    <main style={{ display: 'grid', gap: 16, maxWidth: 980, margin: '0 auto', padding: 16 }}>
       <header className="team-header">
         <div className="team-title-wrap">
           <h1 className="page-title">Game Results: {leagueName}</h1>
+          {isVolleyball && (
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--gray-600)' }}>
+              Enter all three games for each match (played regardless of score).
+            </p>
+          )}
         </div>
       </header>
 
       {message && (
-        <div className={`p-3 rounded-lg ${message.includes('Failed') || message.includes('error') 
-          ? 'bg-red-100 text-red-700' 
-          : 'bg-green-100 text-green-700'
-        }`}>
+        <div
+          className={`p-3 rounded-lg ${
+            message.includes('Failed') || message.includes('error')
+              ? 'bg-red-100 text-red-700'
+              : 'bg-green-100 text-green-700'
+          }`}
+        >
           {message}
         </div>
       )}
@@ -188,73 +368,45 @@ export default function ResultsClient({
           </div>
         ) : (
           <>
-            {/* Desktop table */}
             <div className="results-desktop">
               <div className="overflow-x-auto rounded-2xl border">
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Date</th>
-                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Time</th>
-                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Home Team</th>
-                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Away Team</th>
-                      <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee" }}>Results</th>
-                      <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #eee", width: "100px" }}>Actions</th>
+                      <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #eee' }}>Date</th>
+                      <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #eee' }}>Time</th>
+                      <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #eee' }}>Home Team</th>
+                      <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #eee' }}>Away Team</th>
+                      <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #eee' }}>Results</th>
+                      <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: '1px solid #eee', width: 100 }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {games.map((game) => (
                       <tr key={game.id}>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
-                          {formatDate(game.dateTimeISO ?? "")}
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
+                          {formatDate(game.dateTimeISO ?? '')}
                         </td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
-                          {formatTime(game.dateTimeISO ?? "")}
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
+                          {formatTime(game.dateTimeISO ?? '')}
                         </td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
                           {game.homeTeamName}
                         </td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
                           {game.awayTeamName}
                         </td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center", marginLeft: "-30px" }}>
-                          {editingGame?.id === game.id ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <input
-                                type="text"
-                                value={editingGame.homeScore}
-                                onChange={(e) => handleScoreChange('homeScore', e.target.value)}
-                                className="input"
-                                style={{ width: '50px', textAlign: 'center', padding: '6px' }}
-                                placeholder="0"
-                                maxLength={3}
-                              />
-                              <span> - </span>
-                              <input
-                                type="text"
-                                value={editingGame.awayScore}
-                                onChange={(e) => handleScoreChange('awayScore', e.target.value)}
-                                className="input"
-                                style={{ width: '50px', textAlign: 'center', padding: '6px' }}
-                                placeholder="0"
-                                maxLength={3}
-                              />
-                            </div>
-                          ) : (
-                            formatResult(game)
-                          )}
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
+                          {editingGame?.id === game.id ? renderScoreEditor() : formatResult(game)}
                         </td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #f3f4f6", textAlign: "center" }}>
+                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
                           {editingGame?.id === game.id ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={saveResult}
                                 disabled={saving}
                                 className="px-2 py-1 text-xs rounded disabled:opacity-50"
-                                style={{ 
-                                  color: 'var(--navy)',
-                                  border: 'none'
-                                }}
+                                style={{ color: 'var(--navy)', border: 'none' }}
                               >
                                 {saving ? 'Saving...' : 'Save'}
                               </button>
@@ -262,10 +414,7 @@ export default function ResultsClient({
                                 onClick={cancelEditing}
                                 disabled={saving}
                                 className="px-2 py-1 text-xs rounded disabled:opacity-50"
-                                style={{ 
-                                  color: 'var(--navy)',
-                                  border: 'none'
-                                }}
+                                style={{ color: 'var(--navy)', border: 'none' }}
                               >
                                 Cancel
                               </button>
@@ -290,35 +439,37 @@ export default function ResultsClient({
                 </table>
               </div>
             </div>
-            
-            {/* Mobile cards */}
+
             <div className="results-mobile">
               <ul className="roster-list">
                 {games.map((game, index) => (
-                  <li key={game.id} style={{ borderBottom: index < games.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-                    <div className="player-card" style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+                  <li
+                    key={game.id}
+                    style={{ borderBottom: index < games.length - 1 ? '1px solid #f3f4f6' : 'none' }}
+                  >
+                    <div className="player-card" style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "14px", fontWeight: 800, color: "var(--navy)", marginBottom: "2px" }}>
-                            {formatDate(game.dateTimeISO ?? "")} at {formatTime(game.dateTimeISO ?? "")}
+                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 2 }}>
+                            {formatDate(game.dateTimeISO ?? '')} at {formatTime(game.dateTimeISO ?? '')}
                           </div>
-                          <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
-                            {game.location || "Location TBD"}
+                          <div style={{ fontSize: 12, color: 'var(--gray-600)' }}>
+                            {game.location || 'Location TBD'}
                           </div>
                         </div>
                         {editingGame?.id === game.id ? (
-                          <div style={{ display: "flex", maxWidth: "100px", gap: "2px", alignItems: "center", flexWrap: "wrap" }}>
+                          <div style={{ display: 'flex', maxWidth: 100, gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                             <button
                               onClick={saveResult}
                               disabled={saving}
                               className="px-1 py-1 text-xs rounded disabled:opacity-50"
-                              style={{ 
+                              style={{
                                 color: 'var(--navy)',
                                 border: '1px solid var(--navy)',
                                 backgroundColor: 'transparent',
-                                fontSize: '10px',
+                                fontSize: 10,
                                 padding: '2px 4px',
-                                minWidth: 'auto'
+                                minWidth: 'auto',
                               }}
                             >
                               {saving ? 'Saving...' : 'Save'}
@@ -327,13 +478,13 @@ export default function ResultsClient({
                               onClick={cancelEditing}
                               disabled={saving}
                               className="px-1 py-1 text-xs rounded disabled:opacity-50"
-                              style={{ 
+                              style={{
                                 color: 'var(--navy)',
                                 border: '1px solid var(--navy)',
                                 backgroundColor: 'transparent',
-                                fontSize: '10px',
+                                fontSize: 10,
                                 padding: '2px 4px',
-                                minWidth: 'auto'
+                                minWidth: 'auto',
                               }}
                             >
                               Cancel
@@ -353,48 +504,24 @@ export default function ResultsClient({
                           </button>
                         )}
                       </div>
-                      
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px", marginTop: "8px" }}>
-                        <div style={{ flex: 1, textAlign: "center" }}>
-                          <div style={{ fontWeight: 800, color: "var(--navy)" }}>
-                            {game.homeTeamName}
-                          </div>
-                          <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Home</div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, marginTop: 8 }}>
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <div style={{ fontWeight: 800, color: 'var(--navy)' }}>{game.homeTeamName}</div>
+                          <div style={{ fontSize: 12, color: 'var(--gray-600)' }}>Home</div>
                         </div>
-                        <div style={{ fontWeight: 800, color: "var(--navy)", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ fontWeight: 800, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           {editingGame?.id === game.id ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: "4px", padding: "2px 4px" }}>
-                              <input
-                                type="text"
-                                value={editingGame.homeScore}
-                                onChange={(e) => handleScoreChange('homeScore', e.target.value)}
-                                placeholder="0"
-                                maxLength={3}
-                                className="input score-input-mobile"
-                                style={{ textAlign: 'center' }}
-                              />
-                              <span style={{ fontSize: "10px" }}>-</span>
-                              <input
-                                type="text"
-                                value={editingGame.awayScore}
-                                onChange={(e) => handleScoreChange('awayScore', e.target.value)}
-                                placeholder="0"
-                                maxLength={3}
-                                className="input score-input-mobile"
-                                style={{ textAlign: 'center' }}
-                              />
-                            </div>
+                            renderMobileScoreEditor()
                           ) : (
-                            <span style={{ fontSize: "16px", fontWeight: "800" }}>
+                            <span style={{ fontSize: isVolleyball ? 12 : 16, fontWeight: 800 }}>
                               {formatResult(game)}
                             </span>
                           )}
                         </div>
-                        <div style={{ flex: 1, textAlign: "center" }}>
-                          <div style={{ fontWeight: 800, color: "var(--navy)" }}>
-                            {game.awayTeamName}
-                          </div>
-                          <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>Away</div>
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <div style={{ fontWeight: 800, color: 'var(--navy)' }}>{game.awayTeamName}</div>
+                          <div style={{ fontSize: 12, color: 'var(--gray-600)' }}>Away</div>
                         </div>
                       </div>
                     </div>

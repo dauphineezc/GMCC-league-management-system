@@ -1,5 +1,4 @@
 // src/app/api/leagues/[leagueId]/schedule/pdf-info/route.ts
-import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
 import { getSchedulePdfInfo } from "@/lib/repositories/schedulePdfsRepo";
 
 export const runtime = "nodejs";
@@ -9,9 +8,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const auth = await assertAuthenticated();
-  if (isAuthFailure(auth)) return auth.response;
-
+  // Public: metadata used by the schedule tab for signed-out viewers.
   const { leagueId: lid } = await params;
   const info = await getSchedulePdfInfo(lid);
 

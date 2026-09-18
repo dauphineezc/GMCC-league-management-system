@@ -1,6 +1,5 @@
 // /src/lib/rosterAggregate.ts
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { DIVISIONS } from "@/lib/divisions";
 import { readLeagueName } from "@/lib/readLeagueName";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { smembersSafe, getTeamsForLeague } from "@/lib/kvHelpers";
@@ -9,9 +8,7 @@ import type { PlayerTeam, RosterRow } from "@/types/domain";
 
 /** Build a global roster (all player memberships) + a mapping for the popup */
 export async function buildGlobalPlayerRoster() {
-  // Prefer KV index; fall back to static DIVISIONS ids if your seed didn't write the index.
-  const indexed = await smembersSafe("leagues:index");
-  const leagueIds = indexed.length ? indexed : DIVISIONS.map(d => d.id);
+  const leagueIds = await smembersSafe("leagues:index");
 
   const roster: RosterRow[] = [];
   const playerTeamsByUser: Record<string, PlayerTeam[]> = {};
@@ -38,6 +35,8 @@ export async function buildGlobalPlayerRoster() {
           teamName: t.name,
           isManager: Boolean(entry.isManager),
           paid: Boolean(payMap?.[entry.userId]),
+          leagueId,
+          leagueName,
         };
         roster.push(row);
 

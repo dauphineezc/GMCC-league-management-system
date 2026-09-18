@@ -745,6 +745,14 @@ button.card-cta {
 /* Keep widths respected */
 .schedule-table { table-layout: fixed; }
 
+.schedule-edit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
 /* Pull the last column inward (closer to Status) */
 .schedule-table th.actions,
 .schedule-table td.actions {

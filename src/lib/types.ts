@@ -8,13 +8,12 @@ export type {
   Membership,
 } from "@/types/domain";
 
-import type { DivisionId } from "@/lib/divisions";
-
 // Legacy Team type that differs from domain Team - keeping for now
 export type Team = {
   id: string;
   name: string;
-  divisionId: DivisionId;
+  /** League slug / id (legacy field name). */
+  divisionId: string;
   leadUserId: string;
   createdAt: string;
   rosterLimit: number; // 8

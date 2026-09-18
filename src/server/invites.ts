@@ -4,6 +4,8 @@ import {
   consumeLinkInvite as consumeLink,
   createCodeInvite as createCode,
   createLinkInvite as createLink,
+  peekCodeInvite as peekCode,
+  peekLinkInvite as peekLink,
 } from "@/lib/repositories/invitesRepo";
 
 export async function ensureLead(userId: string, teamId: string) {
@@ -33,6 +35,10 @@ export async function createLinkInvite(
   });
 }
 
+export async function peekLinkInvite(token: string) {
+  return peekLink(token);
+}
+
 export async function consumeLinkInvite(token: string, usedBy?: string) {
   return consumeLink(token, usedBy);
 }
@@ -50,6 +56,10 @@ export async function createCodeInvite(
     ttlHours: options?.ttlHours,
     createdBy: options?.createdBy,
   });
+}
+
+export async function peekCodeInvite(code: string) {
+  return peekCode(code);
 }
 
 export async function consumeCodeInvite(code: string, usedBy?: string) {

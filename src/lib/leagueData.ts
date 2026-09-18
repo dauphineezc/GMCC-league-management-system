@@ -7,6 +7,7 @@ import {
 } from "@/lib/repositories/gamesRepo";
 import { batchGetTeamNames } from "@/lib/repositories/teamsRepo";
 import { COMPLETION_GRACE_MINUTES } from "@/lib/gameDateTime";
+import type { GameSetScore } from "@/db/schema";
 
 export function parseKVArray<T = any>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
@@ -21,6 +22,19 @@ export async function readLeagueGames(leagueId: string): Promise<any[]> {
   return rows.map((g) => gameRowToLegacy(g, league.slug));
 }
 
+function normalizeSetScores(raw: unknown): GameSetScore[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const sets: GameSetScore[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") return null;
+    const homeScore = Number((item as any).homeScore ?? (item as any).home);
+    const awayScore = Number((item as any).awayScore ?? (item as any).away);
+    if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) return null;
+    sets.push({ homeScore, awayScore });
+  }
+  return sets.length ? sets : null;
+}
+
 export function toGameView(g: any, idToName: Map<string, string>) {
   const dateTimeISO = g.dateTimeISO || g.date || g.startTimeISO || g.start || null;
   const location = g.location || g.court || g.venue || "";
@@ -29,7 +43,9 @@ export function toGameView(g: any, idToName: Map<string, string>) {
   const awayTeamName =
     g.awayTeamName || g.awayName || (g.awayTeamId ? idToName.get(g.awayTeamId) : "") || "";
 
+  const setScores = normalizeSetScores(g.setScores);
   const hasResults =
+    (setScores != null && setScores.length > 0) ||
     (g.score?.home != null && g.score?.away != null) ||
     (g.homeScore != null && g.awayScore != null);
 
@@ -63,6 +79,7 @@ export function toGameView(g: any, idToName: Map<string, string>) {
     status,
     homeScore: g.score?.home ?? g.homeScore,
     awayScore: g.score?.away ?? g.awayScore,
+    setScores,
   };
 }
 
@@ -108,10 +125,25 @@ export type StandingRow = {
   gamesPlayed: number;
 };
 
+function emptyStanding(teamId: string, teamName: string): StandingRow {
+  return {
+    teamId,
+    teamName,
+    wins: 0,
+    losses: 0,
+    pointsFor: 0,
+    pointsAgainst: 0,
+    winPercentage: 0,
+    gamesPlayed: 0,
+  };
+}
+
+/** Head-to-head by match score (basketball) or per-game/set wins (volleyball). */
 function headToHead(
   finalGames: any[],
   aTeamName: string,
-  bTeamName: string
+  bTeamName: string,
+  volleyball: boolean
 ): number {
   let aWins = 0;
   let bWins = 0;
@@ -119,6 +151,17 @@ function headToHead(
     const involvesA = g.homeTeamName === aTeamName || g.awayTeamName === aTeamName;
     const involvesB = g.homeTeamName === bTeamName || g.awayTeamName === bTeamName;
     if (!involvesA || !involvesB) continue;
+
+    const sets = normalizeSetScores(g.setScores);
+    if (volleyball && sets) {
+      for (const s of sets) {
+        const aScore = g.homeTeamName === aTeamName ? s.homeScore : s.awayScore;
+        const bScore = g.homeTeamName === bTeamName ? s.homeScore : s.awayScore;
+        if (aScore > bScore) aWins++;
+        else if (bScore > aScore) bWins++;
+      }
+      continue;
+    }
 
     const aScore =
       g.homeTeamName === aTeamName ? parseInt(g.homeScore) : parseInt(g.awayScore);
@@ -133,33 +176,73 @@ function headToHead(
   return 0;
 }
 
+function applyBasketballMatch(
+  homeStanding: StandingRow,
+  awayStanding: StandingRow,
+  homeScore: number,
+  awayScore: number
+) {
+  homeStanding.pointsFor += homeScore;
+  homeStanding.pointsAgainst += awayScore;
+  awayStanding.pointsFor += awayScore;
+  awayStanding.pointsAgainst += homeScore;
+  homeStanding.gamesPlayed++;
+  awayStanding.gamesPlayed++;
+
+  if (homeScore > awayScore) {
+    homeStanding.wins++;
+    awayStanding.losses++;
+  } else if (awayScore > homeScore) {
+    awayStanding.wins++;
+    homeStanding.losses++;
+  }
+}
+
+/** Volleyball: each set ("game") is a separate W/L; PF/PA sum set points. */
+function applyVolleyballMatch(
+  homeStanding: StandingRow,
+  awayStanding: StandingRow,
+  setScores: GameSetScore[]
+) {
+  for (const s of setScores) {
+    homeStanding.pointsFor += s.homeScore;
+    homeStanding.pointsAgainst += s.awayScore;
+    awayStanding.pointsFor += s.awayScore;
+    awayStanding.pointsAgainst += s.homeScore;
+    homeStanding.gamesPlayed++;
+    awayStanding.gamesPlayed++;
+
+    if (s.homeScore > s.awayScore) {
+      homeStanding.wins++;
+      awayStanding.losses++;
+    } else if (s.awayScore > s.homeScore) {
+      awayStanding.wins++;
+      homeStanding.losses++;
+    }
+  }
+}
+
 /** Compute standings from final games (no KV persistence). */
 export async function calculateStandings(leagueId: string): Promise<StandingRow[]> {
+  const league = await resolveLeagueByRef(leagueId);
+  const volleyball = (league?.sport || "").toLowerCase() === "volleyball";
+
   const teams = await getLeagueTeamsForStandings(leagueId);
   const games = await readLeagueGames(leagueId);
 
   const finalGames = games.filter((game) => {
     const status = (game.status || "").toLowerCase();
-    return (
-      (status === "final" || status === "completed") &&
-      game.homeScore != null &&
-      game.awayScore != null
-    );
+    const sets = normalizeSetScores(game.setScores);
+    const hasScores =
+      (volleyball && sets != null && sets.length === 3) ||
+      (game.homeScore != null && game.awayScore != null);
+    return (status === "final" || status === "completed") && hasScores;
   });
 
   const standings: Map<string, StandingRow> = new Map();
 
   teams.forEach((team) => {
-    standings.set(team.name, {
-      teamId: team.id,
-      teamName: team.name,
-      wins: 0,
-      losses: 0,
-      pointsFor: 0,
-      pointsAgainst: 0,
-      winPercentage: 0,
-      gamesPlayed: 0,
-    });
+    standings.set(team.name, emptyStanding(team.id, team.name));
   });
 
   const allTeamNamesInGames = new Set<string>();
@@ -170,45 +253,31 @@ export async function calculateStandings(leagueId: string): Promise<StandingRow[
 
   allTeamNamesInGames.forEach((teamName) => {
     if (!standings.has(teamName)) {
-      standings.set(teamName, {
-        teamId: teamName.toLowerCase().replace(/\s+/g, "-"),
+      standings.set(
         teamName,
-        wins: 0,
-        losses: 0,
-        pointsFor: 0,
-        pointsAgainst: 0,
-        winPercentage: 0,
-        gamesPlayed: 0,
-      });
+        emptyStanding(teamName.toLowerCase().replace(/\s+/g, "-"), teamName)
+      );
     }
   });
 
   finalGames.forEach((game) => {
     const homeTeam = game.homeTeamName;
     const awayTeam = game.awayTeamName;
-    const homeScore = parseInt(game.homeScore);
-    const awayScore = parseInt(game.awayScore);
-
-    if (isNaN(homeScore) || isNaN(awayScore)) return;
     if (!standings.has(homeTeam) || !standings.has(awayTeam)) return;
 
     const homeStanding = standings.get(homeTeam)!;
     const awayStanding = standings.get(awayTeam)!;
+    const sets = normalizeSetScores(game.setScores);
 
-    homeStanding.pointsFor += homeScore;
-    homeStanding.pointsAgainst += awayScore;
-    awayStanding.pointsFor += awayScore;
-    awayStanding.pointsAgainst += homeScore;
-    homeStanding.gamesPlayed++;
-    awayStanding.gamesPlayed++;
-
-    if (homeScore > awayScore) {
-      homeStanding.wins++;
-      awayStanding.losses++;
-    } else if (awayScore > homeScore) {
-      awayStanding.wins++;
-      homeStanding.losses++;
+    if (volleyball && sets && sets.length === 3) {
+      applyVolleyballMatch(homeStanding, awayStanding, sets);
+      return;
     }
+
+    const homeScore = parseInt(game.homeScore);
+    const awayScore = parseInt(game.awayScore);
+    if (isNaN(homeScore) || isNaN(awayScore)) return;
+    applyBasketballMatch(homeStanding, awayStanding, homeScore, awayScore);
   });
 
   standings.forEach((standing) => {
@@ -223,7 +292,7 @@ export async function calculateStandings(leagueId: string): Promise<StandingRow[
   teamsWithGames.sort((a, b) => {
     if (b.winPercentage !== a.winPercentage) return b.winPercentage - a.winPercentage;
     if (a.losses !== b.losses) return a.losses - b.losses;
-    const h2h = headToHead(finalGames, a.teamName, b.teamName);
+    const h2h = headToHead(finalGames, a.teamName, b.teamName, volleyball);
     if (h2h !== 0) return h2h;
     const aDiff = a.pointsFor - a.pointsAgainst;
     const bDiff = b.pointsFor - b.pointsAgainst;

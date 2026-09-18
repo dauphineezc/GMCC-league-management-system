@@ -18,8 +18,9 @@ export default function TeamTabs(props: {
   isManager: boolean;   // team manager
   playerAddDeadline?: string | null;
   isPlayerAddLocked?: boolean;
+  sport?: string | null;
 }) {
-  const { teamId, teamName, leagueId, roster, isMember, isManager, playerAddDeadline, isPlayerAddLocked } = props;
+  const { teamId, teamName, leagueId, roster, isMember, isManager, playerAddDeadline, isPlayerAddLocked, sport } = props;
   const [tab, setTab] = useState<"roster" | "schedule" | "history" | "standings">("roster");
   const [inviteModal, setInviteModal] = useState<InviteModalType>(null);
   const [leaving, setLeaving] = useState(false);
@@ -326,7 +327,7 @@ export default function TeamTabs(props: {
         )}
 
         {tab === "history" && (
-          <GameHistory leagueId={leagueId} teamId={teamId} teamName={teamName} />
+          <GameHistory leagueId={leagueId} teamId={teamId} teamName={teamName} sport={sport} />
         )}
 
         {tab === "standings" && (
@@ -506,6 +507,17 @@ const tdCenter: React.CSSProperties = { padding: "6px 8px", borderBottom: "1px s
 
 /* ---------------- Invite Modal Component ---------------- */
 
+type InviteDeliveryChannel = { attempted: boolean; sent: boolean; error?: string };
+type InviteResult = {
+  token?: string;
+  code?: string;
+  expiresIn?: number;
+  delivery?: {
+    email: InviteDeliveryChannel;
+    sms: InviteDeliveryChannel;
+  };
+};
+
 function InviteModal({ 
   type, 
   teamId, 
@@ -520,8 +532,9 @@ function InviteModal({
   const [phone, setPhone] = useState('');
   const [ttlHours, setTtlHours] = useState(24);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ token?: string; code?: string; expiresIn?: number } | null>(null);
+  const [result, setResult] = useState<InviteResult | null>(null);
   const [error, setError] = useState('');
+  const hasContact = Boolean(email.trim() || phone.trim());
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -580,10 +593,11 @@ function InviteModal({
                 {type === 'link' 
                   ? 'Generate a one-time invite link. The invitee will be automatically added to the team when they click the link.'
                   : 'Generate a shareable code. The invitee must have an account and enter this code on their home page.'}
+                {' '}If you enter an email or phone number, we&apos;ll send it automatically. You can still copy it afterward.
               </p>
 
               <div className="form-field">
-                <label htmlFor="email">Email (optional)</label>
+                <label htmlFor="email">Email (optional — we&apos;ll send the invite)</label>
                 <input
                   id="email"
                   type="email"
@@ -594,7 +608,7 @@ function InviteModal({
               </div>
 
               <div className="form-field">
-                <label htmlFor="phone">Phone (optional)</label>
+                <label htmlFor="phone">Phone (optional — we&apos;ll text the invite)</label>
                 <input
                   id="phone"
                   type="tel"
@@ -632,7 +646,9 @@ function InviteModal({
                   onClick={handleGenerate}
                   disabled={loading}
                 >
-                  {loading ? 'Generating...' : 'Generate'}
+                  {loading
+                    ? (hasContact ? 'Sending...' : 'Generating...')
+                    : (hasContact ? 'Generate & send' : 'Generate')}
                 </button>
               </div>
             </>
@@ -643,6 +659,33 @@ function InviteModal({
                 <br />
                 Expires in {result.expiresIn} hours.
               </div>
+
+              {result.delivery && (result.delivery.email.attempted || result.delivery.sms.attempted) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                  {result.delivery.email.attempted && (
+                    result.delivery.email.sent ? (
+                      <div className="info-message">📧 Sent to {email.trim()}</div>
+                    ) : (
+                      <div className="error-message" style={{ marginBottom: 0 }}>
+                        Couldn&apos;t email {email.trim()}
+                        {result.delivery.email.error ? `: ${result.delivery.email.error}` : '.'}
+                        {' '}You can still copy the {type === 'link' ? 'link' : 'code'} below.
+                      </div>
+                    )
+                  )}
+                  {result.delivery.sms.attempted && (
+                    result.delivery.sms.sent ? (
+                      <div className="info-message">📱 Sent to {phone.trim()}</div>
+                    ) : (
+                      <div className="error-message" style={{ marginBottom: 0 }}>
+                        Couldn&apos;t text {phone.trim()}
+                        {result.delivery.sms.error ? `: ${result.delivery.sms.error}` : '.'}
+                        {' '}You can still copy the {type === 'link' ? 'link' : 'code'} below.
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
 
               {type === 'link' && inviteLink && (
                 <div className="form-field">
@@ -693,12 +736,6 @@ function InviteModal({
                   <small style={{ color: 'var(--muted)', marginTop: 4 }}>
                     Share this code with the person you want to invite. They must enter it on their home page.
                   </small>
-                </div>
-              )}
-
-              {(email || phone) && (
-                <div className="info-message" style={{ marginTop: 12 }}>
-                  📧 Invite for: {email || phone}
                 </div>
               )}
 

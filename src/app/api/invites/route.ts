@@ -9,13 +9,30 @@ import {
   isUserTeamManager,
 } from "@/lib/repositories/teamsRepo";
 import { createLinkInvite, createCodeInvite } from "@/server/invites";
+import { absoluteUrl } from "@/lib/absoluteUrl";
+import {
+  deliverInvite,
+  parseOptionalEmail,
+  parseOptionalPhone,
+} from "@/lib/deliverInvite";
 
 export async function POST(req: NextRequest) {
   const auth = await assertAuthenticated();
   if (isAuthFailure(auth)) return auth.response;
   const user = auth.user;
 
-  const { teamId, type, ttlHours, email, phone } = await req.json();
+  const body = await req.json();
+  const { teamId, type, ttlHours } = body;
+
+  let email: string | undefined;
+  let phone: string | undefined;
+  try {
+    email = parseOptionalEmail(body.email);
+    phone = parseOptionalPhone(body.phone);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid contact details.";
+    return Response.json({ error: { code: "INVALID_CONTACT", message } }, { status: 400 });
+  }
 
   if (type !== "link" && type !== "code") {
     return Response.json(
@@ -76,19 +93,43 @@ export async function POST(req: NextRequest) {
     createdBy: user.id,
   };
 
+  const teamName = typeof team.name === "string" && team.name.trim() ? team.name.trim() : "a GMCC team";
+  const joinUrl = await absoluteUrl("/join");
+
   if (type === "link") {
     const result = await createLinkInvite(teamId, options);
+    const link = `${joinUrl}?t=${result.token}`;
+    const delivery = await deliverInvite({
+      email,
+      phone,
+      kind: "link",
+      teamName,
+      link,
+      expiresIn: result.expiresIn,
+      joinUrl,
+    });
     return Response.json({
       token: result.token,
       expiresIn: result.expiresIn,
       type: "link",
+      delivery,
     });
   }
 
   const result = await createCodeInvite(teamId, options);
+  const delivery = await deliverInvite({
+    email,
+    phone,
+    kind: "code",
+    teamName,
+    code: result.code,
+    expiresIn: result.expiresIn,
+    joinUrl,
+  });
   return Response.json({
     code: result.code,
     expiresIn: result.expiresIn,
     type: "code",
+    delivery,
   });
 }

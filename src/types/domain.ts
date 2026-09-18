@@ -80,6 +80,8 @@ export type League = {
   updatedAt?: string;
 };
 
+export type GameSetScore = { homeScore: number; awayScore: number };
+
 export type Game = {
   id: string;
   leagueId: string;
@@ -92,6 +94,8 @@ export type Game = {
   status: 'scheduled' | 'final' | 'canceled' | 'completed';
   homeScore?: number;
   awayScore?: number;
+  /** Volleyball: three game (set) scores. Basketball: omitted. */
+  setScores?: GameSetScore[] | null;
 };
 
 export type StandingRow = {
@@ -175,6 +179,8 @@ export type RosterRow = {
   isManager: boolean;
   paid?: boolean;
   joinedAt?: string;
+  leagueId?: string;
+  leagueName?: string;
 };
 
 export type MemberPublic = {

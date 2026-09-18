@@ -242,7 +242,7 @@ export async function createTeam(input: {
   managerUserId: string;
   sport?: "basketball" | "volleyball";
   gender?: "mens" | "womens" | "co-ed";
-  estimatedDivision?: "low b" | "high b" | "a";
+  estimatedDivision?: string;
   paymentRequired?: boolean;
 }): Promise<TeamDocRecord> {
   const id = input.id ?? crypto.randomUUID();
@@ -256,14 +256,13 @@ export async function createTeam(input: {
 
   const gender =
     input.gender === "co-ed" ? "coed" : (input.gender as "mens" | "womens" | undefined);
-  const estimatedDivision =
-    input.estimatedDivision === "low b"
-      ? "low_b"
-      : input.estimatedDivision === "high b"
-        ? "high_b"
-        : input.estimatedDivision === "a"
-          ? "a"
-          : undefined;
+  const estimatedDivision = input.estimatedDivision
+    ? input.estimatedDivision
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+    : undefined;
 
   const [team] = await db
     .insert(teams)

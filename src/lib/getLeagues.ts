@@ -1,6 +1,12 @@
 import { listAllLeaguesLite, type LeagueDocRecord } from "@/lib/repositories/leaguesRepo";
 
-export type LeagueLite = { id: string; name: string; sport: string };
+export type LeagueLite = {
+  id: string;
+  name: string;
+  sport: string;
+  gender: string | null;
+  division: string | null;
+};
 
 export async function getLeagues(
   opts: { onlyApproved?: boolean; sport?: "basketball" | "volleyball" } = {}

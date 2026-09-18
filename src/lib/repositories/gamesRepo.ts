@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { games, teams } from "@/db/schema";
+import { games, teams, type GameSetScore } from "@/db/schema";
 import { resolveLeagueByRef } from "@/lib/db/resolveLeague";
 import { findTeamInLeagueByName } from "@/lib/repositories/teamsRepo";
 import { and, asc, eq, inArray, isNotNull, isNull, lt, or } from "drizzle-orm";
@@ -30,22 +30,63 @@ export function gameRowToLegacy(g: GameRow, leagueSlug: string) {
     status: g.status,
     homeScore: g.homeScore,
     awayScore: g.awayScore,
+    setScores: g.setScores ?? null,
     createdAt: g.createdAt?.toISOString(),
   };
+}
+
+function countSetWins(setScores: GameSetScore[]): { home: number; away: number } {
+  let home = 0;
+  let away = 0;
+  for (const s of setScores) {
+    if (s.homeScore > s.awayScore) home++;
+    else if (s.awayScore > s.homeScore) away++;
+  }
+  return { home, away };
 }
 
 export async function updateGameResult(
   leagueRef: string,
   gameId: string,
   homeScore: number,
-  awayScore: number
+  awayScore: number,
+  setScores?: GameSetScore[] | null
 ): Promise<GameRow | null> {
   const league = await resolveLeagueByRef(leagueRef);
   if (!league) return null;
 
+  let nextHome = homeScore;
+  let nextAway = awayScore;
+  let nextSets: GameSetScore[] | null = null;
+
+  if (setScores != null) {
+    if (setScores.length !== 3) {
+      throw new Error("Volleyball results require exactly 3 games");
+    }
+    for (const s of setScores) {
+      if (
+        typeof s.homeScore !== "number" ||
+        typeof s.awayScore !== "number" ||
+        s.homeScore < 0 ||
+        s.awayScore < 0
+      ) {
+        throw new Error("Invalid set scores");
+      }
+    }
+    nextSets = setScores;
+    const wins = countSetWins(setScores);
+    nextHome = wins.home;
+    nextAway = wins.away;
+  }
+
   const rows = await db
     .update(games)
-    .set({ homeScore, awayScore, status: "final" })
+    .set({
+      homeScore: nextHome,
+      awayScore: nextAway,
+      setScores: nextSets,
+      status: "final",
+    })
     .where(and(eq(games.id, gameId), eq(games.leagueId, league.id)))
     .returning();
   return rows[0] ?? null;
@@ -112,7 +153,9 @@ export async function updateScheduledGameDetails(input: {
   const homeTeam = await findTeamInLeagueByName(input.leagueRef, input.homeTeamName);
   const awayTeam = await findTeamInLeagueByName(input.leagueRef, input.awayTeamName);
 
-  const hasResults = existing.homeScore != null && existing.awayScore != null;
+  const hasResults =
+    (existing.homeScore != null && existing.awayScore != null) ||
+    (Array.isArray(existing.setScores) && existing.setScores.length > 0);
   const status = hasResults
     ? "final"
     : (input.status ?? existing.status ?? "scheduled");

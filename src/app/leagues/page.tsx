@@ -7,8 +7,11 @@ import { redirect, notFound } from "next/navigation";
 import { getServerUser } from "@/lib/serverUser";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { smembersSafe, readDoc } from "@/lib/kvHelpers";
+import { exportHref } from "@/lib/csv";
+import { listDivisions, slugifyDivisionName } from "@/lib/repositories/divisionsRepo";
 import CreateLeagueClient from "../(superadmin)/superadmin/leagues/createLeagueClient";
 import Collapsible from "@/components/collapsible";
+import EditableDivisionsFilter from "@/components/editableDivisionsFilter";
 
 const title = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 const norm  = (v: unknown) => String(v ?? "").trim().toLowerCase();
@@ -16,7 +19,6 @@ const norm  = (v: unknown) => String(v ?? "").trim().toLowerCase();
 /* ---------- canonical enums (union with discovered values) ---------- */
 const CANONICAL_SPORTS    = ["basketball","volleyball"] as const;
 const CANONICAL_GENDERS   = ["mens","womens","coed"] as const;
-const CANONICAL_DIVISIONS = ["low_b","high_b","a"] as const;
 
 /* ---------- types ---------- */
 type LeagueRow = {
@@ -103,6 +105,7 @@ export default async function LeaguesListPage({
   )) as LeagueRow[];
 
   // 3) filter option lists: union canonical enums with discovered values
+  const catalogDivisions = await listDivisions();
   const sports = Array.from(
     new Set([
       ...allLeagues.map((l) => norm(l.sport)).filter(Boolean),
@@ -117,25 +120,31 @@ export default async function LeaguesListPage({
     ])
   ).sort((a, b) => a.localeCompare(b));
 
-  const divisions = Array.from(
-    new Set([
-      ...allLeagues.map((l) => norm(l.division)).filter(Boolean),
-      ...CANONICAL_DIVISIONS,
-    ])
-  ).sort((a, b) => a.localeCompare(b));
+  const discoveredDivisionSlugs = Array.from(
+    new Set(
+      allLeagues
+        .map((l) => slugifyDivisionName(String(l.division ?? "")))
+        .filter(Boolean)
+    )
+  );
 
   // 4) parse filters (league page doesn't need "league" or "unassigned")
   const q              = String(searchParams.q ?? "").toLowerCase().trim();
   const sportFilter    = String(searchParams.sport ?? "");
   const genderFilter   = String(searchParams.gender ?? "");
-  const divisionFilter = String(searchParams.division ?? "");
+  const divisionFilter = slugifyDivisionName(String(searchParams.division ?? ""));
 
   // 5) apply filters
   const rows = allLeagues.filter((l) => {
     if (q && !l.name.toLowerCase().includes(q)) return false;
     if (sportFilter && norm(l.sport) !== sportFilter) return false;
     if (genderFilter && norm(l.gender) !== genderFilter) return false;
-    if (divisionFilter && norm(l.division) !== divisionFilter) return false;
+    if (
+      divisionFilter &&
+      slugifyDivisionName(String(l.division ?? "")) !== divisionFilter
+    ) {
+      return false;
+    }
     return true;
   });
 
@@ -151,15 +160,23 @@ export default async function LeaguesListPage({
         {/* <form action={createLeague}><button className="btn btn--primary">New League</button></form> */}
       </div>
 
-      {/* Download CSV */}
+      {/* Download CSV (respects current filters) */}
       <div style={{ display: "flex", justifyContent: "end" }}>
-        <a className="btn btn--outline" href="/export/leagues.csv">
+        <a
+          className="btn btn--outline"
+          href={exportHref("/export/leagues.csv", {
+            q,
+            sport: sportFilter,
+            gender: genderFilter,
+            division: divisionFilter,
+          })}
+        >
           Download CSV
         </a>
       </div>
 
       <Collapsible title="Create a new league">
-        <CreateLeagueClient />
+        <CreateLeagueClient divisions={catalogDivisions} />
       </Collapsible>
 
       {/* Filters */}
@@ -194,15 +211,6 @@ export default async function LeaguesListPage({
                   alignItems: "center",
                 }}
               >
-                <select name="sport" defaultValue={sportFilter} className="input" style={CONTROL}>
-                  <option value="">All sports</option>
-                  {sports.map((s) => (
-                    <option key={s} value={s}>
-                      {title(s)}
-                    </option>
-                  ))}
-                </select>
-
                 <select name="gender" defaultValue={genderFilter} className="input" style={CONTROL}>
                   <option value="">All genders</option>
                   {genders.map((g) => (
@@ -212,14 +220,16 @@ export default async function LeaguesListPage({
                   ))}
                 </select>
 
-                <select name="division" defaultValue={divisionFilter} className="input" style={CONTROL}>
-                  <option value="">All divisions</option>
-                  {divisions.map((d) => (
-                    <option key={d} value={d}>
-                      {title(d)}
-                    </option>
-                  ))}
-                </select>
+                <EditableDivisionsFilter
+                  defaultValue={divisionFilter}
+                  defaultSport={sportFilter}
+                  sports={sports}
+                  divisions={catalogDivisions}
+                  extraSlugs={discoveredDivisionSlugs}
+                  className="input"
+                  style={CONTROL}
+                  editable
+                />
               </div>
 
               {/* Results and buttons row */}

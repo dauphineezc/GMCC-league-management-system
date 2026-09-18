@@ -2,11 +2,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { DIVISIONS } from "@/lib/divisions";
 import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
 import { adminAuth } from "@/lib/firebaseAdmin";
 import { toCsv, yyyymmdd } from "@/lib/csv";
 import { buildLeagueMasterRoster } from "@/lib/kvHelpers";
+import { readLeagueName } from "@/lib/readLeagueName";
 
 export async function GET(
   _req: Request,
@@ -31,7 +31,7 @@ export async function GET(
     for (const u of res.users) uidToEmail.set(u.uid, u.email ?? "");
   }
 
-  const LNAME = DIVISIONS.find((d) => d.id === leagueId)?.name ?? leagueId;
+  const LNAME = await readLeagueName(leagueId);
 
   const rows = master
     .sort((a, b) => a.displayName.localeCompare(b.displayName))

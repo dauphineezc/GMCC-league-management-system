@@ -11,6 +11,8 @@ import { formatGameDate, formatGameTime, LEAGUE_TIMEZONE } from "@/lib/gameDateT
 
 dayjs.extend(utc); dayjs.extend(tz); dayjs.extend(cpf);
 
+const DEFAULT_LOCATIONS = ["Court A", "Court B"] as const;
+
 type Game = {
   id: string;
   leagueId: string;
@@ -33,6 +35,25 @@ type EditingGame = {
   customLocation: string;
   status: string;
 };
+
+function normalizeEditStatus(status: string): "scheduled" | "completed" | "canceled" {
+  const s = (status || "scheduled").toLowerCase();
+  if (s === "final" || s === "completed") return "completed";
+  if (s === "canceled" || s === "cancelled") return "canceled";
+  return "scheduled";
+}
+
+function buildLocationOptions(locations: string[]): string[] {
+  const seen = new Set<string>();
+  const options: string[] = [];
+  for (const loc of [...DEFAULT_LOCATIONS, ...locations]) {
+    const trimmed = loc.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    options.push(trimmed);
+  }
+  return options;
+}
 
 
 export default function ScheduleClient({
@@ -62,6 +83,19 @@ export default function ScheduleClient({
   const [saving, setSaving] = useState(false);
 
   // ---------- helpers
+  const locationOptions = useMemo(() => {
+    const extras = [
+      form.location !== "custom" ? form.location : form.customLocation,
+      editingGame && editingGame.location !== "custom"
+        ? editingGame.location
+        : editingGame?.customLocation,
+    ].filter((v): v is string => Boolean(v && v.trim()));
+    return buildLocationOptions([
+      ...games.map((g) => g.location || ""),
+      ...extras,
+    ]);
+  }, [games, form.location, form.customLocation, editingGame]);
+
   const canSubmit = useMemo(() => {
     const { homeTeamName, awayTeamName, date, time, location, customLocation } = form;
     const finalLocation = location === "custom" ? customLocation.trim() : location;
@@ -74,6 +108,17 @@ export default function ScheduleClient({
       !!finalLocation
     );
   }, [form]);
+
+  const renderLocationOptions = (includeCustom = true) => (
+    <>
+      {locationOptions.map((loc) => (
+        <option key={loc} value={loc}>
+          {loc}
+        </option>
+      ))}
+      {includeCustom && <option value="custom">Add new location…</option>}
+    </>
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -262,7 +307,16 @@ export default function ScheduleClient({
 
       if (res.ok) {
         setMsg("Game added.");
-        setForm(prev => ({ ...prev, homeTeamName: "", awayTeamName: "", date: "", time: "", customLocation: "" }));
+        // Keep the saved location selected so it stays in the dropdown list.
+        setForm((prev) => ({
+          ...prev,
+          homeTeamName: "",
+          awayTeamName: "",
+          date: "",
+          time: "",
+          location: finalLocation,
+          customLocation: "",
+        }));
         setTimeout(refresh, 250);
       } else {
         setMsg(`Error ${res.status}: ${json?.error ?? text ?? res.statusText}`);
@@ -287,16 +341,22 @@ export default function ScheduleClient({
     const local = dayjs(game.dateTimeISO).tz(LEAGUE_TIMEZONE);
     const dateStr = local.format("YYYY-MM-DD");
     const timeStr = local.format("HH:mm");
-    
+    const known = buildLocationOptions([
+      ...games.map((g) => g.location || ""),
+      game.location || "",
+    ]);
+    const loc = (game.location || "").trim();
+    const isKnown = known.includes(loc);
+
     setEditingGame({
       id: game.id,
       homeTeamName: game.homeTeamName,
       awayTeamName: game.awayTeamName,
       date: dateStr,
       time: timeStr,
-      location: game.location === "Court A" || game.location === "Court B" ? game.location : "custom",
-      customLocation: game.location !== "Court A" && game.location !== "Court B" ? game.location : "",
-      status: game.status || "scheduled"
+      location: isKnown ? loc : "custom",
+      customLocation: isKnown ? "" : loc,
+      status: normalizeEditStatus(game.status || "scheduled"),
     });
     setMsg(null);
   }
@@ -517,9 +577,7 @@ export default function ScheduleClient({
                   onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                   disabled={busy}
                 >
-                  <option value="Court A">Court A</option>
-                  <option value="Court B">Court B</option>
-                  <option value="custom">Add new location…</option>
+                  {renderLocationOptions()}
                 </select>
                 {form.location === "custom" && (
                   <input
@@ -663,24 +721,21 @@ export default function ScheduleClient({
                           d.away
                         )}
                       </td>
-                      <td style={{ ...td, whiteSpace: "nowrap" }}>
+                      <td style={{ ...td, whiteSpace: isEditing ? "normal" : "nowrap", verticalAlign: isEditing ? "top" : "middle" }}>
                         {isEditing ? (
-                          <div>
+                          <div className="schedule-edit-stack">
                             <select
                               value={editingGame.location}
                               onChange={(e) => setEditingGame(prev => prev ? { ...prev, location: e.target.value } : null)}
                               disabled={saving}
                               className="input"
-                              style={{ 
-                                width: "100%", 
+                              style={{
+                                width: "100%",
                                 padding: "4px 8px",
                                 fontSize: "13px",
-                                marginBottom: editingGame.location === "custom" ? "4px" : "0"
                               }}
                             >
-                              <option value="Court A">Court A</option>
-                              <option value="Court B">Court B</option>
-                              <option value="custom">Custom</option>
+                              {renderLocationOptions()}
                             </select>
                             {editingGame.location === "custom" && (
                               <input
@@ -697,7 +752,7 @@ export default function ScheduleClient({
                           d.court
                         )}
                       </td>
-                      <td style={td}>
+                      <td style={{ ...td, verticalAlign: isEditing ? "top" : "middle" }}>
                         {isEditing ? (
                           <select
                             value={editingGame.status}
@@ -793,10 +848,10 @@ export default function ScheduleClient({
                   return (
                     <li key={g.id}>
                       <div className="player-card" style={{ padding: "10px 12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <div>
+                        <div style={{ display: "flex", flexDirection: isEditing ? "column" : "row", justifyContent: "space-between", alignItems: isEditing ? "stretch" : "flex-start", gap: isEditing ? "8px" : "0" }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             {isEditing ? (
-                              <div style={{ display: "flex", gap: "8px", marginBottom: "4px" }}>
+                              <div style={{ display: "flex", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
                                 <input
                                   type="date"
                                   value={editingGame.date}
@@ -820,22 +875,19 @@ export default function ScheduleClient({
                               </div>
                             )}
                             {isEditing ? (
-                              <div style={{ marginBottom: "4px" }}>
+                              <div className="schedule-edit-stack" style={{ marginBottom: "4px" }}>
                                 <select
                                   value={editingGame.location}
                                   onChange={(e) => setEditingGame(prev => prev ? { ...prev, location: e.target.value } : null)}
                                   disabled={saving}
                                   className="input"
-                                  style={{ 
-                                    width: "100%", 
-                                    padding: "4px 6px", 
+                                  style={{
+                                    width: "100%",
+                                    padding: "4px 6px",
                                     fontSize: "12px",
-                                    marginBottom: editingGame.location === "custom" ? "4px" : "0"
                                   }}
                                 >
-                                  <option value="Court A">Court A</option>
-                                  <option value="Court B">Court B</option>
-                                  <option value="custom">Custom</option>
+                                  {renderLocationOptions()}
                                 </select>
                                 {editingGame.location === "custom" && (
                                   <input
@@ -847,6 +899,21 @@ export default function ScheduleClient({
                                     style={{ width: "100%", padding: "4px 6px", fontSize: "12px" }}
                                   />
                                 )}
+                                <select
+                                  value={editingGame.status}
+                                  onChange={(e) => setEditingGame(prev => prev ? { ...prev, status: e.target.value } : null)}
+                                  disabled={saving}
+                                  className="input"
+                                  style={{
+                                    width: "100%",
+                                    padding: "4px 6px",
+                                    fontSize: "12px",
+                                  }}
+                                >
+                                  <option value="scheduled">Scheduled</option>
+                                  <option value="completed">Completed</option>
+                                  <option value="canceled">Canceled</option>
+                                </select>
                               </div>
                             ) : (
                               <div style={{ fontSize: "12px", color: "var(--gray-600)" }}>
@@ -854,23 +921,7 @@ export default function ScheduleClient({
                               </div>
                             )}
                           </div>
-                          {isEditing ? (
-                            <select
-                              value={editingGame.status}
-                              onChange={(e) => setEditingGame(prev => prev ? { ...prev, status: e.target.value } : null)}
-                              disabled={saving}
-                              className="input"
-                              style={{ 
-                                width: "auto",
-                                padding: "4px 6px",
-                                fontSize: "12px"
-                              }}
-                            >
-                              <option value="scheduled">Scheduled</option>
-                              <option value="completed">Completed</option>
-                              <option value="canceled">Canceled</option>
-                            </select>
-                          ) : (
+                          {!isEditing && (
                             <span style={{
                               fontSize: "12px",
                               fontWeight: 600,

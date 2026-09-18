@@ -14,8 +14,32 @@ jest.mock('@/lib/repositories/teamsRepo', () => ({
   createTeam: jest.fn(),
 }));
 
+jest.mock('@/lib/repositories/divisionsRepo', () => ({
+  listDivisions: jest.fn(async () => [
+    { id: '1', sport: 'basketball', slug: 'low_b', name: 'Low B', sortOrder: 0 },
+    { id: '2', sport: 'basketball', slug: 'high_b', name: 'High B', sortOrder: 1 },
+    { id: '3', sport: 'basketball', slug: 'a', name: 'A', sortOrder: 2 },
+  ]),
+  isKnownDivisionSlug: jest.fn(async (slug: string) =>
+    ['low_b', 'high_b', 'a'].includes(slug)
+  ),
+  slugifyDivisionName: jest.fn((name: string) =>
+    String(name ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+  ),
+}));
+
+jest.mock('@/lib/db/resolveLeague', () => ({
+  resolveLeagueByRef: jest.fn(),
+  leaguePublicRef: jest.fn((league: { slug: string }) => league.slug),
+}));
+
 import { assertAuthenticated } from '@/lib/authGuards';
 import { createTeam } from '@/lib/repositories/teamsRepo';
+import { resolveLeagueByRef } from '@/lib/db/resolveLeague';
 
 const mockUser = {
   id: 'user123',
@@ -27,6 +51,7 @@ describe('/api/teams POST', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (assertAuthenticated as jest.Mock).mockResolvedValue({ ok: true, user: mockUser });
+    (resolveLeagueByRef as jest.Mock).mockResolvedValue(null);
     (createTeam as jest.Mock).mockImplementation(async (input) => ({
       id: input.id,
       name: input.name,
@@ -96,6 +121,7 @@ describe('/api/teams POST', () => {
     expect(team.managerUserId).toBe('user123');
     expect(team.leagueId).toBe(null);
     expect(team.teamPaymentRequired).toBe(true);
+    expect(team.estimatedDivision).toBe('high_b');
 
     expect(createTeam).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,11 +129,19 @@ describe('/api/teams POST', () => {
         managerUserId: 'user123',
         leagueSlug: null,
         paymentRequired: true,
+        estimatedDivision: 'high_b',
       })
     );
   });
 
-  it('creates team with league assignment (division normalized)', async () => {
+  it('creates team with league assignment (resolved by slug)', async () => {
+    (resolveLeagueByRef as jest.Mock).mockImplementation(async (ref: string) => {
+      if (ref.toLowerCase() === '4v4') {
+        return { id: 'uuid-4v4', slug: '4v4', name: '4v4' };
+      }
+      return null;
+    });
+
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -130,7 +164,7 @@ describe('/api/teams POST', () => {
     );
   });
 
-  it('rejects invalid division (BAD_LEAGUE)', async () => {
+  it('rejects invalid league (BAD_LEAGUE)', async () => {
     const req = new Request('http://localhost/api/teams', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -160,6 +194,6 @@ describe('/api/teams POST', () => {
     const { team } = await res.json();
     expect(team.sport).toBe('basketball');
     expect(team.gender).toBe('co-ed');
-    expect(team.estimatedDivision).toBe('low b');
+    expect(team.estimatedDivision).toBe('low_b');
   });
 });

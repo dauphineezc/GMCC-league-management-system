@@ -1,5 +1,5 @@
 // src/app/api/leagues/[leagueId]/schedule/pdf/route.ts
-import { assertAuthenticated, assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
+import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
 import {
   deleteSchedulePdf,
   getSchedulePdfBytes,
@@ -12,9 +12,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const auth = await assertAuthenticated();
-  if (isAuthFailure(auth)) return auth.response;
-
+  // Public: schedule PDFs are viewable without signing in.
   const { leagueId } = await params;
   const pdf = await getSchedulePdfBytes(leagueId);
 

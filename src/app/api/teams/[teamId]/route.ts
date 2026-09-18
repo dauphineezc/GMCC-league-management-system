@@ -1,5 +1,9 @@
 // src/app/api/teams/[teamId]/route.ts
-import { assertLeagueAdmin, isAuthFailure } from "@/lib/authGuards";
+import {
+  assertLeagueAdmin,
+  assertSuperAdmin,
+  isAuthFailure,
+} from "@/lib/authGuards";
 import { deleteTeamById, getTeamById } from "@/lib/repositories/teamsRepo";
 
 export async function DELETE(
@@ -12,11 +16,11 @@ export async function DELETE(
 
   const leagueId =
     typeof team.leagueId === "string" && team.leagueId ? team.leagueId : null;
-  if (!leagueId) {
-    return Response.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
-  }
 
-  const auth = await assertLeagueAdmin(leagueId);
+  // Unassigned teams: only superadmin can delete. Assigned: league admin (or superadmin).
+  const auth = leagueId
+    ? await assertLeagueAdmin(leagueId)
+    : await assertSuperAdmin();
   if (isAuthFailure(auth)) return auth.response;
 
   const deleted = await deleteTeamById(teamId);

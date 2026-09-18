@@ -60,7 +60,16 @@ export async function createCodeInvite(
   return { code: code.toUpperCase(), expiresIn: ttlHours };
 }
 
-async function consumeInvite(code: string, usedBy?: string): Promise<string> {
+export type PeekedInvite = { id: string; teamId: string };
+
+function invalidInvite(): never {
+  throw Object.assign(new Error("Invalid/expired invite"), {
+    status: 400,
+    code: "INVITE_INVALID",
+  });
+}
+
+async function peekInvite(code: string): Promise<PeekedInvite> {
   const now = new Date();
   const rows = await db
     .select()
@@ -69,19 +78,40 @@ async function consumeInvite(code: string, usedBy?: string): Promise<string> {
     .limit(1);
 
   const invite = rows[0];
-  if (!invite) {
-    throw Object.assign(new Error("Invalid/expired invite"), { status: 400 });
-  }
-  if (invite.expiresAt && invite.expiresAt < now) {
-    throw Object.assign(new Error("Invalid/expired invite"), { status: 400 });
-  }
+  if (!invite) invalidInvite();
+  if (invite.expiresAt && invite.expiresAt < now) invalidInvite();
 
-  await db
+  return { id: invite.id, teamId: invite.teamId };
+}
+
+export async function peekLinkInvite(token: string): Promise<PeekedInvite> {
+  const raw = typeof token === "string" ? token.trim() : "";
+  if (!raw) invalidInvite();
+  return peekInvite(`tok:${await hashToken(raw)}`);
+}
+
+export async function peekCodeInvite(rawCode: string): Promise<PeekedInvite> {
+  const raw = typeof rawCode === "string" ? rawCode.trim() : "";
+  if (!raw) invalidInvite();
+  return peekInvite(raw.toLowerCase());
+}
+
+/** Marks the invite used only if it is still unused. Safe to call after validation. */
+export async function markInviteUsed(id: string, usedBy?: string): Promise<void> {
+  const now = new Date();
+  const updated = await db
     .update(invites)
     .set({ usedAt: now, usedBy: usedBy ?? null })
-    .where(eq(invites.id, invite.id));
+    .where(and(eq(invites.id, id), isNull(invites.usedAt)))
+    .returning({ id: invites.id });
 
-  return invite.teamId;
+  if (!updated.length) invalidInvite();
+}
+
+async function consumeInvite(code: string, usedBy?: string): Promise<string> {
+  const peeked = await peekInvite(code);
+  await markInviteUsed(peeked.id, usedBy);
+  return peeked.teamId;
 }
 
 export async function consumeLinkInvite(token: string, usedBy?: string): Promise<string> {

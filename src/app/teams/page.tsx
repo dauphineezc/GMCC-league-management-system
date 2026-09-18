@@ -7,13 +7,15 @@ import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/serverUser";
 import { readDoc, smembersSafe } from "@/lib/kvHelpers";
 import { batchGetTeams } from "@/lib/kvBatch";
+import { exportHref } from "@/lib/csv";
+import { listDivisions, slugifyDivisionName } from "@/lib/repositories/divisionsRepo";
 import EditableLeagueAssignment from "../(superadmin)/superadmin/teams/editableLeagueAssignment";
+import EditableDivisionsFilter from "@/components/editableDivisionsFilter";
 
 /* ---------------- helpers ---------------- */
 
 const CANONICAL_SPORTS  = ["basketball","volleyball"] as const;
 const CANONICAL_GENDERS = ["mens","womens","coed"] as const;
-const CANONICAL_DIVISIONS = ["low_b","high_b","a"] as const;
 
 const title = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const norm  = (v: unknown) => String(v ?? "").trim().toLowerCase();
@@ -36,12 +38,8 @@ function normalizeGender(v: unknown) {
 }
 
 function normalizeDivision(v: unknown) {
-  let s = norm(v).replace(/\s+/g, "_").replace(/-/g, "_");
-  if (!s) return null;
-  if (s === "low_b" || s === "lowb" || s === "b_low") s = "low_b";
-  if (s === "high_b" || s === "highb" || s === "b_high") s = "high_b";
-  if (s === "a_division" || s === "div_a") s = "a";
-  return s;
+  const s = slugifyDivisionName(String(v ?? ""));
+  return s || null;
 }
 
 type League = { leagueId: string; name: string };
@@ -66,6 +64,7 @@ export default async function TeamsPage({
 
   // Superadmin: Show all teams with management features
   if (user.superadmin) {
+    const catalogDivisions = await listDivisions();
     const teamIds = await smembersSafe("teams:index");
     const teamsMap = await batchGetTeams(teamIds);
 
@@ -146,9 +145,20 @@ export default async function TeamsPage({
       <main style={{ display: "grid", gap: 16 }}>
         <h1 className="page-title" style={{ marginBottom: 0 }}>Teams</h1>
 
-        {/* Download CSV */}
+        {/* Download CSV (respects current filters) */}
         <div style={{ display: "flex", justifyContent: "end" }}>
-          <a className="btn btn--outline" href="/export/teams.csv">
+          <a
+            className="btn btn--outline"
+            href={exportHref("/export/teams.csv", {
+              q,
+              sport: sportFilter ?? "",
+              gender: genderFilter ?? "",
+              division: divisionFilter ?? "",
+              league: leagueFilter,
+              approved: approvedFilter !== "all" ? approvedFilter : "",
+              unassigned: onlyUnassigned ? "1" : "",
+            })}
+          >
             Download CSV
           </a>
         </div>
@@ -163,24 +173,19 @@ export default async function TeamsPage({
             style={{ marginBottom: 12, minWidth: 160 }}
           />
           <div className="teams-filters-grid">
-            <select name="sport" defaultValue={sportFilter ?? ""} className="input" style={CONTROL}>
-              <option value="">All sports</option>
-              {CANONICAL_SPORTS.map((s) => (
-                <option key={s} value={s}>{title(s)}</option>
-              ))}
-            </select>
+            <EditableDivisionsFilter
+              defaultValue={divisionFilter ?? ""}
+              defaultSport={sportFilter ?? ""}
+              sports={[...CANONICAL_SPORTS]}
+              divisions={catalogDivisions}
+              className="input"
+              style={CONTROL}
+            />
 
             <select name="gender" defaultValue={genderFilter ?? ""} className="input" style={CONTROL}>
               <option value="">All genders</option>
               {CANONICAL_GENDERS.map((g) => (
                 <option key={g} value={g}>{title(g)}</option>
-              ))}
-            </select>
-
-            <select name="division" defaultValue={divisionFilter ?? ""} className="input" style={CONTROL}>
-              <option value="">All divisions</option>
-              {CANONICAL_DIVISIONS.map((d) => (
-                <option key={d} value={d}>{title(d)}</option>
               ))}
             </select>
 

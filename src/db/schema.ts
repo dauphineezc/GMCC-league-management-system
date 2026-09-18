@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -10,6 +11,9 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+
+/** Per-match set/game scores (volleyball: always 3). Basketball leaves this null. */
+export type GameSetScore = { homeScore: number; awayScore: number };
 
 /**
  * Game status. Well-defined and enforced at the DB level. Other categorical
@@ -25,7 +29,26 @@ export const gameStatus = pgEnum("game_status", [
 
 export type Sport = "basketball" | "volleyball";
 export type Gender = "mens" | "womens" | "coed";
-export type Division = "low_b" | "high_b" | "a";
+/** Skill / competitive tier slug (e.g. low_b). Catalog lives in `divisions`. */
+export type Division = string;
+
+/**
+ * Editable skill-division catalog (superadmin-managed), scoped per sport.
+ * leagues.division and teams.estimated_division store the slug as text.
+ */
+export const divisions = pgTable(
+  "divisions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sport: text("sport").$type<Sport>().notNull(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("divisions_sport_slug_uq").on(t.sport, t.slug)]
+);
 
 /** One row per Firebase account. id is the Firebase UID — no surrogate key. */
 export const users = pgTable("users", {
@@ -128,6 +151,12 @@ export const games = pgTable(
     status: gameStatus("status").notNull().default("scheduled"),
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
+    /**
+     * Volleyball: three {homeScore, awayScore} entries (called "games").
+     * Match-level homeScore/awayScore then store games won (e.g. 2–1).
+     * Basketball: null; match-level scores are the only result.
+     */
+    setScores: jsonb("set_scores").$type<GameSetScore[] | null>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -151,6 +180,25 @@ export const leagueAdmins = pgTable(
   (t) => [
     primaryKey({ columns: [t.leagueId, t.userId] }),
     index("league_admins_user_id_idx").on(t.userId),
+  ],
+);
+
+/** Superadmin (or future user) homepage pins for quick-access league cards. */
+export const userPinnedLeagues = pgTable(
+  "user_pinned_leagues",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    leagueId: uuid("league_id")
+      .notNull()
+      .references(() => leagues.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.leagueId] }),
+    index("user_pinned_leagues_user_id_idx").on(t.userId),
   ],
 );
 
@@ -187,6 +235,8 @@ export const schedulePdfs = pgTable("schedule_pdfs", {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type DivisionRow = typeof divisions.$inferSelect;
+export type NewDivision = typeof divisions.$inferInsert;
 export type League = typeof leagues.$inferSelect;
 export type NewLeague = typeof leagues.$inferInsert;
 export type Team = typeof teams.$inferSelect;
@@ -197,6 +247,8 @@ export type Game = typeof games.$inferSelect;
 export type NewGame = typeof games.$inferInsert;
 export type LeagueAdmin = typeof leagueAdmins.$inferSelect;
 export type NewLeagueAdmin = typeof leagueAdmins.$inferInsert;
+export type UserPinnedLeague = typeof userPinnedLeagues.$inferSelect;
+export type NewUserPinnedLeague = typeof userPinnedLeagues.$inferInsert;
 export type Invite = typeof invites.$inferSelect;
 export type NewInvite = typeof invites.$inferInsert;
 export type SchedulePdf = typeof schedulePdfs.$inferSelect;

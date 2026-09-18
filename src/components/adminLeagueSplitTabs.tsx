@@ -4,18 +4,21 @@
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import PlayerInfoPopup from "@/components/playerInfoPopup";
-import { DIVISIONS } from "@/lib/divisions";
+import DownloadCsvButton from "@/components/downloadCsvButton";
 import type { TeamLite, RosterRow, PlayerTeam, PlayerInfo } from "@/types/domain";
 import ScheduleViewer from "@/components/scheduleViewer";
 import GameHistory from "@/components/gameHistory";
 
 type Props = {
   leagueId: string;
+  leagueName?: string;
   teams: TeamLite[];
   roster: RosterRow[];
   playerTeamsByUser?: Record<string, PlayerTeam[]>;
   games?: any[];
   standings?: any[];
+  sport?: string | null;
+  scheduleCsvDisabled?: boolean;
 };
 
 type TeamsAPIResp = {
@@ -31,12 +34,9 @@ type TeamsAPIResp = {
 
 type TabKey = "teams" | "roster" | "schedule" | "history" | "standings";
 
-function slugify(s: string) {
-  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "");
-}
 function fakeContact(_displayName: string) {
   return {
-    email: "",           // ← blank (falsy) so popup won’t render @example.com first
+    email: "",
     phone: "",
     dob: "",
     emergencyName: "",
@@ -44,12 +44,23 @@ function fakeContact(_displayName: string) {
   };
 }
 
+function ExportBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      {children}
+    </div>
+  );
+}
+
 export default function AdminLeagueSplitTabs({
   leagueId,
+  leagueName: leagueNameProp,
   teams,
   roster,
   playerTeamsByUser,
   standings = [],
+  sport,
+  scheduleCsvDisabled = false,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("teams");
 
@@ -69,7 +80,7 @@ export default function AdminLeagueSplitTabs({
   const handleView = useCallback(
     async (row: RosterRow) => {
       const contact = fakeContact(row.displayName);
-      const leagueName = (DIVISIONS.find((d) => d.id === (leagueId as any))?.name ?? leagueId) as string;
+      const leagueName = leagueNameProp || leagueId;
   
       const withLeague = (t: Partial<PlayerTeam>): PlayerTeam => ({
         teamId: t.teamId!,
@@ -95,7 +106,7 @@ export default function AdminLeagueSplitTabs({
                 teamName: t.teamName,
                 isManager: t.isManager,
                 paid: t.paid,
-                leagueId: t.leagueId ?? undefined,     // keep per-team league
+                leagueId: t.leagueId ?? undefined,
                 leagueName: t.leagueName ?? undefined,
               })
             );
@@ -103,7 +114,6 @@ export default function AdminLeagueSplitTabs({
         } catch { /* ignore, keep fallback */ }
       }
   
-      // still fallback to the current team if nothing else available
       if (!teamsForUser || teamsForUser.length === 0) {
         teamsForUser = [
           withLeague({
@@ -120,7 +130,7 @@ export default function AdminLeagueSplitTabs({
       setContextPaid(row.paid);
       setOpen(true);
     },
-    [leagueId, playerTeamsByUser]
+    [leagueId, leagueNameProp, playerTeamsByUser]
   );  
 
   return (
@@ -164,19 +174,59 @@ export default function AdminLeagueSplitTabs({
       </div>
 
       <div className="pad-card-sides" style={{ paddingTop: 14 }}>
-        {tab === "teams" && <TeamsPane leagueId={leagueId} teams={teams} />}
-        {tab === "roster" && <RosterPane roster={roster} onView={handleView} />}
+        {tab === "teams" && (
+          <>
+            <ExportBar>
+              <DownloadCsvButton href={`/leagues/${encodeURIComponent(leagueId)}/export/teams.csv`} />
+            </ExportBar>
+            <TeamsPane leagueId={leagueId} teams={teams} />
+          </>
+        )}
+        {tab === "roster" && (
+          <>
+            <ExportBar>
+              <DownloadCsvButton href={`/leagues/${encodeURIComponent(leagueId)}/export.csv`} />
+            </ExportBar>
+            <RosterPane roster={roster} onView={handleView} />
+          </>
+        )}
         {tab === "schedule" && (
-          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
-            <ScheduleViewer leagueId={leagueId} />
-          </div>
+          <>
+            <ExportBar>
+              <DownloadCsvButton
+                href={`/leagues/${encodeURIComponent(leagueId)}/export/schedule.csv`}
+                disabled={scheduleCsvDisabled}
+              />
+            </ExportBar>
+            <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+              <ScheduleViewer leagueId={leagueId} />
+            </div>
+          </>
         )}
         {tab === "history" && (
-          <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
-            <GameHistory leagueId={leagueId} />
-          </div>
+          <>
+            <ExportBar>
+              <DownloadCsvButton
+                href={`/leagues/${encodeURIComponent(leagueId)}/export/history.csv`}
+                disabled={scheduleCsvDisabled}
+              />
+            </ExportBar>
+            <div className="card--soft rounded-2xl border overflow-hidden" style={{ padding: "16px 20px" }}>
+              <GameHistory leagueId={leagueId} sport={sport} />
+            </div>
+          </>
         )}
-        {tab === "standings" && <StandingsPane standings={standings} />}
+        {tab === "standings" && (
+          <>
+            <ExportBar>
+              <DownloadCsvButton
+                href={`/leagues/${encodeURIComponent(leagueId)}/export/standings.csv`}
+                disabled={scheduleCsvDisabled}
+              />
+            </ExportBar>
+            <StandingsPane standings={standings} />
+          </>
+        )}
       </div>
 
       <PlayerInfoPopup

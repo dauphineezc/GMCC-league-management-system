@@ -17,6 +17,7 @@ import type { Team, RosterEntry, Game, PlayerTeam } from "@/types/domain";
 import { batchGetTeamNames, batchGetTeams, batchGetPayments, batchGetGames } from "@/lib/kvBatch";
 import { readArr, readLeagueDoc, readDoc, readMap } from "@/lib/kvHelpers";
 import { readLeagueGames } from "@/lib/leagueData";
+import { isLeagueSchedulePdfOnly } from "@/lib/adminCsvExport";
 import { getUserDisplayName, readMembershipsForUid, readMembershipsForUids } from "@/lib/repositories/usersRepo";
 import { toggleMemberPaid, toggleTeamApproved } from "@/lib/repositories/teamsRepo";
 import { toggleTeamFeePaid as toggleTeamFeePaidAction } from "@/lib/adminActions";
@@ -42,7 +43,12 @@ export default async function UnifiedTeamPage({
   
   // Check permissions for this team's league
   const permissions = await PermissionChecker.create(user, team.leagueId ?? "");
-  
+
+  const scheduleCsvDisabled =
+    permissions.isAdmin() && team.leagueId
+      ? await isLeagueSchedulePdfOnly(String(team.leagueId))
+      : false;
+
   // Load roster
   let roster = await readArr<RosterEntry>(`team:${teamId}:roster`);
 
@@ -329,6 +335,8 @@ export default async function UnifiedTeamPage({
           games={gamesWithNames}
           onTogglePaid={togglePaid}
           playerTeamsByUser={playerTeamsByUser}
+          sport={team.sport}
+          scheduleCsvDisabled={scheduleCsvDisabled}
         />
       ) : (
         <TeamTabs
@@ -341,6 +349,7 @@ export default async function UnifiedTeamPage({
           isManager={isManager}
           playerAddDeadline={playerAddDeadline}
           isPlayerAddLocked={isPlayerAddLocked}
+          sport={team.sport}
         />
       )}
 

@@ -235,7 +235,15 @@ export async function listEmailBasedLeagueAdminRows(): Promise<
 export async function listAllLeaguesLite(opts?: {
   onlyApproved?: boolean;
   sport?: string;
-}): Promise<Array<{ id: string; name: string; sport: string }>> {
+}): Promise<
+  Array<{
+    id: string;
+    name: string;
+    sport: string;
+    gender: string | null;
+    division: string | null;
+  }>
+> {
   const rows = await db.select().from(leagues).orderBy(asc(leagues.name));
   const sportFilter = opts?.sport?.trim().toLowerCase();
   const onlyApproved = opts?.onlyApproved ?? true;
@@ -247,7 +255,13 @@ export async function listAllLeaguesLite(opts?: {
       if (sportFilter && l.sport.toLowerCase() !== sportFilter) return false;
       return true;
     })
-    .map((l) => ({ id: l.slug, name: l.name, sport: l.sport! }));
+    .map((l) => ({
+      id: l.slug,
+      name: l.name,
+      sport: l.sport!,
+      gender: l.gender ?? null,
+      division: l.division ?? null,
+    }));
 }
 
 function slugifyName(name: string): string {
@@ -293,7 +307,7 @@ export async function createLeagueRecord(input: {
       description: input.description?.trim() || null,
       sport: input.sport as "basketball" | "volleyball",
       gender: input.gender as "mens" | "womens" | "coed",
-      division: input.division as "low_b" | "high_b" | "a",
+      division: input.division,
       minTeamSize: input.minTeamSize ?? null,
       maxTeamSize: input.maxTeamSize ?? null,
       approved: false,

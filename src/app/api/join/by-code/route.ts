@@ -3,11 +3,8 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
-import { readLeagueDocJSON } from "@/lib/leagueDoc";
-import { readMembershipsForUid } from "@/lib/repositories/usersRepo";
-import { getTeamById, getTeamRosterMeta } from "@/lib/repositories/teamsRepo";
-import { consumeCodeInvite } from "@/server/invites";
-import { addPlayerToTeam } from "@/server/memberships";
+import { peekCodeInvite } from "@/server/invites";
+import { acceptInviteForUser } from "@/server/acceptInvite";
 
 export async function POST(req: NextRequest) {
   const auth = await assertAuthenticated();
@@ -22,44 +19,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const teamId = await consumeCodeInvite(code, user.id);
-    const team = await getTeamById(teamId);
-
-    if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 });
-    }
-
-    const leagueId = typeof team.leagueId === "string" ? team.leagueId : null;
-
-    if (leagueId) {
-      const league = await readLeagueDocJSON(leagueId);
-      if (league?.playerAddDeadline) {
-        const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
-        const overrideActive = Boolean(league.playerAddDeadlineOverride);
-        if (deadlinePassed && !overrideActive) {
-          return NextResponse.json(
-            {
-              error:
-                "The player add deadline for this league has passed. This invite code is no longer valid.",
-            },
-            { status: 403 }
-          );
-        }
-      }
-    }
-
-    const memberships = await readMembershipsForUid(user.id);
-    if (leagueId && memberships.some((m) => m.leagueId === leagueId)) {
-      return NextResponse.json({ error: "Already on a team" }, { status: 409 });
-    }
-
-    const { size: rosterSize } = await getTeamRosterMeta(teamId);
-    const rosterLimit = 8;
-    if (rosterSize >= rosterLimit) {
-      return NextResponse.json({ error: "Team is full" }, { status: 400 });
-    }
-
-    await addPlayerToTeam(user.id, teamId);
+    const invite = await peekCodeInvite(code);
+    const { teamId, team } = await acceptInviteForUser(user.id, invite);
 
     return NextResponse.json({
       ok: true,

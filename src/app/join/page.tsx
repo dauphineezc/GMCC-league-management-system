@@ -32,6 +32,7 @@ function JoinContent() {
       const response = await fetch('/api/join/by-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token: t }),
       });
 
@@ -51,6 +52,8 @@ function JoinContent() {
           ? 'This team is full.'
           : data.error?.code === 'INVITE_INVALID'
           ? 'This invite link is invalid or has expired.'
+          : data.error?.code === 'DEADLINE_PASSED'
+          ? 'The player add deadline for this league has passed. This invite is no longer valid.'
           : 'Failed to join team.';
         
         setError(errorMsg);

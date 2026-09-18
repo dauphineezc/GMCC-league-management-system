@@ -4,6 +4,7 @@ export const revalidate = 30;
 
 import ResultsClient from "./resultsClient";
 import { readLeagueName } from "@/lib/readLeagueName";
+import { readLeagueDoc } from "@/lib/kvHelpers";
 import { getServerUser } from "@/lib/serverUser";
 import { hasLeaguePermission } from "@/lib/permissions";
 import { redirect, notFound } from "next/navigation";
@@ -16,13 +17,21 @@ export default async function ResultsPage({
   const user = await getServerUser();
   if (!user) redirect("/login");
   const { leagueId } = await params;
-  
-  // Use new permission system
+
   const isAuthorized = await hasLeaguePermission(user, leagueId, "admin");
   if (!isAuthorized) {
-    notFound(); // More appropriate than redirect with error
+    notFound();
   }
-  const leagueName = await readLeagueName(leagueId);
+  const [leagueName, leagueDoc] = await Promise.all([
+    readLeagueName(leagueId),
+    readLeagueDoc(leagueId),
+  ]);
 
-  return <ResultsClient leagueId={leagueId} leagueName={leagueName} />;
+  return (
+    <ResultsClient
+      leagueId={leagueId}
+      leagueName={leagueName}
+      sport={typeof leagueDoc?.sport === "string" ? leagueDoc.sport : null}
+    />
+  );
 }

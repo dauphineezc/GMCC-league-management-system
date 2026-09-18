@@ -22,54 +22,131 @@ interface CSVRow {
   location: string;
 }
 
+const DATE_FORMATS = [
+  "MM/DD/YYYY",
+  "M/D/YYYY",
+  "MM-DD-YYYY",
+  "M/D/YY",
+  "MM/DD/YY",
+  "MM-DD-YY",
+  "YYYY-MM-DD",
+];
+
+const TIME_FORMATS = [
+  "HH:mm",
+  "H:mm",
+  "HH:mm:ss",
+  "H:mm:ss",
+  "h:mm A",
+  "h:mm a",
+  "h:mm:ss A",
+  "h:mm:ss a",
+  // Excel often exports AM/PM with no space: 7:00:00PM
+  "h:mmA",
+  "h:mma",
+  "h:mm:ssA",
+  "h:mm:ssa",
+];
+
+function splitCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+
+  for (let j = 0; j < line.length; j++) {
+    const char = line[j];
+    if (char === '"') {
+      // RFC-style escaped quote: ""
+      if (inQuotes && line[j + 1] === '"') {
+        currentField += '"';
+        j++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      fields.push(currentField.trim());
+      currentField = "";
+    } else {
+      currentField += char;
+    }
+  }
+  fields.push(currentField.trim());
+  return fields;
+}
+
+/** True only when the first row looks like a header, not a data row. */
+function looksLikeHeader(fields: string[]): boolean {
+  const joined = fields.join(" ").toLowerCase();
+  // Prefer whole-word matches so team names like "Sometime Team" are not headers.
+  return (
+    /\b(home|away|date|time|location|team)\b/.test(joined) &&
+    !/^\d{1,2}[\/\-]\d{1,2}/.test(fields[2] ?? "") // col 3 looks like a date → data row
+  );
+}
+
+/** Split a combined datetime cell Excel often produces (e.g. "9/24/2026 7:00:00PM"). */
+function splitDateAndTime(value: string): { date: string; time: string } | null {
+  const trimmed = value.trim();
+  const m = trimmed.match(
+    /^(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4})\s+(.+)$/
+  );
+  if (!m) return null;
+  return { date: m[1].trim(), time: m[2].trim() };
+}
+
 function parseCSV(csvText: string): CSVRow[] {
-  const lines = csvText.split(/\r?\n/).filter((line) => line.trim());
+  // Strip UTF-8 BOM if present (common from Excel)
+  const text = csvText.replace(/^\uFEFF/, "");
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
 
   if (lines.length === 0) {
     throw new Error("CSV file is empty");
   }
 
   const rows: CSVRow[] = [];
-  const firstLine = lines[0].toLowerCase();
-  const hasHeader =
-    firstLine.includes("home") ||
-    firstLine.includes("away") ||
-    firstLine.includes("date") ||
-    firstLine.includes("time");
-
+  const firstFields = splitCsvLine(lines[0].trim());
+  const hasHeader = looksLikeHeader(firstFields);
   const dataLines = hasHeader ? lines.slice(1) : lines;
 
   for (let i = 0; i < dataLines.length; i++) {
     const line = dataLines[i].trim();
     if (!line) continue;
 
-    const fields: string[] = [];
-    let currentField = "";
-    let inQuotes = false;
+    const rowNum = i + (hasHeader ? 2 : 1);
+    const fields = splitCsvLine(line);
 
-    for (let j = 0; j < line.length; j++) {
-      const char = line[j];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === "," && !inQuotes) {
-        fields.push(currentField.trim());
-        currentField = "";
-      } else {
-        currentField += char;
+    let homeTeamName: string;
+    let awayTeamName: string;
+    let date: string;
+    let time: string;
+    let location: string;
+
+    if (fields.length >= 5) {
+      [homeTeamName, awayTeamName, date, time, location] = fields;
+    } else if (fields.length === 4) {
+      // Excel often merges date+time into one column:
+      // home, away, "9/24/2026 7:00:00PM", location
+      const split = splitDateAndTime(fields[2]);
+      if (!split) {
+        throw new Error(
+          `Row ${rowNum} has 4 columns, expected 5 (homeTeam, awayTeam, date, time, location). ` +
+            `If date and time are in one column, use e.g. "9/24/2026 7:00 PM". Got: ${fields.map((f) => JSON.stringify(f)).join(", ")}`
+        );
       }
-    }
-    fields.push(currentField.trim());
-
-    if (fields.length < 5) {
+      homeTeamName = fields[0];
+      awayTeamName = fields[1];
+      date = split.date;
+      time = split.time;
+      location = fields[3];
+    } else {
       throw new Error(
-        `Row ${i + (hasHeader ? 2 : 1)} has ${fields.length} columns, expected 5 (homeTeam, awayTeam, date, time, location)`
+        `Row ${rowNum} has ${fields.length} columns, expected 5 (homeTeam, awayTeam, date, time, location). ` +
+          `Got: ${fields.map((f) => JSON.stringify(f)).join(", ")}`
       );
     }
 
-    const [homeTeamName, awayTeamName, date, time, location] = fields;
-
     if (!homeTeamName || !awayTeamName || !date || !time || !location) {
-      throw new Error(`Row ${i + (hasHeader ? 2 : 1)} has empty required fields`);
+      throw new Error(`Row ${rowNum} has empty required fields`);
     }
 
     rows.push({
@@ -88,23 +165,15 @@ function parseRowDateTime(
   row: CSVRow,
   timezone: string
 ): { startsAt: Date } | { error: string } {
-  const parsedDate = dayjs(
-    row.date,
-    ["MM/DD/YYYY", "M/D/YYYY", "MM-DD-YYYY", "M/D/YY", "MM/DD/YY", "MM-DD-YY"],
-    true
-  );
+  const parsedDate = dayjs(row.date, DATE_FORMATS, true);
 
   if (!parsedDate.isValid()) {
     return {
-      error: `Invalid date format "${row.date}". Use MM/DD/YYYY, M/D/YY, M-D-YY, or MM-DD-YYYY`,
+      error: `Invalid date format "${row.date}". Use MM/DD/YYYY, M/D/YY, M-D-YY, YYYY-MM-DD, or MM-DD-YYYY`,
     };
   }
 
-  const parsedTime = dayjs(
-    row.time,
-    ["HH:mm", "H:mm", "h:mm A", "h:mm a", "HH:mm:ss"],
-    true
-  );
+  const parsedTime = dayjs(row.time, TIME_FORMATS, true);
 
   if (!parsedTime.isValid()) {
     return {
