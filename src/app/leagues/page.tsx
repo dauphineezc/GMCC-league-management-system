@@ -184,6 +184,7 @@ export default async function LeaguesListPage({
         {(() => {
           const CONTROL: React.CSSProperties = {
             minWidth: 160,
+            maxWidth: 220,
           };
 
           const hasFilters =
@@ -198,28 +199,11 @@ export default async function LeaguesListPage({
                 name="q"
                 placeholder="Search by league name…"
                 defaultValue={q}
-                className="input"
-                style={{ marginBottom: 12, minWidth: 160 }}
+                className="input filters-search"
+                style={{ marginBottom: 12 }}
               />
 
-              <div
-                className="leagues-filters-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                  gap: 8,
-                  alignItems: "center",
-                }}
-              >
-                <select name="gender" defaultValue={genderFilter} className="input" style={CONTROL}>
-                  <option value="">All genders</option>
-                  {genders.map((g) => (
-                    <option key={g} value={g}>
-                      {title(g)}
-                    </option>
-                  ))}
-                </select>
-
+              <div className="leagues-filters-grid">
                 <EditableDivisionsFilter
                   defaultValue={divisionFilter}
                   defaultSport={sportFilter}
@@ -230,6 +214,15 @@ export default async function LeaguesListPage({
                   style={CONTROL}
                   editable
                 />
+
+                <select name="gender" defaultValue={genderFilter} className="input" style={CONTROL}>
+                  <option value="">All genders</option>
+                  {genders.map((g) => (
+                    <option key={g} value={g}>
+                      {title(g)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Results and buttons row */}

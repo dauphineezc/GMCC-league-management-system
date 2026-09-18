@@ -105,24 +105,17 @@ export default async function AdminsPage({
         Download CSV
       </a>
 
-      <form method="GET" className="card--soft" style={{ display: "grid", gap: 8 }}>
+      <form method="GET" className="card--soft">
         <input
           name="displayName"
           placeholder="Search by admin name…"
           defaultValue={searchParams.displayName ?? ""}
-          className="input"
-          style={{ minWidth: 160 }}
+          className="input filters-search"
+          style={{ marginBottom: 12 }}
           aria-label="Search by admin name"
         />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 8,
-            alignItems: "center",
-          }}
-        >
+        <div className="teams-filters-grid">
           <select
             name="sport"
             defaultValue={sportFilter ?? ""}
@@ -159,7 +152,7 @@ export default async function AdminsPage({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginTop: 4,
+            marginTop: 12,
           }}
         >
           <div className="subtle-text">

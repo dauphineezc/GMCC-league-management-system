@@ -169,8 +169,8 @@ export default async function TeamsPage({
             name="q"
             placeholder="Search by team name…"
             defaultValue={q}
-            className="input"
-            style={{ marginBottom: 12, minWidth: 160 }}
+            className="input filters-search"
+            style={{ marginBottom: 12 }}
           />
           <div className="teams-filters-grid">
             <EditableDivisionsFilter

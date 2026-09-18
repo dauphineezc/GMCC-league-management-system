@@ -1225,12 +1225,64 @@ button.card-cta {
 
 /* =============== TEAMS PAGE MOBILE FIXES =============== */
 
-/* Teams filters - responsive grid */
-.teams-filters-grid {
+/* Teams / leagues / shared admin filter grids — compact, not full-bleed */
+.teams-filters-grid,
+.leagues-filters-grid {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(100px, 160px)) !important;
   gap: 8px;
+  align-items: start;
+}
+
+.filters-search {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  min-width: 160px;
+}
+
+/* Cascading sport → division filter: one grid item that expands when a sport is chosen */
+.sport-division-cascade {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+.sport-division-cascade__row {
+  display: flex;
   align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.sport-division-cascade__row > select {
+  flex: 1 1 0;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+.sport-division-cascade__arrow {
+  flex: 0 0 auto;
+  color: var(--navy, #1e3a5f);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+/* Manage panel is a sibling grid child — full width under the filter row */
+.sport-division-cascade__manage {
+  grid-column: 1 / -1 !important;
+  width: 100%;
+  max-width: 560px;
+}
+
+/* When expanded (sport + division), span two filter columns so peers don't overlap */
+.teams-filters-grid > .sport-division-cascade:has(.sport-division-cascade__arrow),
+.leagues-filters-grid > .sport-division-cascade:has(.sport-division-cascade__arrow) {
+  grid-column: span 2;
 }
 
 /* Mobile: Two columns for better space usage */
@@ -1253,6 +1305,17 @@ button.card-cta {
   .leagues-filters-grid select[style*="minWidth"] {
     min-width: unset !important;
     width: 100% !important;
+  }
+
+  .teams-filters-grid > .sport-division-cascade,
+  .leagues-filters-grid > .sport-division-cascade,
+  .sport-division-cascade__manage {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .filters-search {
+    max-width: none;
   }
 }
 

@@ -23,8 +23,6 @@ type Props = {
   style?: React.CSSProperties;
   /** When true, show add/edit/delete controls (superadmin leagues page). */
   editable?: boolean;
-  /** When true, render sport + division as a cascading pair (default). */
-  cascadeSport?: boolean;
 };
 
 const DEFAULT_SPORTS = ["basketball", "volleyball"];
@@ -42,12 +40,13 @@ export default function EditableDivisionsFilter({
   className = "input",
   style,
   editable = false,
-  cascadeSport = true,
 }: Props) {
   const router = useRouter();
   const [divisions, setDivisions] = useState(initial);
   const [sport, setSport] = useState(defaultSport);
+  const [division, setDivision] = useState(defaultValue);
   const [managing, setManaging] = useState(false);
+  const [manageSport, setManageSport] = useState(defaultSport || sports[0] || "basketball");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [newName, setNewName] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -59,12 +58,12 @@ export default function EditableDivisionsFilter({
 
   useEffect(() => {
     setSport(defaultSport);
-  }, [defaultSport]);
-
-  const manageSport = sport || sports[0] || "basketball";
+    setDivision(defaultValue);
+    if (defaultSport) setManageSport(defaultSport);
+  }, [defaultSport, defaultValue]);
 
   const visibleDivisions = useMemo(() => {
-    if (!sport) return divisions;
+    if (!sport) return [];
     return divisions.filter((d) => d.sport === sport);
   }, [divisions, sport]);
 
@@ -78,6 +77,12 @@ export default function EditableDivisionsFilter({
 
   function refresh() {
     router.refresh();
+  }
+
+  function onSportChange(next: string) {
+    setSport(next);
+    setDivision("");
+    if (next) setManageSport(next);
   }
 
   function handleAdd() {
@@ -153,64 +158,73 @@ export default function EditableDivisionsFilter({
   }
 
   return (
-    <div style={{ display: "grid", gap: 8 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        {cascadeSport && (
+    <>
+      <div className="sport-division-cascade">
+        <div className="sport-division-cascade__row">
           <select
             name={sportName}
             value={sport}
-            onChange={(e) => setSport(e.target.value)}
+            onChange={(e) => onSportChange(e.target.value)}
             className={className}
-            style={{ ...style, flex: 1, minWidth: 140 }}
-            aria-label="Sport filter"
+            style={style}
+            aria-label="Sport / division filter"
           >
-            <option value="">All sports</option>
+            <option value="">All sports/divisions</option>
             {sports.map((s) => (
               <option key={s} value={s}>
                 {title(s)}
               </option>
             ))}
           </select>
-        )}
 
-        <select
-          name={name}
-          defaultValue={defaultValue}
-          key={`${sport}-${defaultValue}`}
-          className={className}
-          style={{ ...style, flex: 1, minWidth: 140 }}
-          aria-label="Division filter"
-        >
-          <option value="">All divisions</option>
-          {visibleDivisions.map((d) => (
-            <option key={d.id} value={d.slug}>
-              {sport ? d.name : `${title(d.sport)} · ${d.name}`}
-            </option>
-          ))}
-          {orphanSlugs.map((s) => (
-            <option key={`orphan-${s}`} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          {sport ? (
+            <>
+              <span className="sport-division-cascade__arrow" aria-hidden="true">
+                ›
+              </span>
+              <select
+                name={name}
+                value={division}
+                onChange={(e) => setDivision(e.target.value)}
+                className={className}
+                style={style}
+                aria-label="Division filter"
+              >
+                <option value="">All divisions</option>
+                {visibleDivisions.map((d) => (
+                  <option key={d.id} value={d.slug}>
+                    {d.name}
+                  </option>
+                ))}
+                {orphanSlugs.map((s) => (
+                  <option key={`orphan-${s}`} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <input type="hidden" name={name} value="" />
+          )}
 
-        {editable && (
-          <button
-            type="button"
-            className="btn btn--light btn--sm"
-            onClick={() => {
-              setManaging((v) => !v);
-              setErr(null);
-            }}
-          >
-            {managing ? "Done" : "Edit divisions"}
-          </button>
-        )}
+          {editable && (
+            <button
+              type="button"
+              className="btn btn--light btn--sm"
+              onClick={() => {
+                setManaging((v) => !v);
+                setErr(null);
+              }}
+            >
+              {managing ? "Done" : "Edit"}
+            </button>
+          )}
+        </div>
       </div>
 
       {editable && managing && (
         <div
-          className="card--soft"
+          className="card--soft sport-division-cascade__manage"
           style={{ padding: 12, display: "grid", gap: 10 }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -229,7 +243,7 @@ export default function EditableDivisionsFilter({
             <select
               className="input"
               value={manageSport}
-              onChange={(e) => setSport(e.target.value)}
+              onChange={(e) => setManageSport(e.target.value)}
               aria-label="Sport for division catalog"
               style={{ minWidth: 140 }}
             >
@@ -357,6 +371,6 @@ export default function EditableDivisionsFilter({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
