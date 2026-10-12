@@ -226,6 +226,7 @@ export default async function UnifiedLeaguePage({
               history: (
                 <GameHistory
                   leagueId={leagueId}
+                  games={games}
                   sport={typeof leagueDoc?.sport === "string" ? leagueDoc.sport : null}
                 />
               ),

@@ -8,6 +8,8 @@ type Props = {
   teamId?: string;
   teamName?: string;
   sport?: string | null;
+  /** Preloaded games; when provided, skips fetching the auth-protected schedule API. */
+  games?: Game[];
 };
 
 type Game = {
@@ -22,9 +24,19 @@ type Game = {
   setScores?: Array<{ homeScore: number; awayScore: number }> | null;
 };
 
-export default function GameHistory({ leagueId, teamId, teamName, sport }: Props) {
-  const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
+function filterCompleted(allGames: Game[]): Game[] {
+  return allGames.filter((game) => {
+    const status = (game.status || '').toLowerCase();
+    return status === 'completed' || status === 'final';
+  });
+}
+
+export default function GameHistory({ leagueId, teamId, teamName, sport, games: preloadedGames }: Props) {
+  const hasPreloaded = Array.isArray(preloadedGames);
+  const [games, setGames] = useState<Game[]>(() =>
+    hasPreloaded ? filterCompleted(preloadedGames) : []
+  );
+  const [loading, setLoading] = useState(!hasPreloaded);
   const [error, setError] = useState<string | null>(null);
 
   const fetchCompletedGames = useCallback(async () => {
@@ -35,14 +47,7 @@ export default function GameHistory({ leagueId, teamId, teamName, sport }: Props
 
       if (res.ok) {
         const gamesData = await res.json();
-        const allGames = Array.isArray(gamesData) ? gamesData : [];
-
-        const completedGames = allGames.filter((game) => {
-          const status = (game.status || '').toLowerCase();
-          return status === 'completed' || status === 'final';
-        });
-
-        setGames(completedGames);
+        setGames(filterCompleted(Array.isArray(gamesData) ? gamesData : []));
       } else {
         setGames([]);
       }
@@ -55,8 +60,13 @@ export default function GameHistory({ leagueId, teamId, teamName, sport }: Props
   }, [leagueId, teamId, teamName]);
 
   useEffect(() => {
+    if (hasPreloaded) {
+      setGames(filterCompleted(preloadedGames));
+      setLoading(false);
+      return;
+    }
     fetchCompletedGames();
-  }, [fetchCompletedGames]);
+  }, [hasPreloaded, preloadedGames, fetchCompletedGames]);
 
   const formatDate = (dateString: string) => formatGameDate(dateString);
   const formatTime = (dateString: string) => formatGameTime(dateString);

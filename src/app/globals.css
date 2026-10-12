@@ -7,9 +7,9 @@
 
 /* Colors, radius, shadows */
 :root{
-  --brand:#0374dd;                /* light blue */
+  --blue-light:#c8e8f0;
   --brand-lines:#afd5dc;          /* court lines */
-  --navy:#003A70;                 /* link text */
+  --navy:#003A70;
   --green-light:#8bc94b;
   --green:#4C8B2B;
   --green-700:#416e28;
@@ -20,9 +20,8 @@
   --radius:12px;
   --shadow:0 4px 18px rgba(0,0,0,.06);
   /* Soft tints for airy gradients */
-  --brand-soft: #87ceec;    /* fallback for color-mix(in srgb, var(--brand) 40%, #fff) */
   --navy-soft:  #7fb8d3;    /* fallback for color-mix(in srgb, var(--navy)  50%, #fff) */
-  --green-soft: #c5e2a5;    /* fallback for color-mix(in srgb, var(--green-light) 40%, #fff) */
+  --green-soft: #0e0f0c;    /* fallback for color-mix(in srgb, var(--green-light) 40%, #fff) */
 
   --font-body: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   --font-sport: var(--font-body);
@@ -50,9 +49,9 @@ body{
   background: linear-gradient(
     to bottom,
     #faffff 0%,
-    #003a7010 90%,
-    #003a7021 97%,
-    #003a703d 100%
+    #c8e8f041 90%,
+    #c8e8f060 97%,
+    #c8e8f09f 100%
   );
   background-attachment: fixed;
   color:var(--text);
@@ -320,27 +319,9 @@ h1.page-title{
   font-size: clamp(32px, 4vw, 44px);
   line-height: 1.12;
   margin: 0 0 16px;
-  letter-spacing: .5px;          /* tighter = cleaner */
-  font-weight: 500;               /* keep light so the stroke doesn't bulk it up */
-
-  /* fill */
+  letter-spacing: .3px;
+  font-weight: 800;
   color: var(--navy);
-
-  /* crisp outline */
-  -webkit-text-stroke: 1px var(--green);     /* Chrome/Safari/Edge */
-  text-shadow:
-    0 0 .02px var(--green);                  /* Firefox fallback: ultra-thin halo */
-}
-
-/* If you want a touch more presence on large screens only */
-@media (min-width: 1100px){
-  h1.page-title{ -webkit-text-stroke: 1.5px var(--green); }
-}
-
-/* Optional smoothing (looks nicer with strokes) */
-.page-title{
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
 }
 
 /* Section headers - sport font */
@@ -348,8 +329,8 @@ h1.page-title{
   font-family: var(--font-sport), var(--font-body), system-ui;
   color: var(--navy);
   font-size: clamp(24px, 2.8vw, 32px);
-  font-weight: 500;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: .3px;
   line-height: 1.2;
   margin: 24px 0 16px;
   position: relative;
@@ -473,8 +454,8 @@ h1.page-title{
   font-family: var(--font-sport), var(--font-body), system-ui;
   color: var(--navy);
   font-size: clamp(22px, 2.2vw, 28px);
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   text-align:center;
   margin: 12px 6px 10px;
 }
@@ -644,8 +625,7 @@ button.card-cta {
 /* ===== Admin Schedule polish ===== */
 .section-header {
   display:flex; align-items:center; gap:10px; margin:4px 0 8px;
-  font: 600 24px var(--font-sport, var(--font-body, system-ui));
-  font-weight: 500;
+  font: 700 24px var(--font-sport, var(--font-body, system-ui));
   letter-spacing:.3px; color: var(--navy, #0b2b4f);
 }
 .section-header::after {
@@ -733,7 +713,7 @@ button.card-cta {
   align-self:center; justify-self:center; padding:4px 10px; border-radius:999px;
   margin-top: 20px;
   background:linear-gradient(180deg, var(--green), var(--green)); color:#fff; font-weight:700; letter-spacing:.6px;
-  font-family: var(--font-sport, var(--font-body, system-ui)); font-size:12px; font-weight: 550;
+  font-family: var(--font-sport, var(--font-body, system-ui)); font-size:12px;
   box-shadow: 0 2px 6px rgba(3,25,53,.18);
 }
 
@@ -981,7 +961,7 @@ button.card-cta {
   border: 0;
   color: var(--navy);
   font-family: var(--font-sport), var(--font-body), system-ui;
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(16px, 2.0vw, 22px);
   letter-spacing:.4px;
   cursor: pointer;
@@ -1409,7 +1389,7 @@ button.card-cta {
 
 /* Background bar */
 .nav-court-bg{
-  background: var(--brand-soft);
+  background: #c8e8f0;
   background-image:
     linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0)),
     url("data:image/svg+xml;utf8,\
@@ -1444,6 +1424,7 @@ button.card-cta {
 .nav-title{
   font-family: var(--font-sport), var(--font-body), system-ui;
   font-size: clamp(22px, 2.0vw, 32px);
+  font-weight: 800;
   letter-spacing:.8px;
   color: var(--navy);
   text-transform: uppercase;
@@ -1493,7 +1474,7 @@ button.card-cta {
   line-height: 1;
 
   background: var(--green);
-  color: var(--navy);
+  color: white;
   white-space: nowrap;
   transition: transform .06s ease, background-color .12s ease;
 }

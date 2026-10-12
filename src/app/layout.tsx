@@ -1,6 +1,6 @@
 // app/layout.tsx
 import "./globals.css";
-import { Racing_Sans_One, Montserrat } from "next/font/google";
+import { Barlow_Semi_Condensed, Montserrat } from "next/font/google";
 import NavbarWrapper from "@/components/navbarWrapper";
 import type { Metadata } from "next";
 
@@ -14,7 +14,7 @@ export const viewport = {
   initialScale: 1,
 };
 
-const racing = Racing_Sans_One({ weight: "400", subsets: ["latin"], variable: "--font-sport" });
+const sport = Barlow_Semi_Condensed({ weight: ["600", "700", "800"], subsets: ["latin"], variable: "--font-sport" });
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-body" });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=optional" />
       </head>
-      <body className={`${montserrat.variable} ${racing.variable}`}>
+      <body className={`${montserrat.variable} ${sport.variable}`}>
         <NavbarWrapper />
         <main className="container">{children}</main>
       </body>
