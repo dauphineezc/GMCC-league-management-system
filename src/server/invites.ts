@@ -25,7 +25,7 @@ export async function createLinkInvite(
   options?: {
     ttlHours?: number;
     email?: string;
-    phone?: string;
+    // phone?: string; // SMS invites not configured yet
     createdBy?: string;
   }
 ) {
@@ -48,7 +48,7 @@ export async function createCodeInvite(
   options?: {
     ttlHours?: number;
     email?: string;
-    phone?: string;
+    // phone?: string; // SMS invites not configured yet
     createdBy?: string;
   }
 ) {

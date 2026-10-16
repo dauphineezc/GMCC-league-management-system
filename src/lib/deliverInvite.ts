@@ -6,7 +6,7 @@ export type ChannelResult = {
 
 export type InviteDelivery = {
   email: ChannelResult;
-  sms: ChannelResult;
+  // sms: ChannelResult; // SMS invites not configured yet
 };
 
 export type InviteKind = "code" | "link";
@@ -37,15 +37,15 @@ export function parseOptionalEmail(value: unknown): string | undefined {
 //   return e164;
 // }
 
-function toE164(raw: string): string | null {
-  const hasPlus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 10 || digits.length > 15) return null;
-  if (hasPlus) return `+${digits}`;
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  return `+${digits}`;
-}
+// function toE164(raw: string): string | null {
+//   const hasPlus = raw.trim().startsWith("+");
+//   const digits = raw.replace(/\D/g, "");
+//   if (digits.length < 10 || digits.length > 15) return null;
+//   if (hasPlus) return `+${digits}`;
+//   if (digits.length === 10) return `+1${digits}`;
+//   if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+//   return `+${digits}`;
+// }
 
 function inviteCopy(opts: {
   kind: InviteKind;
@@ -63,8 +63,8 @@ function inviteCopy(opts: {
         `You've been invited to join ${team} on Greater Midland Community Center - League Management System.\n\n` +
         `Open this one-time link to join (you must be signed in):\n${opts.link}\n\n` +
         `This invite expires in ${opts.expiresIn} hours.`,
-      sms:
-        `Greater Midland Community Center - League Management System: Join ${team} with this one-time link: ${opts.link} (expires in ${opts.expiresIn}h)`,
+      // sms:
+      //   `Greater Midland Community Center - League Management System: Join ${team} with this one-time link: ${opts.link} (expires in ${opts.expiresIn}h)`,
     };
   }
 
@@ -76,8 +76,8 @@ function inviteCopy(opts: {
       `Invite code: ${code}\n\n` +
       `Sign in, then enter this code on the Join page:\n${opts.joinUrl}\n\n` +
       `This code expires in ${opts.expiresIn} hours.`,
-    sms:
-      `Greater Midland Community Center - League Management System: Your ${team} invite code is ${code}. Enter it at ${opts.joinUrl}. Expires in ${opts.expiresIn}h.`,
+    // sms:
+    //   `Greater Midland Community Center - League Management System: Your ${team} invite code is ${code}. Enter it at ${opts.joinUrl}. Expires in ${opts.expiresIn}h.`,
   };
 }
 
@@ -180,7 +180,7 @@ export async function deliverInvite(opts: {
   joinUrl: string;
 }): Promise<InviteDelivery> {
   const copy = inviteCopy(opts);
-  const delivery: InviteDelivery = { email: skipped, sms: skipped };
+  const delivery: InviteDelivery = { email: skipped /* , sms: skipped */ };
 
   if (opts.email) {
     try {

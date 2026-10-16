@@ -514,7 +514,7 @@ type InviteResult = {
   expiresIn?: number;
   delivery?: {
     email: InviteDeliveryChannel;
-    sms: InviteDeliveryChannel;
+    // sms: InviteDeliveryChannel;
   };
 };
 
@@ -529,12 +529,12 @@ function InviteModal({
   onClose: () => void;
 }) {
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  // const [phone, setPhone] = useState('');
   const [ttlHours, setTtlHours] = useState(24);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<InviteResult | null>(null);
   const [error, setError] = useState('');
-  const hasContact = Boolean(email.trim() || phone.trim());
+  const hasContact = Boolean(email.trim() /* || phone.trim() */);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -550,7 +550,7 @@ function InviteModal({
           type,
           ttlHours,
           email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
+          // phone: phone.trim() || undefined,
         }),
       });
 
@@ -593,7 +593,7 @@ function InviteModal({
                 {type === 'link' 
                   ? 'Generate a one-time invite link. The invitee will be automatically added to the team when they click the link.'
                   : 'Generate a shareable code. The invitee must have an account and enter this code on their home page.'}
-                {' '}If you enter an email or phone number, we&apos;ll send it automatically. You can still copy it afterward.
+                {' '}If you enter an email, we&apos;ll send it automatically. You can still copy it afterward.
               </p>
 
               <div className="form-field">
@@ -660,20 +660,18 @@ function InviteModal({
                 Expires in {result.expiresIn} hours.
               </div>
 
-              {result.delivery && (result.delivery.email.attempted || result.delivery.sms.attempted) && (
+              {result.delivery && result.delivery.email.attempted && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {result.delivery.email.attempted && (
-                    result.delivery.email.sent ? (
-                      <div className="info-message">📧 Sent to {email.trim()}</div>
-                    ) : (
-                      <div className="error-message" style={{ marginBottom: 0 }}>
-                        Couldn&apos;t email {email.trim()}
-                        {result.delivery.email.error ? `: ${result.delivery.email.error}` : '.'}
-                        {' '}You can still copy the {type === 'link' ? 'link' : 'code'} below.
-                      </div>
-                    )
+                  {result.delivery.email.sent ? (
+                    <div className="info-message">📧 Sent to {email.trim()}</div>
+                  ) : (
+                    <div className="error-message" style={{ marginBottom: 0 }}>
+                      Couldn&apos;t email {email.trim()}
+                      {result.delivery.email.error ? `: ${result.delivery.email.error}` : '.'}
+                      {' '}You can still copy the {type === 'link' ? 'link' : 'code'} below.
+                    </div>
                   )}
-                  {result.delivery.sms.attempted && (
+                  {/* {result.delivery.sms?.attempted && (
                     result.delivery.sms.sent ? (
                       <div className="info-message">📱 Sent to {phone.trim()}</div>
                     ) : (
@@ -683,7 +681,7 @@ function InviteModal({
                         {' '}You can still copy the {type === 'link' ? 'link' : 'code'} below.
                       </div>
                     )
-                  )}
+                  )} */}
                 </div>
               )}
 

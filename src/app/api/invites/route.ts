@@ -13,7 +13,7 @@ import { absoluteUrl } from "@/lib/absoluteUrl";
 import {
   deliverInvite,
   parseOptionalEmail,
-  parseOptionalPhone,
+  // parseOptionalPhone,
 } from "@/lib/deliverInvite";
 
 export async function POST(req: NextRequest) {
@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
   const { teamId, type, ttlHours } = body;
 
   let email: string | undefined;
-  let phone: string | undefined;
+  // let phone: string | undefined;
   try {
     email = parseOptionalEmail(body.email);
-    phone = parseOptionalPhone(body.phone);
+    // phone = parseOptionalPhone(body.phone);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid contact details.";
     return Response.json({ error: { code: "INVALID_CONTACT", message } }, { status: 400 });
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
   const options = {
     ttlHours: ttlHours || 24,
     email,
-    phone,
+    // phone,
     createdBy: user.id,
   };
 
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     const link = `${joinUrl}?t=${result.token}`;
     const delivery = await deliverInvite({
       email,
-      phone,
+      // phone,
       kind: "link",
       teamName,
       link,
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
   const result = await createCodeInvite(teamId, options);
   const delivery = await deliverInvite({
     email,
-    phone,
+    // phone,
     kind: "code",
     teamName,
     code: result.code,
