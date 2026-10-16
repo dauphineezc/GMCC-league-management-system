@@ -247,7 +247,7 @@ async function sendAnnouncement(formData: FormData): Promise<SendAnnouncementRes
     //   ],
     // };      
 
-    const endpoint = `${MJ_BASE}/v8.1/send`;
+    const endpoint = `${MJ_BASE}/v3.1/send`;
     console.log(
       `Sending batch ${i + 1}/${batches.length} to ${batch.length} recipients`
     );
