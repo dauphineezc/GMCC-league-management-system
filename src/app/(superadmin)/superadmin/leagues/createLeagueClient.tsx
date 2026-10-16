@@ -179,7 +179,13 @@ export default function CreateLeagueClient({
             const visible = state.unassigned.filter((t) => !added.has(t.teamId));
 
             if (visible.length === 0) {
-              return <p>All unassigned teams have been added.</p>;
+              return (
+                <p>
+                  {state.unassigned.length === 0
+                    ? "There are no unassigned teams available to add."
+                    : "All unassigned teams you selected have been added."}
+                </p>
+              );
             }
 
             return (

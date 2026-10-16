@@ -45,7 +45,33 @@ function extractIdFromHref(href?: string | null): string | null {
 }
 
 /** ================== Core Action ================== */
-export async function sendAnnouncementAction(formData: FormData) {
+export type SendAnnouncementResult =
+  | { ok: true; sentBatches: number; recipients: number }
+  | { ok: false; error: string };
+
+/**
+ * Errors thrown from a server action have their message stripped in production
+ * builds, so catch them here and return the message to the client instead.
+ */
+export async function sendAnnouncementAction(
+  formData: FormData
+): Promise<SendAnnouncementResult> {
+  try {
+    return await sendAnnouncement(formData);
+  } catch (err: any) {
+    // Let Next.js redirects (e.g. to /login) through.
+    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    console.error("sendAnnouncementAction failed:", err);
+    return {
+      ok: false,
+      error: err?.message || "Failed to send announcement. Please try again.",
+    };
+  }
+}
+
+async function sendAnnouncement(formData: FormData): Promise<SendAnnouncementResult> {
   const subject = (formData.get("subject") as string)?.trim();
   const message = (formData.get("message") as string)?.trim();
   const managersOnly = formData.get("managersOnly") === "on";
@@ -192,7 +218,7 @@ export async function sendAnnouncementAction(formData: FormData) {
     const batch = batches[i];
 
     const payload = {
-      Messages: recipients.map((r, idx) => ({
+      Messages: batch.map((r, idx) => ({
         From: { Email: FROM_EMAIL, Name: FROM_NAME },
         To: [{ Email: r.Email, Name: r.Name }],
         Subject: subject,
@@ -200,7 +226,7 @@ export async function sendAnnouncementAction(formData: FormData) {
         HTMLPart: htmlPart,
         TrackOpens: "enabled" as const,
         TrackClicks: "enabled" as const,
-        CustomID: `league_${leagueId}_announcement_${Date.now()}_${idx}`,
+        CustomID: `league_${leagueId}_announcement_${Date.now()}_${i}_${idx}`,
         SandboxMode: false,
       })),
     };

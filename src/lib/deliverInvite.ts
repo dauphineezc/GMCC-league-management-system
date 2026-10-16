@@ -23,19 +23,19 @@ export function parseOptionalEmail(value: unknown): string | undefined {
   return email;
 }
 
-export function parseOptionalPhone(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const raw = value.trim();
-  if (!raw) return undefined;
-  const e164 = toE164(raw);
-  if (!e164) {
-    throw Object.assign(
-      new Error("Enter a valid phone number, including country code (e.g. +12345678900)."),
-      { status: 400 }
-    );
-  }
-  return e164;
-}
+// export function parseOptionalPhone(value: unknown): string | undefined {
+//   if (typeof value !== "string") return undefined;
+//   const raw = value.trim();
+//   if (!raw) return undefined;
+//   const e164 = toE164(raw);
+//   if (!e164) {
+//     throw Object.assign(
+//       new Error("Enter a valid phone number, including country code (e.g. +12345678900)."),
+//       { status: 400 }
+//     );
+//   }
+//   return e164;
+// }
 
 function toE164(raw: string): string | null {
   const hasPlus = raw.trim().startsWith("+");
@@ -138,40 +138,40 @@ async function sendMailjetEmail(to: string, subject: string, text: string): Prom
   }
 }
 
-async function sendMailjetSms(to: string, text: string): Promise<void> {
-  const token = process.env.MAILJET_SMS_TOKEN;
-  const from = process.env.MAILJET_SMS_FROM || "Greater Midland Community Center - League Management System";
-  const MJ_BASE =
-    process.env.MAILJET_BASE_URL?.replace(/\/+$/, "") || "https://api.mailjet.com";
+// async function sendMailjetSms(to: string, text: string): Promise<void> {
+//   const token = process.env.MAILJET_SMS_TOKEN;
+//   const from = process.env.MAILJET_SMS_FROM || "Greater Midland Community Center - League Management System";
+//   const MJ_BASE =
+//     process.env.MAILJET_BASE_URL?.replace(/\/+$/, "") || "https://api.mailjet.com";
 
-  if (!token) {
-    throw new Error("SMS sending is not configured.");
-  }
+//   if (!token) {
+//     throw new Error("SMS sending is not configured.");
+//   }
 
-  const res = await fetch(`${MJ_BASE}/v4/sms-send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ From: from, To: to, Text: text }),
-  });
+//   const res = await fetch(`${MJ_BASE}/v4/sms-send`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       Authorization: `Bearer ${token}`,
+//     },
+//     body: JSON.stringify({ From: from, To: to, Text: text }),
+//   });
 
-  if (!res.ok) {
-    const raw = await res.text().catch(() => "");
-    let detail = raw;
-    try {
-      detail = JSON.stringify(JSON.parse(raw));
-    } catch {
-      // keep raw text
-    }
-    throw new Error(`SMS failed (${res.status})${detail ? `: ${detail}` : ""}`);
-  }
-}
+//   if (!res.ok) {
+//     const raw = await res.text().catch(() => "");
+//     let detail = raw;
+//     try {
+//       detail = JSON.stringify(JSON.parse(raw));
+//     } catch {
+//       // keep raw text
+//     }
+//     throw new Error(`SMS failed (${res.status})${detail ? `: ${detail}` : ""}`);
+//   }
+// }
 
 export async function deliverInvite(opts: {
   email?: string;
-  phone?: string;
+  // phone?: string;
   kind: InviteKind;
   teamName: string;
   code?: string;
@@ -195,18 +195,18 @@ export async function deliverInvite(opts: {
     }
   }
 
-  if (opts.phone) {
-    try {
-      await sendMailjetSms(opts.phone, copy.sms);
-      delivery.sms = { attempted: true, sent: true };
-    } catch (err) {
-      delivery.sms = {
-        attempted: true,
-        sent: false,
-        error: err instanceof Error ? err.message : "Failed to send text message.",
-      };
-    }
-  }
+  // if (opts.phone) {
+  //   try {
+  //     await sendMailjetSms(opts.phone, copy.sms);
+  //     delivery.sms = { attempted: true, sent: true };
+  //   } catch (err) {
+  //     delivery.sms = {
+  //       attempted: true,
+  //       sent: false,
+  //       error: err instanceof Error ? err.message : "Failed to send text message.",
+  //     };
+  //   }
+  // }
 
   return delivery;
 }

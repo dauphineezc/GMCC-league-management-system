@@ -58,12 +58,21 @@ export default function SendAnnouncementClient({ leagueId, totals, teams }: Send
     }
 
     try {
-      await sendAnnouncementAction(formData);
+      const result = await sendAnnouncementAction(formData);
+
+      if (!result.ok) {
+        // Error - show error message, don't clear form
+        setNotification({ type: "error", message: result.error });
+        return;
+      }
       
       // Success - clear form and show success message
       setSubject("");
       setMessage("");
-      setNotification({ type: "success", message: "Announcement sent successfully!" });
+      setNotification({
+        type: "success",
+        message: `Announcement sent to ${result.recipients} recipient${result.recipients === 1 ? "" : "s"}!`,
+      });
       
       // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);

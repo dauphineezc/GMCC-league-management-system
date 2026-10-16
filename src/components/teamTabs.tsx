@@ -607,7 +607,7 @@ function InviteModal({
                 />
               </div>
 
-              <div className="form-field">
+              {/* <div className="form-field">
                 <label htmlFor="phone">Phone (optional — we&apos;ll text the invite)</label>
                 <input
                   id="phone"
@@ -616,7 +616,7 @@ function InviteModal({
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+1234567890"
                 />
-              </div>
+              </div> */}
 
               <div className="form-field">
                 <label htmlFor="ttl">Expires in</label>
