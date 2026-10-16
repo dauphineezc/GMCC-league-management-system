@@ -137,7 +137,14 @@ describe('/api/teams POST', () => {
   it('creates team with league assignment (resolved by slug)', async () => {
     (resolveLeagueByRef as jest.Mock).mockImplementation(async (ref: string) => {
       if (ref.toLowerCase() === '4v4') {
-        return { id: 'uuid-4v4', slug: '4v4', name: '4v4' };
+        return {
+          id: 'uuid-4v4',
+          slug: '4v4',
+          name: '4v4',
+          sport: 'basketball',
+          gender: 'mens',
+          division: 'c',
+        };
       }
       return null;
     });
@@ -160,6 +167,48 @@ describe('/api/teams POST', () => {
       expect.objectContaining({
         leagueSlug: '4v4',
         name: 'League Team',
+        sport: 'basketball',
+        gender: 'mens',
+        estimatedDivision: 'c',
+      })
+    );
+  });
+
+  it('trusts league division even when not in sport catalog', async () => {
+    const { isKnownDivisionSlug, listDivisions } = jest.requireMock(
+      '@/lib/repositories/divisionsRepo'
+    ) as {
+      isKnownDivisionSlug: jest.Mock;
+      listDivisions: jest.Mock;
+    };
+    (listDivisions as jest.Mock).mockResolvedValueOnce([]);
+    (isKnownDivisionSlug as jest.Mock).mockResolvedValue(false);
+    (resolveLeagueByRef as jest.Mock).mockResolvedValue({
+      id: 'uuid-vb',
+      slug: 'vb-rec',
+      name: 'VB Rec',
+      sport: 'volleyball',
+      gender: 'coed',
+      division: 'rec',
+    });
+
+    const req = new Request('http://localhost/api/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Spikers',
+        leagueId: 'vb-rec',
+      }),
+    });
+
+    const res = await POST(req as NextRequest);
+    expect(res.status).toBe(200);
+    expect(createTeam).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leagueSlug: 'vb-rec',
+        sport: 'volleyball',
+        gender: 'co-ed',
+        estimatedDivision: 'rec',
       })
     );
   });

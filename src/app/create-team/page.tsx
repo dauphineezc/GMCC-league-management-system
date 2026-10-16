@@ -10,18 +10,7 @@ import {
   listAllLeaguesLite,
   readLeagueDocByRef,
 } from "@/lib/repositories/leaguesRepo";
-
-function labelLeague(l: {
-  name: string;
-  sport: string;
-  gender: string | null;
-  division: string | null;
-}): string {
-  const bits = [l.name];
-  const meta = [l.sport, l.gender, l.division].filter(Boolean);
-  if (meta.length) bits.push(`(${meta.join(" · ")})`);
-  return bits.join(" ");
-}
+import CreateTeamLeagueFields from "@/components/createTeamLeagueFields";
 
 async function createTeam(formData: FormData) {
   "use server";
@@ -80,7 +69,9 @@ async function createTeam(formData: FormData) {
 }
 
 export default async function CreateTeamPage() {
-  const leagues = await listAllLeaguesLite({ onlyApproved: true });
+  // Include unapproved leagues: league.approved defaults to false and is not
+  // used as a registration gate elsewhere (public listings show all leagues).
+  const leagues = await listAllLeaguesLite({ onlyApproved: false });
 
   return (
     <form action={createTeam} style={{ display: "grid", gap: 14, padding: 24, maxWidth: 720 }}>
@@ -97,29 +88,7 @@ export default async function CreateTeamPage() {
           <input name="description" placeholder="Optional description" className="input" style={{ width: "100%" }} />
         </label>
 
-        <label>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>League</div>
-          <select
-            name="leagueId"
-            defaultValue=""
-            className="input"
-            style={{ width: "100%" }}
-            required
-            disabled={leagues.length === 0}
-          >
-            <option value="" disabled>
-              {leagues.length === 0 ? "No leagues available" : "Select a league…"}
-            </option>
-            {leagues.map((l) => (
-              <option key={l.id} value={l.id}>
-                {labelLeague(l)}
-              </option>
-            ))}
-          </select>
-          <div style={{ fontSize: 13, color: "var(--gray-600)", marginTop: 6 }}>
-            Your team will join this league. Sport, gender, and division come from the league.
-          </div>
-        </label>
+        <CreateTeamLeagueFields leagues={leagues} />
       </div>
 
       <div style={{ display: "flex", gap: 12 }}>

@@ -30,8 +30,18 @@ type Body = {
 };
 
 const SPORTS = new Set(["basketball", "volleyball"]);
-const GENDERS = new Set(["mens", "womens", "co-ed"]);
 const DAYS = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+
+function normalizeGender(value: unknown): "mens" | "womens" | "co-ed" {
+  const g = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, "-");
+  if (g === "mens" || g === "men" || g === "men's") return "mens";
+  if (g === "womens" || g === "women" || g === "women's") return "womens";
+  if (g === "co-ed" || g === "coed" || g === "co ed") return "co-ed";
+  return "co-ed";
+}
 
 export async function POST(req: NextRequest) {
   const auth = await assertAuthenticated();
@@ -74,21 +84,18 @@ export async function POST(req: NextRequest) {
   let sport = SPORTS.has(String(body.sport))
     ? (body.sport as "basketball" | "volleyball")
     : "basketball";
-  let gender = GENDERS.has(String(body.gender))
-    ? (body.gender as "mens" | "womens" | "co-ed")
-    : "co-ed";
+  let gender = normalizeGender(body.gender);
   if (leagueRow) {
     if (SPORTS.has(String(leagueRow.sport))) {
       sport = leagueRow.sport as "basketball" | "volleyball";
     }
-    if (GENDERS.has(String(leagueRow.gender))) {
-      gender = leagueRow.gender as "mens" | "womens" | "co-ed";
+    if (leagueRow.gender) {
+      gender = normalizeGender(leagueRow.gender);
     }
   }
 
-  const divisions = await listDivisions(
-    leagueRow ? (leagueRow.sport as string | null) : null
-  );
+  const sportForDivisions = leagueRow?.sport ?? sport;
+  const divisions = await listDivisions(sportForDivisions);
   const requestedDiv = slugifyDivisionName(
     String(
       (leagueRow?.division && String(leagueRow.division).trim()) ||
@@ -96,16 +103,34 @@ export async function POST(req: NextRequest) {
         ""
     )
   );
-  const estimatedDivision = (await isKnownDivisionSlug(
-    requestedDiv,
-    leagueRow?.sport ?? null
-  ))
-    ? requestedDiv
-    : (divisions[0]?.slug ?? null);
+
+  // League.division is authoritative (catalog can drift after sport-scoping).
+  // Free-form estimates must match the sport catalog, with soft fallbacks.
+  let estimatedDivision: string | null = null;
+  if (leagueRow && requestedDiv) {
+    estimatedDivision = requestedDiv;
+  } else if (requestedDiv) {
+    if (await isKnownDivisionSlug(requestedDiv, sportForDivisions)) {
+      estimatedDivision = requestedDiv;
+    } else if (await isKnownDivisionSlug(requestedDiv, null)) {
+      estimatedDivision = requestedDiv;
+    } else {
+      estimatedDivision = divisions[0]?.slug ?? null;
+    }
+  } else {
+    estimatedDivision = divisions[0]?.slug ?? null;
+  }
 
   if (!estimatedDivision) {
     return Response.json(
-      { error: { code: "NO_DIVISIONS", message: "No divisions are configured" } },
+      {
+        error: {
+          code: "NO_DIVISIONS",
+          message: `No divisions are configured${
+            sportForDivisions ? ` for ${sportForDivisions}` : ""
+          }`,
+        },
+      },
       { status: 400 }
     );
   }

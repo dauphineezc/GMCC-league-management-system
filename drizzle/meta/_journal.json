@@ -50,6 +50,13 @@
       "when": 1788211000000,
       "tag": "0006_user_pinned_leagues",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792172000000,
+      "tag": "0007_backfill_volleyball_divisions",
+      "breakpoints": true
     }
   ]
 }
