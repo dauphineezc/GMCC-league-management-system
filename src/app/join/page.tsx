@@ -2,18 +2,50 @@
 
 'use client';
 import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+function isUnauthenticatedResponse(response: Response, data: any): boolean {
+  if (response.status !== 401) return false;
+  if (data?.error?.code === 'UNAUTHENTICATED') return true;
+  const msg = typeof data?.error === 'string' ? data.error : data?.error?.message;
+  return (
+    typeof msg === 'string' &&
+    (/unauthorized/i.test(msg) || /sign in/i.test(msg))
+  );
+}
+
+function AuthRequiredMessage({ loginHref }: { loginHref: string }) {
+  return (
+    <>
+      Unable to join. Please{' '}
+      <Link href={loginHref} style={{ color: 'inherit', fontWeight: 600, textDecoration: 'underline' }}>
+        sign in or create an account
+      </Link>
+      .
+    </>
+  );
+}
 
 function JoinContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('t');
+  const codeParam = searchParams?.get('code');
 
   const [mode] = useState<'token' | 'code'>(token ? 'token' : 'code');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(codeParam?.trim().toUpperCase() ?? '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [needsAuth, setNeedsAuth] = useState(false);
+
+  const joinReturnPath = (() => {
+    if (mode === 'token' && token) return `/join?t=${encodeURIComponent(token)}`;
+    if (code.trim()) return `/join?code=${encodeURIComponent(code.trim())}`;
+    return '/join';
+  })();
+  const loginHref = `/login?next=${encodeURIComponent(joinReturnPath)}`;
 
   // Auto-join if token is present
   useEffect(() => {
@@ -27,6 +59,7 @@ function JoinContent() {
     setLoading(true);
     setMessage('Joining team...');
     setError('');
+    setNeedsAuth(false);
 
     try {
       const response = await fetch('/api/join/by-token', {
@@ -43,10 +76,11 @@ function JoinContent() {
         setTimeout(() => {
           router.push(`/team/${data.teamId}?joined=true`);
         }, 1000);
+      } else if (isUnauthenticatedResponse(response, data)) {
+        setNeedsAuth(true);
+        setMessage('');
       } else {
-        const errorMsg = data.error?.code === 'UNAUTHENTICATED' 
-          ? 'Please sign in first to join this team.'
-          : data.error?.code === 'ALREADY_ON_TEAM'
+        const errorMsg = data.error?.code === 'ALREADY_ON_TEAM'
           ? 'You are already on a team in this league.'
           : data.error?.code === 'TEAM_FULL'
           ? 'This team is full.'
@@ -72,17 +106,20 @@ function JoinContent() {
     
     if (!code.trim()) {
       setError('Please enter a code');
+      setNeedsAuth(false);
       return;
     }
 
     setLoading(true);
     setMessage('Joining team...');
     setError('');
+    setNeedsAuth(false);
 
     try {
       const response = await fetch('/api/join/by-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ code: code.trim() }),
       });
 
@@ -93,10 +130,13 @@ function JoinContent() {
         setTimeout(() => {
           router.push(`/team/${data.team.id}?joined=true`);
         }, 1000);
+      } else if (isUnauthenticatedResponse(response, data)) {
+        setNeedsAuth(true);
+        setMessage('');
       } else {
         const errorMsg = data.error === 'Already on a team'
           ? 'You are already on a team in this league.'
-          : data.error === 'Invalid/expired code'
+          : data.error === 'Invalid/expired code' || data.error === 'Invalid/expired invite'
           ? 'This code is invalid or has expired.'
           : typeof data.error === 'string'
           ? data.error
@@ -113,6 +153,14 @@ function JoinContent() {
     }
   };
 
+  const errorBoxStyle = {
+    background: '#ffebee',
+    color: '#c62828',
+    padding: 12,
+    borderRadius: 4,
+    marginBottom: 16,
+  } as const;
+
   return (
     <main style={{ padding: 20, maxWidth: 500, margin: '0 auto' }}>
       <h1 className="page-title">Join a Team</h1>
@@ -120,27 +168,21 @@ function JoinContent() {
       {mode === 'token' ? (
         <div className="card" style={{ padding: 20 }}>
           {loading && <p>{message}</p>}
-          {error && (
-            <div style={{ 
-              background: '#ffebee', 
-              color: '#c62828', 
-              padding: 16, 
-              borderRadius: 4,
-              marginBottom: 16 
-            }}>
-              {error}
+          {(needsAuth || error) && (
+            <div style={{ ...errorBoxStyle, padding: 16 }}>
+              {needsAuth ? <AuthRequiredMessage loginHref={loginHref} /> : error}
             </div>
           )}
-          {!loading && !error && !message && (
+          {!loading && !error && !needsAuth && !message && (
             <p>Processing invite link...</p>
           )}
-          {!loading && error && (
+          {!loading && (error || needsAuth) && (
             <button 
               className="btn btn--outline"
-              onClick={() => router.push('/')}
+              onClick={() => router.push(needsAuth ? loginHref : '/')}
               style={{ marginTop: 12 }}
             >
-              Go Home
+              {needsAuth ? 'Sign In' : 'Go Home'}
             </button>
           )}
         </div>
@@ -175,15 +217,9 @@ function JoinContent() {
               />
             </div>
 
-            {error && (
-              <div style={{ 
-                background: '#ffebee', 
-                color: '#c62828', 
-                padding: 12, 
-                borderRadius: 4,
-                marginBottom: 16 
-              }}>
-                {error}
+            {(needsAuth || error) && (
+              <div style={errorBoxStyle}>
+                {needsAuth ? <AuthRequiredMessage loginHref={loginHref} /> : error}
               </div>
             )}
 
