@@ -45,7 +45,15 @@ export async function GET(req: Request) {
   const q = norm(sp.get("q") ?? "");
   const sportFilter = String(sp.get("sport") ?? "");
   const genderFilter = String(sp.get("gender") ?? "");
-  const divisionFilter = String(sp.get("division") ?? "");
+  const divisionFilters = Array.from(
+    new Set(
+      sp
+        .getAll("division")
+        .flatMap((v) => String(v).split(","))
+        .map((s) => norm(s))
+        .filter(Boolean)
+    )
+  );
 
   const rawSetMembers = await smembersSafe("leagues:index");
   const leagueIds = Array.from(new Set(rawSetMembers.flatMap(explodeIds))).filter(Boolean);
@@ -87,7 +95,12 @@ export async function GET(req: Request) {
       if (q && !l.name.toLowerCase().includes(q)) return false;
       if (sportFilter && norm(l.sport) !== sportFilter) return false;
       if (genderFilter && norm(l.gender) !== genderFilter) return false;
-      if (divisionFilter && norm(l.division) !== divisionFilter) return false;
+      if (
+        divisionFilters.length > 0 &&
+        !divisionFilters.includes(norm(l.division))
+      ) {
+        return false;
+      }
       return true;
     })
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));

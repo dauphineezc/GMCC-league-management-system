@@ -11,6 +11,7 @@ import { exportHref } from "@/lib/csv";
 import { listDivisions, slugifyDivisionName } from "@/lib/repositories/divisionsRepo";
 import EditableLeagueAssignment from "../(superadmin)/superadmin/teams/editableLeagueAssignment";
 import EditableDivisionsFilter from "@/components/editableDivisionsFilter";
+import LiveFilterForm from "@/components/liveFilterForm";
 
 /* ---------------- helpers ---------------- */
 
@@ -58,7 +59,10 @@ type TeamRow = {
 
 export default async function TeamsPage({
   searchParams,
-}: { searchParams: Record<string, string | string[] | undefined> }) {
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   const user = await getServerUser();
   if (!user) redirect("/login");
 
@@ -106,13 +110,21 @@ export default async function TeamsPage({
     }));
 
     // Parse filters
-    const q = norm(searchParams.q ?? "");
-    const approvedFilter = String(searchParams.approved ?? "all");
-    const leagueFilter = String(searchParams.league ?? "");
-    const onlyUnassigned = String(searchParams.unassigned ?? "") === "1";
-    const sportFilter = normalizeSport(searchParams.sport ?? "");
-    const genderFilter = normalizeGender(searchParams.gender ?? "");
-    const divisionFilter = normalizeDivision(searchParams.division ?? "");
+    const q = norm(sp.q ?? "");
+    const approvedFilter = String(sp.approved ?? "all");
+    const leagueFilter = String(sp.league ?? "");
+    const onlyUnassigned = String(sp.unassigned ?? "") === "1";
+    const sportFilter = normalizeSport(sp.sport ?? "");
+    const genderFilter = normalizeGender(sp.gender ?? "");
+    const divisionRaw = sp.division;
+    const divisionFilters = Array.from(
+      new Set(
+        (Array.isArray(divisionRaw) ? divisionRaw : [divisionRaw ?? ""])
+          .flatMap((v) => String(v).split(","))
+          .map((s) => normalizeDivision(s))
+          .filter((s): s is string => !!s)
+      )
+    );
 
     // Apply filters
     const rows = rowsWithNames
@@ -124,7 +136,9 @@ export default async function TeamsPage({
         if (leagueFilter && t.leagueId !== leagueFilter) return false;
         if (sportFilter && t.sport !== sportFilter) return false;
         if (genderFilter && t.gender !== genderFilter) return false;
-        if (divisionFilter && t.division !== divisionFilter) return false;
+        if (divisionFilters.length > 0) {
+          if (!t.division || !divisionFilters.includes(t.division)) return false;
+        }
         return true;
       })
       .sort((a, b) =>
@@ -136,7 +150,7 @@ export default async function TeamsPage({
       (q && q.trim().length > 0) ||
       !!sportFilter ||
       !!genderFilter ||
-      !!divisionFilter ||
+      divisionFilters.length > 0 ||
       !!leagueFilter ||
       (approvedFilter && approvedFilter !== "all") ||
       !!onlyUnassigned;
@@ -153,7 +167,7 @@ export default async function TeamsPage({
               q,
               sport: sportFilter ?? "",
               gender: genderFilter ?? "",
-              division: divisionFilter ?? "",
+              division: divisionFilters.join(","),
               league: leagueFilter,
               approved: approvedFilter !== "all" ? approvedFilter : "",
               unassigned: onlyUnassigned ? "1" : "",
@@ -163,8 +177,8 @@ export default async function TeamsPage({
           </a>
         </div>
 
-        {/* Filters */}
-        <form method="GET" className="card--soft">
+        {/* Filters — update live as controls change */}
+        <LiveFilterForm className="card--soft">
           <input
             name="q"
             placeholder="Search by team name…"
@@ -174,12 +188,11 @@ export default async function TeamsPage({
           />
           <div className="teams-filters-grid">
             <EditableDivisionsFilter
-              defaultValue={divisionFilter ?? ""}
+              defaultValue={divisionFilters}
               defaultSport={sportFilter ?? ""}
               sports={[...CANONICAL_SPORTS]}
               divisions={catalogDivisions}
               className="input"
-              style={CONTROL}
             />
 
             <select name="gender" defaultValue={genderFilter ?? ""} className="input" style={CONTROL}>
@@ -210,14 +223,11 @@ export default async function TeamsPage({
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
             <div className="subtle-text">{rows.length} results</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {hasFilters && (
-                <a href="/teams" className="btn btn--light">Reset</a>
-              )}
-              <button className="btn btn--outline" type="submit">Apply</button>
-            </div>
+            {hasFilters && (
+              <a href="/teams" className="btn btn--light">Reset</a>
+            )}
           </div>
-        </form>
+        </LiveFilterForm>
 
         {/* Results list */}
         <div>

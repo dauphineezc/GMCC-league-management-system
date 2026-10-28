@@ -12,6 +12,7 @@ import { listDivisions, slugifyDivisionName } from "@/lib/repositories/divisions
 import CreateLeagueClient from "../(superadmin)/superadmin/leagues/createLeagueClient";
 import Collapsible from "@/components/collapsible";
 import EditableDivisionsFilter from "@/components/editableDivisionsFilter";
+import LiveFilterForm from "@/components/liveFilterForm";
 
 const title = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 const norm  = (v: unknown) => String(v ?? "").trim().toLowerCase();
@@ -62,7 +63,10 @@ function explodeIds(v: unknown): string[] {
 
 export default async function LeaguesListPage({
   searchParams,
-}: { searchParams: Record<string, string | string[] | undefined> }) {
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   const user = await getServerUser();
   if (!user) redirect("/login");
   if (!user.superadmin) notFound(); // Only superadmins can access
@@ -120,30 +124,28 @@ export default async function LeaguesListPage({
     ])
   ).sort((a, b) => a.localeCompare(b));
 
-  const discoveredDivisionSlugs = Array.from(
+  // 4) parse filters (league page doesn't need "league" or "unassigned")
+  const q              = String(sp.q ?? "").toLowerCase().trim();
+  const sportFilter    = String(sp.sport ?? "");
+  const genderFilter   = String(sp.gender ?? "");
+  const divisionRaw = sp.division;
+  const divisionFilters = Array.from(
     new Set(
-      allLeagues
-        .map((l) => slugifyDivisionName(String(l.division ?? "")))
+      (Array.isArray(divisionRaw) ? divisionRaw : [divisionRaw ?? ""])
+        .flatMap((v) => String(v).split(","))
+        .map((s) => slugifyDivisionName(s))
         .filter(Boolean)
     )
   );
-
-  // 4) parse filters (league page doesn't need "league" or "unassigned")
-  const q              = String(searchParams.q ?? "").toLowerCase().trim();
-  const sportFilter    = String(searchParams.sport ?? "");
-  const genderFilter   = String(searchParams.gender ?? "");
-  const divisionFilter = slugifyDivisionName(String(searchParams.division ?? ""));
 
   // 5) apply filters
   const rows = allLeagues.filter((l) => {
     if (q && !l.name.toLowerCase().includes(q)) return false;
     if (sportFilter && norm(l.sport) !== sportFilter) return false;
     if (genderFilter && norm(l.gender) !== genderFilter) return false;
-    if (
-      divisionFilter &&
-      slugifyDivisionName(String(l.division ?? "")) !== divisionFilter
-    ) {
-      return false;
+    if (divisionFilters.length > 0) {
+      const leagueDiv = slugifyDivisionName(String(l.division ?? ""));
+      if (!leagueDiv || !divisionFilters.includes(leagueDiv)) return false;
     }
     return true;
   });
@@ -168,7 +170,7 @@ export default async function LeaguesListPage({
             q,
             sport: sportFilter,
             gender: genderFilter,
-            division: divisionFilter,
+            division: divisionFilters.join(","),
           })}
         >
           Download CSV
@@ -179,8 +181,8 @@ export default async function LeaguesListPage({
         <CreateLeagueClient divisions={catalogDivisions} />
       </Collapsible>
 
-      {/* Filters */}
-      <form method="GET" className="card--soft">
+      {/* Filters — update live as controls change */}
+      <LiveFilterForm className="card--soft">
         {(() => {
           const CONTROL: React.CSSProperties = {
             minWidth: 160,
@@ -191,7 +193,7 @@ export default async function LeaguesListPage({
             (q && q.trim().length > 0) ||
             !!sportFilter ||
             !!genderFilter ||
-            !!divisionFilter;
+            divisionFilters.length > 0;
 
           return (
             <>
@@ -205,13 +207,11 @@ export default async function LeaguesListPage({
 
               <div className="leagues-filters-grid">
                 <EditableDivisionsFilter
-                  defaultValue={divisionFilter}
+                  defaultValue={divisionFilters}
                   defaultSport={sportFilter}
                   sports={sports}
                   divisions={catalogDivisions}
-                  extraSlugs={discoveredDivisionSlugs}
                   className="input"
-                  style={CONTROL}
                   editable
                 />
 
@@ -225,29 +225,23 @@ export default async function LeaguesListPage({
                 </select>
               </div>
 
-              {/* Results and buttons row */}
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "space-between", 
-                marginTop: 12 
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 12,
               }}>
                 <div className="subtle-text">{rows.length} results</div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {hasFilters && (
-                    <Link href="/leagues" className="btn btn--light">
-                      Reset
-                    </Link>
-                  )}
-                  <button className="btn btn--outline" type="submit">
-                    Apply
-                  </button>
-                </div>
+                {hasFilters && (
+                  <Link href="/leagues" className="btn btn--light">
+                    Reset
+                  </Link>
+                )}
               </div>
             </>
           );
         })()}
-      </form>
+      </LiveFilterForm>
 
       {/* Results list */}
       <div>

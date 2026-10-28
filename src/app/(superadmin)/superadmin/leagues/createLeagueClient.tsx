@@ -1,12 +1,12 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import {
   createLeagueAction,
   addTeamToLeagueDirect,
 } from "./createLeagueAction";
 import type { CreateLeagueState, UnassignedTeam } from "./createLeagueTypes";
-import { useMemo, useState, useTransition } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 
 type DivisionOption = { id: string; slug: string; name: string; sport: string };
 
@@ -25,7 +25,7 @@ export default function CreateLeagueClient({
   divisions: DivisionOption[];
 }) {
   const initialState: CreateLeagueState = null;
-  const [state, formAction] = useFormState<CreateLeagueState, FormData>(
+  const [state, formAction] = useActionState<CreateLeagueState, FormData>(
     createLeagueAction,
     initialState
   );

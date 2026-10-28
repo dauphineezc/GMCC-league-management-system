@@ -48,7 +48,15 @@ export async function GET(req: Request) {
   const onlyUnassigned = String(sp.get("unassigned") ?? "") === "1";
   const sportFilter = normalizeSport(sp.get("sport") ?? "");
   const genderFilter = normalizeGender(sp.get("gender") ?? "");
-  const divisionFilter = normalizeDivision(sp.get("division") ?? "");
+  const divisionFilters = Array.from(
+    new Set(
+      sp
+        .getAll("division")
+        .flatMap((v) => String(v).split(","))
+        .map((s) => normalizeDivision(s))
+        .filter((s): s is string => !!s)
+    )
+  );
 
   const teamIds = await smembersSafe("teams:index");
   const teamsMap = await batchGetTeams(teamIds);
@@ -100,7 +108,12 @@ export async function GET(req: Request) {
       if (leagueFilter && t.leagueId !== leagueFilter) return false;
       if (sportFilter && t.sport !== sportFilter) return false;
       if (genderFilter && t.gender !== genderFilter) return false;
-      if (divisionFilter && t.division !== divisionFilter) return false;
+      if (
+        divisionFilters.length > 0 &&
+        (!t.division || !divisionFilters.includes(t.division))
+      ) {
+        return false;
+      }
       return true;
     })
     .map((t) => ({
