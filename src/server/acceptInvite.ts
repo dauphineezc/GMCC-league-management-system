@@ -2,7 +2,7 @@ import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { markInviteUsed, type PeekedInvite } from "@/lib/repositories/invitesRepo";
 import { getTeamById, getTeamRosterMeta } from "@/lib/repositories/teamsRepo";
 import { readMembershipsForUid } from "@/lib/repositories/usersRepo";
-import { addPlayerToTeam } from "@/server/memberships";
+import { addPlayerToTeam, ensureUserExists } from "@/server/memberships";
 
 const ROSTER_LIMIT = 8;
 
@@ -11,7 +11,11 @@ function joinError(message: string, status: number, code: string): never {
 }
 
 /** Validate league/roster rules, then consume the invite and add the player. */
-export async function acceptInviteForUser(userId: string, invite: PeekedInvite) {
+export async function acceptInviteForUser(
+  userId: string,
+  invite: PeekedInvite,
+  options?: { email?: string | null }
+) {
   const team = await getTeamById(invite.teamId);
   if (!team) joinError("Team not found", 404, "NOT_FOUND");
 
@@ -41,6 +45,9 @@ export async function acceptInviteForUser(userId: string, invite: PeekedInvite) 
   if (rosterSize >= ROSTER_LIMIT) {
     joinError("Team is full", 400, "TEAM_FULL");
   }
+
+  // used_by / team_members.user_id both FK to users.id — Auth session alone is not enough
+  await ensureUserExists(userId, options?.email);
 
   await markInviteUsed(invite.id, userId);
   await addPlayerToTeam(userId, invite.teamId);

@@ -1,7 +1,7 @@
 import { db } from "@/db/index";
-import { teamMembers } from "@/db/schema";
+import { teamMembers, users } from "@/db/schema";
 import { getTeamById } from "@/lib/repositories/teamsRepo";
-import { upsertUserProfile } from "@/lib/repositories/usersRepo";
+import { getUserDoc } from "@/lib/repositories/usersRepo";
 import type { Membership } from "@/lib/types";
 import { and, eq } from "drizzle-orm";
 
@@ -52,11 +52,25 @@ export async function removePlayerFromTeam(userId: string, teamId: string) {
   return { team, removedUser: userId };
 }
 
+/** Inserts a users row when missing. Does not overwrite existing profile fields. */
 export async function ensureUserExists(userId: string, email?: string | null) {
-  if (!email) return;
-  await upsertUserProfile({
-    id: userId,
-    email,
-    displayName: null,
-  });
+  const existing = await getUserDoc(userId);
+  if (existing) return;
+
+  if (!email) {
+    throw Object.assign(
+      new Error("Your account is missing an email. Please update your profile and try again."),
+      { status: 400, code: "EMAIL_REQUIRED" }
+    );
+  }
+
+  await db
+    .insert(users)
+    .values({
+      id: userId,
+      email: email.toLowerCase(),
+      displayName: null,
+      isSuperadmin: false,
+    })
+    .onConflictDoNothing();
 }

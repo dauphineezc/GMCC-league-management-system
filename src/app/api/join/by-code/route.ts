@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const invite = await peekCodeInvite(code);
-    const { teamId, team } = await acceptInviteForUser(user.id, invite);
+    const { teamId, team } = await acceptInviteForUser(user.id, invite, {
+      email: user.email,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -31,6 +33,11 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
+    const status = typeof e?.status === "number" ? e.status : 500;
+    const message =
+      status < 500 && typeof e?.message === "string"
+        ? e.message
+        : "Failed to join team.";
+    return NextResponse.json({ error: message }, { status });
   }
 }

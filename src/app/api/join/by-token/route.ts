@@ -27,12 +27,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const invite = await peekLinkInvite(token);
-    const { teamId } = await acceptInviteForUser(user.id, invite);
+    const { teamId } = await acceptInviteForUser(user.id, invite, {
+      email: user.email,
+    });
     return NextResponse.json({ ok: true, teamId });
   } catch (e: any) {
     const status = typeof e?.status === "number" ? e.status : 500;
     const code = typeof e?.code === "string" ? e.code : "JOIN_FAILED";
-    const message = typeof e?.message === "string" ? e.message : "Failed to join team.";
+    const message =
+      status < 500 && typeof e?.message === "string"
+        ? e.message
+        : "Failed to join team.";
     return jsonError(code, message, status);
   }
 }

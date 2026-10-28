@@ -68,7 +68,11 @@ describe('/api/join/by-token POST', () => {
     expect(res.status).toBe(200);
     expect(body).toEqual({ ok: true, teamId: 'team-1' });
     expect(peekLinkInvite).toHaveBeenCalledWith('abc');
-    expect(acceptInviteForUser).toHaveBeenCalledWith('user123', { id: 'inv-1', teamId: 'team-1' });
+    expect(acceptInviteForUser).toHaveBeenCalledWith(
+      'user123',
+      { id: 'inv-1', teamId: 'team-1' },
+      { email: 'player@example.com' }
+    );
   });
 
   it('does not accept the invite when peek says it is invalid', async () => {
