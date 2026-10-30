@@ -1476,8 +1476,8 @@ select.input {
 @media (min-width: 769px) {
   .teams-card-layout {
     display: grid !important;
-    grid-template-columns: minmax(200px, 1fr) 120px minmax(220px, 1fr) max-content !important;
-    column-gap: 12px !important;
+    grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr) max-content !important;
+    column-gap: 16px !important;
     align-items: center !important;
     gap: 0 !important;
     padding: 15px !important;
@@ -1498,23 +1498,35 @@ select.input {
   }
   
   /* Desktop: League assignment in third column */
-  .teams-card-layout > div:nth-child(3) {
-    justify-self: start !important;
-    min-width: 180px !important;
-    max-width: 450px !important;
+  .teams-card-layout > div:nth-child(3),
+  .teams-card-league {
+    justify-self: stretch !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden;
+    padding-right: 8px;
   }
   
   /* Desktop: View link in fourth column */
   .teams-card-layout > div:last-child {
     justify-self: end !important;
     text-align: right !important;
+    flex-shrink: 0;
+    margin-left: 8px;
   }
 }
 
 .teams-card-league {
-  min-width: 180px;
-  max-width: 450px;
-  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  justify-self: stretch;
+  overflow: hidden;
+}
+
+.editable-league-assignment {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .teams-card-view {
@@ -3075,4 +3087,145 @@ div.standings-mobile ul.roster-list li {
   .league-roster-team-info-mobile {
     font-size: 12px !important;
   }
+}
+
+/* =============== MOBILE CONTAINMENT & TABLE SCROLLING ===============
+   Goal: the page itself never scrolls sideways on a phone. Anything wider than
+   the screen (tables, long names) is clipped/ellipsised or scrolls inside its
+   own box. Keep this block at the END of the file so it wins the cascade.
+   ==================================================================== */
+
+/* Grid/flex children default to `min-width:auto`, so a single long nowrap
+   string (e.g. a league name) used to stretch the whole page past the
+   viewport and get clipped. Let every layout child shrink instead. */
+main > *,
+.container > *,
+.cards-grid > *,
+.cards-grid-fixed > *,
+.admin-two-col > *,
+.admin-league-layout > *,
+.form-grid > *,
+.team-header > *,
+.roster-list > li {
+  min-width: 0;
+}
+
+/* Responsive grids must never force a track wider than the screen */
+.cards-grid{
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+}
+.cards-grid-fixed{
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 520px));
+}
+
+/* Reusable horizontally-scrollable wrapper for wide data tables.
+   The table keeps its desktop layout and scrolls inside this box. */
+.table-scroll{
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.table-scroll > table{
+  min-width: max-content;
+}
+.table-scroll th,
+.table-scroll td{
+  white-space: nowrap;
+}
+
+/* Media should never be wider than its column */
+img, video, canvas{ max-width: 100%; }
+
+@media (max-width: 768px){
+  /* Anything that still ends up too wide is clipped, never page-scrolled */
+  html, body{ overflow-x: clip; }
+  main{ max-width: 100%; }
+
+  /* Subtle hint that a table scrolls sideways */
+  .table-scroll{
+    border-radius: 8px;
+    background:
+      linear-gradient(to right, #fff 30%, rgba(255,255,255,0)) left center / 24px 100% no-repeat local,
+      linear-gradient(to left,  #fff 30%, rgba(255,255,255,0)) right center / 24px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.16), rgba(0,0,0,0)) left center / 10px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.16), rgba(0,0,0,0)) right center / 10px 100% no-repeat scroll;
+  }
+}
+/* ---- Mobile polish: list rows, long names, filters ---- */
+@media (max-width: 768px){
+  /* Superadmin Players / Admins rows: name flexes + truncates, action stays visible */
+  .player-card--aligned{
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    column-gap: 12px !important;
+    padding-right: 8px !important;
+  }
+  .player-card--aligned > *{ min-width: 0; }
+  .player-card--aligned .player-name-display,
+  .player-card--aligned .admin-name-display{
+    margin-left: 4px !important;
+    max-width: 100%;
+  }
+  .player-card--aligned .col-view{ margin-right: 0 !important; }
+
+  /* Superadmin Leagues rows: sport + admin on one line, admin truncates */
+  .league-card-mobile > div:nth-child(2){ gap: 16px !important; min-width: 0; }
+  .league-card-mobile .league-sport-mobile{ flex: 0 0 auto; }
+  .league-card-mobile .league-admin-mobile{
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Public league lists: let long league names wrap instead of "Fall Adult 4on4 ..." */
+  .public-league-name{
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Less dead space inside tab cards */
+  .pad-card-sides{ padding: 14px !important; }
+}
+
+@media (max-width: 480px){
+  /* Compact selects so labels like "All genders" aren't cut off in 2-up filter grids */
+  select.input{
+    padding-left: 10px;
+    padding-right: 26px;
+    font-size: 13px;
+    background-position: right 8px center;
+    background-size: 14px 14px;
+  }
+}
+/* Embedded PDFs don't scroll/zoom well inside phone browsers; on mobile we hide the
+   iframe and point people at the PDF button, which opens the native viewer. */
+.pdf-mobile-hint{ display: none; margin: 0; font-size: 14px; color: var(--muted); }
+@media (max-width: 768px){
+  .pdf-embed{ display: none; }
+  .pdf-mobile-hint{ display: block; }
+}
+@media (max-width: 768px){
+  /* Long team names wrap instead of being cut off with "..." */
+  .summary-card-team-name{
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+  }
+  /* Tighter inner padding on team page tab panels */
+  .team-panel{ padding: 14px !important; }
+}
+/* =============== PAGE MARGINS (single source of truth) ===============
+   Every page sits inside <main class="container">, so that is the ONLY place
+   horizontal page margin is set. Individual pages must not add their own
+   padding to their <main>, or margins drift from page to page. */
+.home-main{ padding: 0 !important; }
+@media (max-width: 768px){
+  .container{ padding: 16px !important; }
+  .home-main{ padding: 0 !important; }
 }

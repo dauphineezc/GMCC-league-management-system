@@ -73,7 +73,10 @@ export default async function ScheduleViewerServer({
           </div>
         </div>
 
-        <div className="card--soft rounded-2xl border overflow-hidden">
+        <p className="pdf-mobile-hint">
+          Tap <strong>Download PDF</strong> above to open the full schedule. You can pinch to zoom.
+        </p>
+        <div className="card--soft rounded-2xl border overflow-hidden pdf-embed">
           <iframe
             src={`/api/leagues/${leagueId}/schedule/pdf?t=${Date.now()}`}
             width="100%"

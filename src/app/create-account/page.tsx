@@ -28,8 +28,22 @@ function CreateAccountContent() {
   const router = useRouter();
   const params = useSearchParams();
   const prefillEmail = params.get("email");
+  const next = params.get("next");
   useEffect(() => { if (prefillEmail) setEmail(prefillEmail); }, [prefillEmail]);
   useEffect(() => { setEmbedded(isEmbedded()); }, []);
+
+  /** Only allow same-origin relative paths (blocks open redirects). */
+  function safeNextPath(value: string | null | undefined): string | null {
+    if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+    return value;
+  }
+
+  function withNext(path: string) {
+    const dest = safeNextPath(next);
+    if (!dest) return path;
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}next=${encodeURIComponent(dest)}`;
+  }
 
   const profilePayload = useMemo(() => ({
     firstName: firstName.trim(),
@@ -60,7 +74,7 @@ function CreateAccountContent() {
   async function complete() {
     await finalizeClientSession();
     await postProfile();
-    router.replace("/player");
+    router.replace(safeNextPath(next) ?? "/player");
   }
 
   async function createWithEmail() {
@@ -98,12 +112,14 @@ function CreateAccountContent() {
   }
 
   if (embedded) {
-    const createPath = prefillEmail
-      ? `/create-account?email=${encodeURIComponent(prefillEmail)}`
-      : "/create-account";
+    const createPath = withNext(
+      prefillEmail
+        ? `/create-account?email=${encodeURIComponent(prefillEmail)}`
+        : "/create-account"
+    );
 
     return (
-      <main style={{ padding: 20, display: "grid", gap: 10 }}>
+      <main style={{ display: "grid", gap: 10 }}>
         <section
           className="auth-card w-full"
           style={{
@@ -136,7 +152,7 @@ function CreateAccountContent() {
   }
 
   return (
-    <main style={{ padding: 20, display: "grid", gap: 10 }}>
+    <main style={{ display: "grid", gap: 10 }}>
       <section className="auth-card w-full" style={{ justifySelf: "center", justifyItems: "center", minHeight: "500px", padding: "32px", maxWidth: "640px", width: "100%" }}>
         <h2 className="content-title" style={{ marginBottom: 30 }}>Create your account</h2>
 
@@ -207,9 +223,10 @@ function CreateAccountContent() {
                   justifyContent: "center",
                   gap: 12,
                   height: 44,
-                  minWidth: 280,
+                  width: "100%",
+                  maxWidth: 280,
                   padding: "0 16px",
-                  border: "1px solidrgb(205, 208, 214)",
+                  border: "1px solid rgb(205, 208, 214)",
                   borderRadius: 6,
                   background: "#fff",
                   color: "var(--navy)",
@@ -269,7 +286,8 @@ function CreateAccountContent() {
         {err && <p role="alert" className="mt-4 text-sm text-red-600">{err}</p>}
 
         <p className="mt-6 text-center text-sm text-slate-600" style={{ marginTop: "50px" }}>
-          Already have an account? <a href="/login" className="text-blue-700 hover:underline">Sign in</a>
+          Already have an account?{" "}
+          <a href={withNext("/login")} className="text-blue-700 hover:underline">Sign in</a>
         </p>
       </section>
     </main>

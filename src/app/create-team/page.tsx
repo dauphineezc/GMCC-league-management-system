@@ -74,7 +74,7 @@ export default async function CreateTeamPage() {
   const leagues = await listAllLeaguesLite({ onlyApproved: false });
 
   return (
-    <form action={createTeam} style={{ display: "grid", gap: 14, padding: 24, maxWidth: 720 }}>
+    <form action={createTeam} style={{ display: "grid", gap: 14, maxWidth: 720 }}>
       <h1 className="section-title">Create a Team</h1>
 
       <div className="card" style={{ padding: 16, display: "grid", gap: 14, background: "#FFFFFF" }}>

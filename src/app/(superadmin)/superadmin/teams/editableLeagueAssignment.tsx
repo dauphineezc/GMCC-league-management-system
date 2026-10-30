@@ -131,25 +131,37 @@ export default function EditableLeagueAssignment({
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div
+      className="editable-league-assignment"
+      style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%", marginRight: 8 }}
+      title={displayName}
+    >
       <span
-      className="league-name-display"
-      style={{
-        justifySelf: "center",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        fontSize: 16,
-        fontWeight: 600,
-        color: "var(--navy)",
-        textTransform: "uppercase",
-      }}>
+        className="league-name-display"
+        style={{
+          flex: "1 1 auto",
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          fontSize: 16,
+          fontWeight: 600,
+          color: "var(--navy)",
+          textTransform: "uppercase",
+        }}
+      >
         {displayName}
       </span>
       <button
         type="button"
         className="p-1 rounded transition-colors"
-        style={{ color: 'var(--navy)', backgroundColor: 'transparent', marginLeft: "10px", alignItems: "center" }}
+        style={{
+          color: "var(--navy)",
+          backgroundColor: "transparent",
+          flexShrink: 0,
+          display: "inline-flex",
+          alignItems: "center",
+        }}
         onClick={() => setIsEditing(true)}
         title="Edit league assignment"
       >

@@ -277,7 +277,7 @@ export default async function UnifiedHome() {
   }
 
   return (
-    <main className="home-main" style={{ padding: 20, display: "grid", gap: homeRole === "public" ? 10 : 30 }}>
+    <main className="home-main" style={{ display: "grid", gap: homeRole === "public" ? 10 : 30 }}>
       {/* Welcome Section */}
       <section>
         <h1 className="page-title">Welcome</h1>

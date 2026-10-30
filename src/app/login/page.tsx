@@ -16,6 +16,12 @@ async function getMe() {
   try { return await r.json(); } catch { return {}; }
 }
 
+/** Only allow same-origin relative paths (blocks open redirects). */
+function safeNextPath(next: string | null | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 function targetFromMe(me: any) {
   const a = me?.auth || {};
   if (a.superadmin) return "/superadmin";
@@ -23,11 +29,20 @@ function targetFromMe(me: any) {
   return "/player";
 }
 
+function createAccountHref(opts: { email?: string | null; next?: string | null }) {
+  const q = new URLSearchParams();
+  if (opts.email) q.set("email", opts.email);
+  const next = safeNextPath(opts.next);
+  if (next) q.set("next", next);
+  const qs = q.toString();
+  return qs ? `/create-account?${qs}` : "/create-account";
+}
+
 function EmbeddedSignInPrompt({ next }: { next: string | null }) {
   const loginPath = next && next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login";
 
   return (
-    <main style={{ padding: 20, display: "grid", gap: 10 }}>
+    <main style={{ display: "grid", gap: 10 }}>
       <section
         className="auth-card w-full"
         style={{
@@ -79,7 +94,7 @@ function LoginContent() {
   async function finish() {
     await finalizeClientSession();
     const me = await getMe();
-    const target = next && next !== "/" ? next : targetFromMe(me);
+    const target = safeNextPath(next) ?? targetFromMe(me);
     location.assign(target);
   }
 
@@ -101,7 +116,7 @@ function LoginContent() {
       await finish();
     } catch (e: any) {
       if (e?.code === "auth/user-not-found") {
-        router.push(`/create-account?email=${encodeURIComponent(email.trim())}`);
+        router.push(createAccountHref({ email: email.trim(), next }));
         return;
       }
       throw e;
@@ -113,8 +128,7 @@ function LoginContent() {
     const info = getAdditionalUserInfo(cred);
     if (info?.isNewUser) {
       await auth.signOut();
-      const prefillEmail = cred.user?.email ? `?email=${encodeURIComponent(cred.user.email)}` : "";
-      router.push(`/create-account${prefillEmail}`);
+      router.push(createAccountHref({ email: cred.user?.email ?? null, next }));
       return;
     }
     await finish();
@@ -145,7 +159,7 @@ function LoginContent() {
   }
 
   return (
-    <main style={{ padding: 20, display: "grid", gap: 10 }}>
+    <main style={{ display: "grid", gap: 10 }}>
       <section className="auth-card w-full" style={{ justifySelf: "center", justifyItems: "center", minHeight: "500px", padding: "32px", maxWidth: "600px", width: "100%" }}>
         <h2 className="content-title" style={{ marginBottom: "35px", textAlign: "center" }}>
           {forgotPasswordMode ? "Reset your password" : "Welcome back! Please enter your details."}
@@ -290,7 +304,8 @@ function LoginContent() {
                 justifyContent: "center",
                 gap: 12,
                 height: 44,
-                minWidth: 280,
+                width: "100%",
+                maxWidth: 280,
                 padding: "0 16px",
                 border: "1px solid rgb(205, 208, 214)",
                 borderRadius: 6,
@@ -324,7 +339,7 @@ function LoginContent() {
         {!forgotPasswordMode && !resetEmailSent && (
           <p className="mt-6 text-center text-sm text-slate-600" style={{ marginTop: "50px", textAlign: "center" }}>
             Don&apos;t have an account?{" "}
-            <a href="/create-account" className="text-blue-700 hover:underline">Create one here</a>
+            <a href={createAccountHref({ next })} className="text-blue-700 hover:underline">Create one here</a>
           </p>
         )}
       </section>

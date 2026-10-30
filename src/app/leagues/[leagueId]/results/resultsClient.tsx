@@ -324,7 +324,7 @@ export default function ResultsClient({
 
   if (loading) {
     return (
-      <main style={{ display: 'grid', gap: 16, maxWidth: 980, margin: '0 auto', padding: 16 }}>
+      <main style={{ display: 'grid', gap: 16, maxWidth: 980, margin: '0 auto' }}>
         <div className="p-4 text-center">
           <div className="text-gray-500">Loading game results...</div>
         </div>
@@ -333,7 +333,7 @@ export default function ResultsClient({
   }
 
   return (
-    <main style={{ display: 'grid', gap: 16, maxWidth: 980, margin: '0 auto', padding: 16 }}>
+    <main style={{ display: 'grid', gap: 16, maxWidth: 980, margin: '0 auto' }}>
       <header className="team-header">
         <div className="team-title-wrap">
           <h1 className="page-title">Game Results: {leagueName}</h1>

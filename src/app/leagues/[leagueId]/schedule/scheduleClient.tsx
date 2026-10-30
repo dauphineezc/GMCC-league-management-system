@@ -421,7 +421,7 @@ export default function ScheduleClient({
 
   // ---------- UI
   return (
-    <main style={{ display: "grid", gap: 16, maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+    <main style={{ display: "grid", gap: 16, maxWidth: 1000, margin: "0 auto" }}>
       <header className="team-header">
         <div className="team-title-wrap">
           <h1 className="page-title">Schedule Management: {leagueName}</h1>
