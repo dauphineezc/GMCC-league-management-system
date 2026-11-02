@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type InviteModalType = "link" | "code";
 
@@ -25,6 +26,7 @@ export default function InviteModal({
   teamName?: string;
   onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   // const [phone, setPhone] = useState('');
   const [ttlHours, setTtlHours] = useState(24);
@@ -32,6 +34,30 @@ export default function InviteModal({
   const [result, setResult] = useState<InviteResult | null>(null);
   const [error, setError] = useState("");
   const hasContact = Boolean(email.trim() /* || phone.trim() */);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock background scroll while open
+  useEffect(() => {
+    if (!mounted) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mounted]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!mounted) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mounted, onClose]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -75,8 +101,15 @@ export default function InviteModal({
     });
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 style={{ fontWeight: 400, fontSize: "22px" }}>
@@ -232,10 +265,7 @@ export default function InviteModal({
       <style jsx>{`
         .modal-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          inset: 0;
           background: rgba(0, 0, 0, 0.5);
           display: flex;
           align-items: center;
@@ -349,6 +379,7 @@ export default function InviteModal({
           border-radius: 4px;
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }

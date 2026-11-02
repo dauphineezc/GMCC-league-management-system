@@ -145,6 +145,7 @@ export default function AdminTeamTabs({
   );
 
   return (
+    <>
     <section className="card">
       <div className="team-tabs">
         <button type="button" className={`team-tab ${tab === "roster" ? "is-active" : ""}`} onClick={() => setTab("roster")}>
@@ -701,16 +702,17 @@ export default function AdminTeamTabs({
         contextTeamId={teamId}
         contextPaidOverride={contextPaid}
       />
-
-      {inviteModal && (
-        <InviteModal
-          type={inviteModal}
-          teamId={teamId}
-          teamName={teamName}
-          onClose={() => setInviteModal(null)}
-        />
-      )}
     </section>
+
+    {inviteModal && (
+      <InviteModal
+        type={inviteModal}
+        teamId={teamId}
+        teamName={teamName}
+        onClose={() => setInviteModal(null)}
+      />
+    )}
+    </>
   );
 }
 
