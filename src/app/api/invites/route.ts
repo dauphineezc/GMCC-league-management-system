@@ -44,34 +44,40 @@ export async function POST(req: NextRequest) {
   const team = await getTeamById(teamId);
   if (!team) return Response.json({ error: { code: "NOT_FOUND" } }, { status: 404 });
 
+  const leagueId = typeof team.leagueId === "string" ? team.leagueId : null;
+  const permissions = await PermissionChecker.create(user, leagueId ?? "");
   const isManager = await isUserTeamManager(teamId, user.id);
-  if (!isManager) {
+  const canInvite = isManager || permissions.isAdmin();
+
+  if (!canInvite) {
     return Response.json(
-      { error: { code: "NOT_MANAGER", message: "Only team managers can create invites" } },
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: "Only team managers or league admins can create invites",
+        },
+      },
       { status: 403 }
     );
   }
 
-  const leagueId = typeof team.leagueId === "string" ? team.leagueId : null;
   if (leagueId) {
     const league = await readLeagueDocJSON(leagueId);
     if (league?.playerAddDeadline) {
       const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
       const overrideActive = Boolean(league.playerAddDeadlineOverride);
-      if (deadlinePassed && !overrideActive) {
-        const permissions = await PermissionChecker.create(user, leagueId);
-        if (!permissions.isAdmin()) {
-          return Response.json(
-            {
-              error: {
-                code: "DEADLINE_PASSED",
-                message:
-                  "The player add deadline for this league has passed. Contact your league admin if you need to add a player.",
-              },
+      // Admins/superadmins can invite after the deadline; managers cannot
+      if (deadlinePassed && !overrideActive && !permissions.isAdmin()) {
+        return Response.json(
+          {
+            error: {
+              code: "DEADLINE_PASSED",
+              message:
+                "The player add deadline for this league has passed. Contact your league admin if you need to add a player.",
             },
-            { status: 403 }
-          );
-        }
+          },
+          { status: 403 }
+        );
       }
     }
   }

@@ -133,7 +133,7 @@ export default function EditableLeagueAssignment({
   return (
     <div
       className="editable-league-assignment"
-      style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%", marginRight: 8 }}
+      style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%" }}
       title={displayName}
     >
       <span

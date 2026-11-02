@@ -60,7 +60,7 @@ export async function createCodeInvite(
   return { code: code.toUpperCase(), expiresIn: ttlHours };
 }
 
-export type PeekedInvite = { id: string; teamId: string };
+export type PeekedInvite = { id: string; teamId: string; createdBy: string | null };
 
 function invalidInvite(): never {
   throw Object.assign(new Error("Invalid/expired invite"), {
@@ -81,7 +81,7 @@ async function peekInvite(code: string): Promise<PeekedInvite> {
   if (!invite) invalidInvite();
   if (invite.expiresAt && invite.expiresAt < now) invalidInvite();
 
-  return { id: invite.id, teamId: invite.teamId };
+  return { id: invite.id, teamId: invite.teamId, createdBy: invite.createdBy ?? null };
 }
 
 export async function peekLinkInvite(token: string): Promise<PeekedInvite> {

@@ -6,6 +6,7 @@ import PlayerInfoPopup from "@/components/playerInfoPopup";
 import DownloadCsvButton from "@/components/downloadCsvButton";
 import ScheduleViewer from "@/components/scheduleViewer";
 import GameHistory from "@/components/gameHistory";
+import InviteModal from "@/components/inviteModal";
 import type { PlayerInfo, PlayerTeam, RosterRow, Game } from "@/types/domain";
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
 };
 
 type TabKey = "roster" | "schedule" | "history" | "standings";
+type InviteModalType = "link" | "code" | null;
 
 function fakeContact(_displayName: string) {
   return {
@@ -57,6 +59,7 @@ export default function AdminTeamTabs({
   const [contextPaid, setContextPaid] = useState<boolean | undefined>(undefined);
 
   const [removingPlayer, setRemovingPlayer] = useState<string | null>(null);
+  const [inviteModal, setInviteModal] = useState<InviteModalType>(null);
 
   const [standings, setStandings] = useState<any[]>([]);
   const [loadingStandings, setLoadingStandings] = useState(false);
@@ -518,6 +521,16 @@ export default function AdminTeamTabs({
                 </div>
               </>
             )}
+
+            <div className="roster-actions" style={{ marginTop: "16px" }}>
+              <button
+                type="button"
+                className="btn btn--outline btn--sm"
+                onClick={() => setInviteModal("code")}
+              >
+                Invite via Code
+              </button>
+            </div>
           </>
         )}
 
@@ -688,6 +701,15 @@ export default function AdminTeamTabs({
         contextTeamId={teamId}
         contextPaidOverride={contextPaid}
       />
+
+      {inviteModal && (
+        <InviteModal
+          type={inviteModal}
+          teamId={teamId}
+          teamName={teamName}
+          onClose={() => setInviteModal(null)}
+        />
+      )}
     </section>
   );
 }

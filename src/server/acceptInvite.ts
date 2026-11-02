@@ -1,13 +1,37 @@
+import { adminAuth } from "@/lib/firebaseAdmin";
 import { readLeagueDocJSON } from "@/lib/leagueDoc";
 import { markInviteUsed, type PeekedInvite } from "@/lib/repositories/invitesRepo";
+import { isUserLeagueAdmin } from "@/lib/repositories/leaguesRepo";
 import { getTeamById, getTeamRosterMeta } from "@/lib/repositories/teamsRepo";
-import { readMembershipsForUid } from "@/lib/repositories/usersRepo";
+import { getUserDoc, readMembershipsForUid } from "@/lib/repositories/usersRepo";
 import { addPlayerToTeam, ensureUserExists } from "@/server/memberships";
 
 const ROSTER_LIMIT = 8;
 
 function joinError(message: string, status: number, code: string): never {
   throw Object.assign(new Error(message), { status, code });
+}
+
+/** True if the invite was created by a league admin or superadmin (may join after deadline). */
+async function inviteCreatedByAdmin(
+  createdBy: string | null | undefined,
+  leagueId: string
+): Promise<boolean> {
+  if (!createdBy) return false;
+
+  const creator = await getUserDoc(createdBy);
+  if (creator?.isSuperadmin === true) return true;
+
+  if (await isUserLeagueAdmin({ id: createdBy, email: null }, leagueId)) return true;
+
+  try {
+    const fbUser = await adminAuth.getUser(createdBy);
+    if (fbUser.customClaims?.superadmin === true) return true;
+  } catch {
+    // Ignore lookup failures; treat as non-admin
+  }
+
+  return false;
 }
 
 /** Validate league/roster rules, then consume the invite and add the player. */
@@ -27,11 +51,14 @@ export async function acceptInviteForUser(
       const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
       const overrideActive = Boolean(league.playerAddDeadlineOverride);
       if (deadlinePassed && !overrideActive) {
-        joinError(
-          "The player add deadline for this league has passed. This invite is no longer valid.",
-          403,
-          "DEADLINE_PASSED"
-        );
+        const adminInvite = await inviteCreatedByAdmin(invite.createdBy, leagueId);
+        if (!adminInvite) {
+          joinError(
+            "The player add deadline for this league has passed. This invite is no longer valid.",
+            403,
+            "DEADLINE_PASSED"
+          );
+        }
       }
     }
   }
