@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
 import { PermissionChecker } from "@/lib/permissions";
-import { readLeagueDocJSON } from "@/lib/leagueDoc";
+import { readLeagueDocJSON, resolveRosterLimit } from "@/lib/leagueDoc";
 import {
   getTeamById,
   getTeamRosterMeta,
@@ -61,29 +61,32 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let rosterLimit = resolveRosterLimit(undefined);
   if (leagueId) {
     const league = await readLeagueDocJSON(leagueId);
-    if (league?.playerAddDeadline) {
-      const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
-      const overrideActive = Boolean(league.playerAddDeadlineOverride);
-      // Admins/superadmins can invite after the deadline; managers cannot
-      if (deadlinePassed && !overrideActive && !permissions.isAdmin()) {
-        return Response.json(
-          {
-            error: {
-              code: "DEADLINE_PASSED",
-              message:
-                "The player add deadline for this league has passed. Contact your league admin if you need to add a player.",
+    if (league) {
+      rosterLimit = resolveRosterLimit(league.maxTeamSize);
+      if (league.playerAddDeadline) {
+        const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
+        const overrideActive = Boolean(league.playerAddDeadlineOverride);
+        // Admins/superadmins can invite after the deadline; managers cannot
+        if (deadlinePassed && !overrideActive && !permissions.isAdmin()) {
+          return Response.json(
+            {
+              error: {
+                code: "DEADLINE_PASSED",
+                message:
+                  "The player add deadline for this league has passed. Contact your league admin if you need to add a player.",
+              },
             },
-          },
-          { status: 403 }
-        );
+            { status: 403 }
+          );
+        }
       }
     }
   }
 
   const { size: rosterSize } = await getTeamRosterMeta(teamId);
-  const rosterLimit = 8;
   if (rosterSize >= rosterLimit) {
     return Response.json(
       { error: { code: "TEAM_FULL", message: "Roster is full." } },

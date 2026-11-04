@@ -23,6 +23,21 @@ export type LeagueDoc = {
   [k: string]: any;
 };
 
+/** Fallback when a league has no maxTeamSize configured (legacy default). */
+export const DEFAULT_ROSTER_LIMIT = 8;
+
+/** Resolve the enforceable roster cap from a league's maxTeamSize. */
+export function resolveRosterLimit(maxTeamSize: unknown): number {
+  if (typeof maxTeamSize === "number" && Number.isFinite(maxTeamSize) && maxTeamSize >= 1) {
+    return Math.floor(maxTeamSize);
+  }
+  if (maxTeamSize != null && maxTeamSize !== "") {
+    const n = Number(maxTeamSize);
+    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  }
+  return DEFAULT_ROSTER_LIMIT;
+}
+
 function toLeagueDoc(record: LeagueDocRecord | null): LeagueDoc | null {
   if (!record) return null;
   return record as LeagueDoc;

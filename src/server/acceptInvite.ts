@@ -1,12 +1,10 @@
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { readLeagueDocJSON } from "@/lib/leagueDoc";
+import { readLeagueDocJSON, resolveRosterLimit } from "@/lib/leagueDoc";
 import { markInviteUsed, type PeekedInvite } from "@/lib/repositories/invitesRepo";
 import { isUserLeagueAdmin } from "@/lib/repositories/leaguesRepo";
 import { getTeamById, getTeamRosterMeta } from "@/lib/repositories/teamsRepo";
 import { getUserDoc, readMembershipsForUid } from "@/lib/repositories/usersRepo";
 import { addPlayerToTeam, ensureUserExists } from "@/server/memberships";
-
-const ROSTER_LIMIT = 8;
 
 function joinError(message: string, status: number, code: string): never {
   throw Object.assign(new Error(message), { status, code });
@@ -45,19 +43,23 @@ export async function acceptInviteForUser(
 
   const leagueId = typeof team.leagueId === "string" ? team.leagueId : null;
 
+  let rosterLimit = resolveRosterLimit(undefined);
   if (leagueId) {
     const league = await readLeagueDocJSON(leagueId);
-    if (league?.playerAddDeadline) {
-      const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
-      const overrideActive = Boolean(league.playerAddDeadlineOverride);
-      if (deadlinePassed && !overrideActive) {
-        const adminInvite = await inviteCreatedByAdmin(invite.createdBy, leagueId);
-        if (!adminInvite) {
-          joinError(
-            "The player add deadline for this league has passed. This invite is no longer valid.",
-            403,
-            "DEADLINE_PASSED"
-          );
+    if (league) {
+      rosterLimit = resolveRosterLimit(league.maxTeamSize);
+      if (league.playerAddDeadline) {
+        const deadlinePassed = new Date(String(league.playerAddDeadline)) < new Date();
+        const overrideActive = Boolean(league.playerAddDeadlineOverride);
+        if (deadlinePassed && !overrideActive) {
+          const adminInvite = await inviteCreatedByAdmin(invite.createdBy, leagueId);
+          if (!adminInvite) {
+            joinError(
+              "The player add deadline for this league has passed. This invite is no longer valid.",
+              403,
+              "DEADLINE_PASSED"
+            );
+          }
         }
       }
     }
@@ -69,7 +71,7 @@ export async function acceptInviteForUser(
   }
 
   const { size: rosterSize } = await getTeamRosterMeta(invite.teamId);
-  if (rosterSize >= ROSTER_LIMIT) {
+  if (rosterSize >= rosterLimit) {
     joinError("Team is full", 400, "TEAM_FULL");
   }
 
