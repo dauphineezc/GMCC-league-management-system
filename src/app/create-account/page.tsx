@@ -7,10 +7,12 @@ import { Suspense } from "react";
 import { auth, googleProvider, appleProvider, microsoftProvider } from "@/lib/firebaseClient";
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithPopup,
   getAdditionalUserInfo,
 } from "firebase/auth";
 import { finalizeClientSession, isEmbedded, openAppInNewTab } from "@/lib/embedAuth";
+import { safeNextPath } from "@/lib/safeNextPath";
 
 type Gender = "FEMALE" | "MALE" | "NONBINARY" | "PREFER_NOT_TO_SAY" | "OTHER";
 
@@ -31,12 +33,6 @@ function CreateAccountContent() {
   const next = params.get("next");
   useEffect(() => { if (prefillEmail) setEmail(prefillEmail); }, [prefillEmail]);
   useEffect(() => { setEmbedded(isEmbedded()); }, []);
-
-  /** Only allow same-origin relative paths (blocks open redirects). */
-  function safeNextPath(value: string | null | undefined): string | null {
-    if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
-    return value;
-  }
 
   function withNext(path: string) {
     const dest = safeNextPath(next);
@@ -82,7 +78,9 @@ function CreateAccountContent() {
     if (v) { setErr(v); return; }
     setErr(null); setBusy(true);
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), pw);
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), pw);
+      // Best effort: players can still use the app; verification is required for admin roles.
+      await sendEmailVerification(cred.user).catch(() => undefined);
       await complete();
     } catch (e: any) {
       setErr(e?.message ?? "Account creation failed");

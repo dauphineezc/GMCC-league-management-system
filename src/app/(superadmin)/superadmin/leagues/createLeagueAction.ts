@@ -1,6 +1,8 @@
 "use server";
 
 import { adminAuth } from "@/lib/firebaseAdmin";
+import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
+import { UNVERIFIED_EMAIL_MESSAGE } from "@/lib/verifiedEmail";
 import { assignTeamToLeagueRef } from "@/lib/repositories/teamsRepo";
 import { createLeagueRecord, readLeagueDocByRef } from "@/lib/repositories/leaguesRepo";
 import { listUnassignedTeams } from "@/lib/repositories/teamsRepo";
@@ -13,7 +15,9 @@ const GENDERS = ["mens", "womens", "coed"] as const;
 
 const normEmail = (e: unknown) => String(e ?? "").trim().toLowerCase();
 
-async function resolveUidByEmail(email: string): Promise<string | null> {
+async function resolveAdminByEmail(
+  email: string
+): Promise<{ uid: string; emailVerified: boolean } | null> {
   const e = normEmail(email);
   if (!e) return null;
 
@@ -24,7 +28,7 @@ async function resolveUidByEmail(email: string): Promise<string | null> {
       email: user.email ?? e,
       displayName: user.displayName ?? null,
     });
-    return user.uid;
+    return { uid: user.uid, emailVerified: user.emailVerified === true };
   } catch {
     return null;
   }
@@ -38,6 +42,10 @@ export async function createLeagueAction(
   _prevState: CreateLeagueState,
   formData: FormData
 ): Promise<CreateLeagueState> {
+  if (isAuthFailure(await assertSuperAdmin())) {
+    return { ok: false, error: "Only superadmins can create leagues." };
+  }
+
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const sport = String(formData.get("sport") || "").trim().toLowerCase();
@@ -74,8 +82,10 @@ export async function createLeagueAction(
 
   let adminUserId: string | null = null;
   if (adminEmail) {
-    adminUserId = await resolveUidByEmail(adminEmail);
-    if (!adminUserId) return { ok: false, error: `No Firebase user found for ${adminEmail}` };
+    const admin = await resolveAdminByEmail(adminEmail);
+    if (!admin) return { ok: false, error: `No Firebase user found for ${adminEmail}` };
+    if (!admin.emailVerified) return { ok: false, error: UNVERIFIED_EMAIL_MESSAGE };
+    adminUserId = admin.uid;
   }
 
   const league = await createLeagueRecord({
@@ -98,6 +108,10 @@ export async function addTeamToLeagueDirect(
   teamId: string
 ): Promise<AddTeamState> {
   "use server";
+
+  if (isAuthFailure(await assertSuperAdmin())) {
+    return { ok: false, error: "Only superadmins can assign teams to leagues." };
+  }
 
   if (!leagueId || !teamId) return { ok: false, error: "Missing leagueId or teamId." };
 

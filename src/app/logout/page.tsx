@@ -1,20 +1,12 @@
 // /src/app/logout/page.tsx
-"use client";
+import SignOutButton from "@/components/signOutButton";
 
-import { useEffect } from "react";
-import { auth } from "@/lib/firebaseClient";
-
+// Requires a click: signing out revokes every session, so a link alone must not trigger it.
 export default function LogoutPage() {
-  useEffect(() => {
-    void (async () => {
-      try {
-        await auth.signOut();
-      } catch {
-        // Continue even if client Firebase state is already cleared.
-      }
-      window.location.replace("/api/auth/logout");
-    })();
-  }, []);
-
-  return <p className="p-6">Signing you out…</p>;
+  return (
+    <main className="p-6" style={{ display: "grid", gap: 12, justifyItems: "start" }}>
+      <p>Sign out of the League Management System on all your devices?</p>
+      <SignOutButton className="btn btn--primary" />
+    </main>
+  );
 }

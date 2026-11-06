@@ -219,6 +219,21 @@ export const invites = pgTable(
   (t) => [index("invites_team_id_idx").on(t.teamId)],
 );
 
+/** Failed join-by-code attempts, used to rate-limit code guessing. */
+export const joinCodeFailures = pgTable(
+  "join_code_failures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id"),
+    ip: text("ip"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("join_code_failures_user_id_idx").on(t.userId, t.createdAt),
+    index("join_code_failures_ip_idx").on(t.ip, t.createdAt),
+  ],
+);
+
 /**
  * Replaces the base64 PDF stored under league:{id}:schedule. Prefer object
  * storage (Vercel Blob) with a reference row over storing bytes in Postgres.

@@ -37,9 +37,14 @@ jest.mock('@/lib/db/resolveLeague', () => ({
   leaguePublicRef: jest.fn((league: { slug: string }) => league.slug),
 }));
 
+jest.mock('@/server/memberships', () => ({
+  ensureUserExists: jest.fn(),
+}));
+
 import { assertAuthenticated } from '@/lib/authGuards';
 import { createTeam } from '@/lib/repositories/teamsRepo';
 import { resolveLeagueByRef } from '@/lib/db/resolveLeague';
+import { ensureUserExists } from '@/server/memberships';
 
 const mockUser = {
   id: 'user123',
@@ -51,6 +56,7 @@ describe('/api/teams POST', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (assertAuthenticated as jest.Mock).mockResolvedValue({ ok: true, user: mockUser });
+    (ensureUserExists as jest.Mock).mockResolvedValue(undefined);
     (resolveLeagueByRef as jest.Mock).mockResolvedValue(null);
     (createTeam as jest.Mock).mockImplementation(async (input) => ({
       id: input.id,
@@ -123,6 +129,7 @@ describe('/api/teams POST', () => {
     expect(team.teamPaymentRequired).toBe(true);
     expect(team.estimatedDivision).toBe('high_b');
 
+    expect(ensureUserExists).toHaveBeenCalledWith('user123', 'test@example.com');
     expect(createTeam).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Test Team',
@@ -132,6 +139,48 @@ describe('/api/teams POST', () => {
         estimatedDivision: 'high_b',
       })
     );
+  });
+
+  it('does not create a team when the user profile cannot be saved', async () => {
+    (ensureUserExists as jest.Mock).mockRejectedValueOnce(
+      Object.assign(
+        new Error('Your account is missing an email. Please update your profile and try again.'),
+        { status: 400, code: 'EMAIL_REQUIRED' }
+      )
+    );
+
+    const req = new Request('http://localhost/api/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Test Team', estimatedDivision: 'low b' }),
+    });
+
+    const res = await POST(req as NextRequest);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error.code).toBe('EMAIL_REQUIRED');
+    expect(createTeam).not.toHaveBeenCalled();
+  });
+
+  it('returns a duplicate-name error without a server exception', async () => {
+    (createTeam as jest.Mock).mockRejectedValueOnce(
+      Object.assign(new Error('A team with that name already exists in this league.'), {
+        status: 409,
+        code: 'DUPLICATE_TEAM',
+      })
+    );
+
+    const req = new Request('http://localhost/api/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Test Team', estimatedDivision: 'low b' }),
+    });
+
+    const res = await POST(req as NextRequest);
+    expect(res.status).toBe(409);
+    const data = await res.json();
+    expect(data.error.code).toBe('DUPLICATE_TEAM');
+    expect(data.error.message).toMatch(/already exists/);
   });
 
   it('creates team with league assignment (resolved by slug)', async () => {

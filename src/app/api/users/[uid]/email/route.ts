@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertAuthenticated, assertLeagueAdminForUser, isAuthFailure } from "@/lib/authGuards";
 import { adminAuth } from "@/lib/firebaseAdmin";
-import { getUserDoc } from "@/lib/repositories/usersRepo";
+import { getUserDoc, readMembershipsForUid } from "@/lib/repositories/usersRepo";
+import { resolveLeagueByRef } from "@/lib/db/resolveLeague";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
   try {
@@ -15,7 +16,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ uid:
     let allowed = me.superadmin || me.id === uid;
     if (!allowed && leagueId) {
       const leagueAuth = await assertLeagueAdminForUser(me, leagueId);
-      allowed = !isAuthFailure(leagueAuth);
+      if (!isAuthFailure(leagueAuth)) {
+        const league = await resolveLeagueByRef(leagueId);
+        const memberships = league ? await readMembershipsForUid(uid) : [];
+        allowed = memberships.some((m) => m.leagueId === league?.slug);
+      }
     }
     if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 

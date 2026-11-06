@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
 import { adminAuth } from "@/lib/firebaseAdmin";
+import { setClaimsAndRevokeSessions } from "@/lib/roleRevocation";
+import { UNVERIFIED_EMAIL_MESSAGE } from "@/lib/verifiedEmail";
 
 export const runtime = "nodejs";
 
@@ -28,6 +30,13 @@ export async function POST(req: Request) {
   if ("superadmin" in patch) next.superadmin = !!patch.superadmin;
   if ("leagueAdminOf" in patch) next.leagueAdminOf = patch.leagueAdminOf ?? [];
 
-  await adminAuth.setCustomUserClaims(uid, next);
+  const grantsRole =
+    patch.superadmin === true ||
+    (Array.isArray(patch.leagueAdminOf) && patch.leagueAdminOf.length > 0);
+  if (grantsRole && u.emailVerified !== true) {
+    return NextResponse.json({ error: UNVERIFIED_EMAIL_MESSAGE }, { status: 400 });
+  }
+
+  await setClaimsAndRevokeSessions(uid, next);
   return NextResponse.json({ ok: true, uid, claims: next });
 }

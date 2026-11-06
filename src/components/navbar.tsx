@@ -2,6 +2,7 @@
 "use client";
 
 import EmbedSignInLink from "@/components/embedSignInLink";
+import SignOutButton from "@/components/signOutButton";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -87,7 +88,7 @@ export default function Navbar({ user, hasAdminLeagues = false }: NavbarProps) {
               </summary>
               <div className="account-menu">
                 <Link className="block px-3 py-2 hover:bg-gray-50" href="/account">Settings</Link>
-                <Link className="block px-3 py-2 hover:bg-gray-50" href="/logout">Sign out</Link>
+                <SignOutButton className="block w-full text-left px-3 py-2 hover:bg-gray-50" />
               </div>
             </details>
           ) : (

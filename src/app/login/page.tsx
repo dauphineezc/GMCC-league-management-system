@@ -10,16 +10,11 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { finalizeClientSession, isEmbedded, openAppInNewTab } from "@/lib/embedAuth";
+import { safeNextPath } from "@/lib/safeNextPath";
 
 async function getMe() {
   const r = await fetch("/api/me", { credentials: "include", cache: "no-store" });
   try { return await r.json(); } catch { return {}; }
-}
-
-/** Only allow same-origin relative paths (blocks open redirects). */
-function safeNextPath(next: string | null | undefined): string | null {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
-  return next;
 }
 
 function targetFromMe(me: any) {

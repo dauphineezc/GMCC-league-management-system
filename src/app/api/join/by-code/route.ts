@@ -5,6 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
 import { peekCodeInvite } from "@/server/invites";
 import { acceptInviteForUser } from "@/server/acceptInvite";
+import {
+  isJoinCodeRateLimited,
+  recordJoinCodeFailure,
+} from "@/lib/repositories/joinAttemptsRepo";
+
+function clientIp(req: NextRequest): string | null {
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || req.headers.get("x-real-ip") || null;
+}
 
 export async function POST(req: NextRequest) {
   const auth = await assertAuthenticated();
@@ -18,8 +27,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Code is required" }, { status: 400 });
   }
 
+  const ip = clientIp(req);
+  if (await isJoinCodeRateLimited(user.id, ip)) {
+    return NextResponse.json(
+      { error: "Too many incorrect codes. Please wait a few minutes and try again." },
+      { status: 429 }
+    );
+  }
+
+  let invite;
   try {
-    const invite = await peekCodeInvite(code);
+    invite = await peekCodeInvite(code);
+  } catch (e: any) {
+    if (e?.code === "INVITE_INVALID") await recordJoinCodeFailure(user.id, ip);
+    const status = typeof e?.status === "number" ? e.status : 500;
+    const message =
+      status < 500 && typeof e?.message === "string" ? e.message : "Failed to join team.";
+    return NextResponse.json({ error: message }, { status });
+  }
+
+  try {
     const { teamId, team } = await acceptInviteForUser(user.id, invite, {
       email: user.email,
     });

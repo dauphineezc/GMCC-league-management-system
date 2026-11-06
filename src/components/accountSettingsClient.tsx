@@ -2,11 +2,14 @@
 "use client";
 
 import { useState } from "react";
+import { sendEmailVerification } from "firebase/auth";
+import { auth } from "@/lib/firebaseClient";
 
 type UserData = {
   id: string;
   email: string | null;
   displayName: string;
+  emailVerified: boolean;
 };
 
 type Props = {
@@ -29,6 +32,27 @@ export default function AccountSettingsClient({ user }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  const [sendingVerification, setSendingVerification] = useState(false);
+
+  const handleSendVerification = async () => {
+    setError("");
+    setSuccess("");
+    const fbUser = auth.currentUser;
+    if (!fbUser) {
+      setError("Please sign out and sign back in, then try again.");
+      return;
+    }
+    setSendingVerification(true);
+    try {
+      await sendEmailVerification(fbUser);
+      setSuccess(`Verification email sent to ${fbUser.email}. Open the link, then refresh this page.`);
+    } catch (err: any) {
+      setError(err?.message || "Failed to send verification email");
+    } finally {
+      setSendingVerification(false);
+    }
+  };
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +166,22 @@ export default function AccountSettingsClient({ user }: Props) {
               <div style={{ marginTop: '20px' }}>
                 <span className="text-gray-600" style={{ fontWeight: '600' }}>Email:</span>
                 <span className="font-medium" style={{ marginLeft: '15px' }}>{currentUser.email}</span>
+                {currentUser.emailVerified ? (
+                  <span className="text-gray-600" style={{ marginLeft: '10px' }}>(verified)</span>
+                ) : (
+                  <>
+                    <span className="text-gray-600" style={{ marginLeft: '10px' }}>(not verified)</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleSendVerification()}
+                      disabled={sendingVerification}
+                      className="text-blue-700 hover:underline"
+                      style={{ marginLeft: '10px', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      {sendingVerification ? "Sending…" : "Send verification email"}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

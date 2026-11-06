@@ -64,6 +64,13 @@
       "when": 1792410000000,
       "tag": "0008_drop_high_b_low_b_divisions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793997701123,
+      "tag": "0009_join_code_failures",
+      "breakpoints": true
     }
   ]
 }

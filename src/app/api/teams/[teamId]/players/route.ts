@@ -65,6 +65,18 @@ export async function DELETE(
     }
 
     if (newManagerId) {
+      if (!isTeamManager && !permissions.isAdmin()) {
+        return NextResponse.json(
+          { error: "Only team managers or admins can assign a new manager" },
+          { status: 403 }
+        );
+      }
+      if (newManagerId === userId) {
+        return NextResponse.json(
+          { error: "New manager cannot be the player being removed" },
+          { status: 400 }
+        );
+      }
       const newManager = roster.find((r) => r.userId === newManagerId);
       if (!newManager) {
         return NextResponse.json({ error: "New manager not found on roster" }, { status: 400 });

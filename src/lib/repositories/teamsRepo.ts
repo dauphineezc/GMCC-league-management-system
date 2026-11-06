@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { leagues, teamMembers, teams, users } from "@/db/schema";
+import { leagues, teamMembers, teams, users, type Gender } from "@/db/schema";
 import { leaguePublicRef, resolveLeagueByRef, type LeagueRow } from "@/lib/db/resolveLeague";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
@@ -234,6 +234,33 @@ export async function getLeaguePlayerRows(leagueRef: string): Promise<LeaguePlay
   }));
 }
 
+function postgresErrorCode(err: unknown): string | undefined {
+  let current: unknown = err;
+  for (let i = 0; i < 5 && current && typeof current === "object"; i++) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === "string" && /^\d{5}$/.test(code)) return code;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return undefined;
+}
+
+function duplicateTeamError(): Error {
+  return Object.assign(new Error("A team with that name already exists in this league."), {
+    status: 409,
+    code: "DUPLICATE_TEAM",
+  });
+}
+
+async function insertTeamManager(teamId: string, managerUserId: string, now: Date): Promise<void> {
+  await db.insert(teamMembers).values({
+    teamId,
+    userId: managerUserId,
+    isManager: true,
+    paid: false,
+    joinedAt: now,
+  });
+}
+
 export async function createTeam(input: {
   id?: string;
   name: string;
@@ -247,6 +274,7 @@ export async function createTeam(input: {
 }): Promise<TeamDocRecord> {
   const id = input.id ?? crypto.randomUUID();
   const now = new Date();
+  const name = input.name.trim();
 
   let leagueUuid: string | null = null;
   if (input.leagueSlug) {
@@ -254,8 +282,8 @@ export async function createTeam(input: {
     leagueUuid = league?.id ?? null;
   }
 
-  const gender =
-    input.gender === "co-ed" ? "coed" : (input.gender as "mens" | "womens" | undefined);
+  const gender: Gender | undefined =
+    input.gender === "co-ed" ? "coed" : input.gender;
   const estimatedDivision = input.estimatedDivision
     ? input.estimatedDivision
         .trim()
@@ -264,29 +292,55 @@ export async function createTeam(input: {
         .replace(/^_+|_+$/g, "")
     : undefined;
 
-  const [team] = await db
-    .insert(teams)
-    .values({
-      id,
-      name: input.name.trim(),
-      description: input.description?.trim() || null,
-      leagueId: leagueUuid,
-      sport: input.sport ?? "basketball",
-      gender,
-      estimatedDivision,
-      paymentRequired: input.paymentRequired ?? false,
-      approved: false,
-      createdAt: now,
-    })
-    .returning();
+  const teamValues = {
+    id,
+    name,
+    description: input.description?.trim() || null,
+    leagueId: leagueUuid,
+    sport: input.sport ?? "basketball",
+    gender,
+    estimatedDivision,
+    paymentRequired: input.paymentRequired ?? false,
+    approved: false,
+    createdAt: now,
+  };
 
-  await db.insert(teamMembers).values({
-    teamId: id,
-    userId: input.managerUserId,
-    isManager: true,
-    paid: false,
-    joinedAt: now,
-  });
+  let team: typeof teams.$inferSelect;
+  try {
+    const inserted = await db.insert(teams).values(teamValues).returning();
+    team = inserted[0];
+  } catch (err) {
+    // A previous attempt can leave the team row behind when adding the manager fails.
+    // If that roster is still empty, attach this user instead of creating another team.
+    if (postgresErrorCode(err) === "23505" && input.leagueSlug) {
+      const existing = await findTeamInLeagueByName(input.leagueSlug, name);
+      if (existing) {
+        const members = await db
+          .select({ userId: teamMembers.userId, isManager: teamMembers.isManager })
+          .from(teamMembers)
+          .where(eq(teamMembers.teamId, existing.id));
+        const mine = members.find((m) => m.userId === input.managerUserId);
+        if (members.length === 0) {
+          await insertTeamManager(existing.id, input.managerUserId, now);
+        } else if (mine && !mine.isManager && !members.some((m) => m.isManager)) {
+          await setTeamManager(existing.id, input.managerUserId);
+        } else if (!mine) {
+          throw duplicateTeamError();
+        }
+        const doc = await getTeamById(existing.id);
+        if (doc) return doc;
+      }
+    }
+    if (postgresErrorCode(err) === "23505") throw duplicateTeamError();
+    throw err;
+  }
+
+  try {
+    await insertTeamManager(team.id, input.managerUserId, now);
+  } catch (memberErr) {
+    await db.delete(teams).where(eq(teams.id, team.id));
+    throw memberErr;
+  }
 
   let league: LeagueRow | null = null;
   if (leagueUuid) {

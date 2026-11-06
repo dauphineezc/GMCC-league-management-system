@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Suspense } from "react";
 import { getServerUser } from "@/lib/serverUser";
+import { assertLeagueAdmin, assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
 import { PermissionChecker } from "@/lib/permissions";
 import TeamTabs from "@/components/teamTabs";
 import AdminTeamTabs from "@/components/adminTeamTabs";
@@ -24,6 +25,15 @@ import { toggleTeamFeePaid as toggleTeamFeePaidAction } from "@/lib/adminActions
 
 async function readTeamDoc(teamId: string): Promise<Team | null> {
   return readDoc<Team>(`team:${teamId}`);
+}
+
+async function requireTeamAdmin(teamId: string): Promise<void> {
+  const team = await readTeamDoc(teamId);
+  if (!team) throw new Error("Team not found");
+  const auth = team.leagueId
+    ? await assertLeagueAdmin(String(team.leagueId))
+    : await assertSuperAdmin();
+  if (isAuthFailure(auth)) throw new Error("Forbidden");
 }
 
 /* ---------------- Page Component ---------------- */
@@ -198,6 +208,7 @@ export default async function UnifiedTeamPage({
 
   const toggleApproval = async () => {
     "use server";
+    await requireTeamAdmin(teamId);
     await toggleTeamApproved(teamId);
     await revalidatePath(`/team/${teamId}`);
     const t = await readDoc<Team>(`team:${teamId}`);
@@ -210,6 +221,7 @@ export default async function UnifiedTeamPage({
     "use server";
     const uid = String(formData.get("userId") || "");
     if (!uid) return;
+    await requireTeamAdmin(teamId);
     await toggleMemberPaid(teamId, uid);
     await revalidatePath(`/team/${teamId}`);
     const t = await readDoc<Team>(`team:${teamId}`);

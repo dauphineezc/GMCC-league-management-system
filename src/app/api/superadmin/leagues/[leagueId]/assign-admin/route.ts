@@ -5,6 +5,9 @@ import { assertSuperAdmin, isAuthFailure } from "@/lib/authGuards";
 import { getAdminDisplayName } from "@/lib/adminUserLookup";
 import { addLeagueToAdmin, removeLeagueFromAdmin, migrateAdminLeaguesToSet } from "@/lib/adminIndex";
 import { readLeagueDocJSON, writeLeagueAdminJSON } from "@/lib/leagueDoc";
+import { listLeagueAdminUserIds } from "@/lib/repositories/leaguesRepo";
+import { revokeLeagueAdminAccess } from "@/lib/roleRevocation";
+import { hasVerifiedEmail, UNVERIFIED_EMAIL_MESSAGE } from "@/lib/verifiedEmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,11 +47,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ lea
     return new Response(JSON.stringify({ error: "missing-identifier" }), { status: 400 });
   }
 
+  if (adminUid && !(await hasVerifiedEmail(adminUid))) {
+    return new Response(JSON.stringify({ error: UNVERIFIED_EMAIL_MESSAGE }), { status: 400 });
+  }
+
   // optional: figure out previous admin to maintain reverse index
   const before = await readLeagueDocJSON(leagueId);
   const prevUid = before?.adminUserId ?? null;
+  // writeLeagueAdminJSON replaces every admin of the league, not just the primary
+  const prevAdminUids = await listLeagueAdminUserIds(leagueId);
 
   const updated = await writeLeagueAdminJSON(leagueId, adminUid);
+
+  for (const uid of prevAdminUids) {
+    if (uid === adminUid) continue;
+    await revokeLeagueAdminAccess(uid, leagueId, { keepSessions: uid === auth.user.id });
+  }
 
   // normalize old admin’s storage if needed
   if (prevUid) await migrateAdminLeaguesToSet(prevUid);

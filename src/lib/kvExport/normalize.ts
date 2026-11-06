@@ -10,6 +10,7 @@ const GENDER_MAP: Record<string, Gender> = {
   female: "womens",
   w: "womens",
   coed: "coed",
+  co_ed: "coed",
   mixed: "coed",
 };
 
@@ -39,6 +40,7 @@ function normKey(raw: unknown): string {
   return String(raw ?? "")
     .trim()
     .toLowerCase()
+    .replace(/['’]/g, "")
     .replace(/[\s-]+/g, "_");
 }
 

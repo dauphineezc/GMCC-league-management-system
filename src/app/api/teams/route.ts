@@ -8,6 +8,7 @@ import {
   slugifyDivisionName,
 } from "@/lib/repositories/divisionsRepo";
 import { createTeam } from "@/lib/repositories/teamsRepo";
+import { ensureUserExists } from "@/server/memberships";
 
 /* ----- request body shape (back-compat + new fields) ----- */
 type Body = {
@@ -31,6 +32,19 @@ type Body = {
 
 const SPORTS = new Set(["basketball", "volleyball"]);
 const DAYS = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+
+function clientError(err: unknown): { status: number; code: string; message: string } | null {
+  if (!err || typeof err !== "object") return null;
+  const status = (err as { status?: unknown }).status;
+  const code = (err as { code?: unknown }).code;
+  const message = err instanceof Error ? err.message : "";
+  if (typeof status !== "number" || status >= 500 || !message) return null;
+  return {
+    status,
+    code: typeof code === "string" ? code : "CREATE_FAILED",
+    message,
+  };
+}
 
 function normalizeGender(value: unknown): "mens" | "womens" | "co-ed" {
   const g = String(value ?? "")
@@ -143,17 +157,42 @@ export async function POST(req: NextRequest) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  const teamDoc = await createTeam({
-    id,
-    name,
-    description,
-    leagueSlug: leagueId,
-    managerUserId: userId,
-    sport,
-    gender,
-    estimatedDivision,
-    paymentRequired: teamPaymentRequired,
-  });
+  // team_members.user_id references users.id. A Firebase session alone does not
+  // create that row, so creating the team first leaves an empty roster when the
+  // manager insert fails.
+  let teamDoc;
+  try {
+    await ensureUserExists(userId, auth.user.email);
+    teamDoc = await createTeam({
+      id,
+      name,
+      description,
+      leagueSlug: leagueId,
+      managerUserId: userId,
+      sport,
+      gender,
+      estimatedDivision,
+      paymentRequired: teamPaymentRequired,
+    });
+  } catch (err) {
+    const known = clientError(err);
+    if (known) {
+      return Response.json(
+        { error: { code: known.code, message: known.message } },
+        { status: known.status }
+      );
+    }
+    console.error("[api/teams] create failed", err);
+    return Response.json(
+      {
+        error: {
+          code: "CREATE_FAILED",
+          message: "Failed to create team. Please try again.",
+        },
+      },
+      { status: 500 }
+    );
+  }
 
   const team = {
     ...teamDoc,

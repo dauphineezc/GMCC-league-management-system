@@ -1,3 +1,13 @@
+/**
+ * @jest-environment node
+ */
+jest.mock('@/lib/repositories/leaguesRepo', () => ({
+  isUserLeagueAdmin: jest.fn(
+    async (user: { superadmin?: boolean; leagueAdminOf?: string[] }, leagueId: string) =>
+      Boolean(user.superadmin) || (user.leagueAdminOf ?? []).includes(leagueId)
+  ),
+}));
+
 // Mock Firebase Admin before any imports
 jest.mock('@/lib/firebaseAdmin', () => ({
   adminAuth: {
@@ -44,11 +54,15 @@ describe('hasLeaguePermission', () => {
     expect(await hasLeaguePermission(mockSuperadmin, 'any-league', 'player')).toBe(true);
   });
 
-  it('should allow admin access to league admins', async () => {
-    // Mock the isLeagueAdminAsync function
-    // Note: We'd need to mock the actual implementation for this to work
-    // For now, we're testing the logic structure
-    expect(hasLeaguePermission(mockUser, 'league1', 'admin')).toBeDefined();
+  it('should allow admin access only for leagues the user administers', async () => {
+    expect(await hasLeaguePermission(mockUser, 'league1', 'admin')).toBe(true);
+    expect(await hasLeaguePermission(mockUser, 'league2', 'admin')).toBe(false);
+    expect(await hasLeaguePermission(null, 'league1', 'admin')).toBe(false);
+    expect(await hasLeaguePermission(mockSuperadmin, 'league2', 'admin')).toBe(true);
+  });
+
+  it('should not grant superadmin to league admins', async () => {
+    expect(await hasLeaguePermission(mockUser, 'league1', 'superadmin')).toBe(false);
   });
 
   it('should allow superadmin access only to superadmins', async () => {

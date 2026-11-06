@@ -73,4 +73,16 @@ export async function ensureUserExists(userId: string, email?: string | null) {
       isSuperadmin: false,
     })
     .onConflictDoNothing();
+
+  // Email is unique. A conflict on another login leaves this uid without a row,
+  // and team_members.user_id cannot reference a missing user.
+  const created = await getUserDoc(userId);
+  if (!created) {
+    throw Object.assign(
+      new Error(
+        "An account with this email already exists under a different login. Sign in with that account, or contact a league admin."
+      ),
+      { status: 409, code: "EMAIL_IN_USE" }
+    );
+  }
 }

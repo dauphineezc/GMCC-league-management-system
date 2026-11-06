@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
 
   const options = {
-    ttlHours: ttlHours || 24,
+    ttlHours,
     email,
     // phone,
     createdBy: user.id,

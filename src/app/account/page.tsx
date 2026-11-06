@@ -4,6 +4,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getServerUser } from "@/lib/serverUser";
 import { getUserDoc, upsertUserProfile } from "@/lib/repositories/usersRepo";
 import AccountSettingsClient from "@/components/accountSettingsClient";
+import { hasVerifiedEmail } from "@/lib/verifiedEmail";
 
 async function resolveAccountDisplayName(
   uid: string,
@@ -40,11 +41,13 @@ export default async function AccountSettingsPage() {
   }
 
   const displayName = await resolveAccountDisplayName(user.id, user.email);
+  const emailVerified = await hasVerifiedEmail(user.id);
 
   const userData = {
     id: user.id,
     email: user.email,
     displayName: displayName || user.email || "",
+    emailVerified,
   };
 
   return <AccountSettingsClient user={userData} />;

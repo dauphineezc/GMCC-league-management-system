@@ -7,7 +7,6 @@ const SESSION_COOKIE = "fb:session";
 const PUBLIC_API_PATHS = new Set([
   "/api/auth/session",
   "/api/auth/logout",
-  "/api/admin/claims",
 ]);
 
 /** Dynamic public paths (e.g. league schedule PDF for signed-out viewers). */

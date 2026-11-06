@@ -2,6 +2,16 @@ import { db } from "@/db/index";
 import { invites } from "@/db/schema";
 import { and, eq, gte, isNull } from "drizzle-orm";
 
+export const DEFAULT_INVITE_TTL_HOURS = 24;
+export const MAX_INVITE_TTL_HOURS = 48;
+
+/** Whole hours in [1, MAX_INVITE_TTL_HOURS]; anything unusable falls back to the default. */
+export function clampInviteTtlHours(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) return DEFAULT_INVITE_TTL_HOURS;
+  return Math.min(Math.floor(n), MAX_INVITE_TTL_HOURS);
+}
+
 function makeCode8(): string {
   return crypto.randomUUID().replace(/-/g, "").substring(0, 8).toLowerCase();
 }
@@ -27,7 +37,7 @@ export async function createLinkInvite(
   teamId: string,
   options?: { ttlHours?: number; createdBy?: string }
 ): Promise<{ token: string; expiresIn: number }> {
-  const ttlHours = options?.ttlHours ?? 24;
+  const ttlHours = clampInviteTtlHours(options?.ttlHours);
   const token = crypto.randomUUID().replace(/-/g, "");
   const code = `tok:${await hashToken(token)}`;
   const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
@@ -46,7 +56,7 @@ export async function createCodeInvite(
   teamId: string,
   options?: { ttlHours?: number; createdBy?: string }
 ): Promise<{ code: string; expiresIn: number }> {
-  const ttlHours = options?.ttlHours ?? 24;
+  const ttlHours = clampInviteTtlHours(options?.ttlHours);
   const code = makeCode8();
   const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
 

@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 export const revalidate = 30;
 
 import EmbedSignInLink from "@/components/embedSignInLink";
+import SignOutButton from "@/components/signOutButton";
 import Link from "next/link";
 import { getServerUser } from "@/lib/serverUser";
 import TeamSummaryCard from "@/components/playerTeamSummaryCard";
@@ -290,7 +291,7 @@ export default async function UnifiedHome() {
         ) : (
           <>
             <p>You&apos;re signed in as <code>{user?.email ?? user?.id}</code>.</p>
-            <Link className="btn btn--outline" href="/logout">Sign out</Link>
+            <SignOutButton className="btn btn--outline" />
           </>
         )}
       </section>

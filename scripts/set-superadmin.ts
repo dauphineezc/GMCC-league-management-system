@@ -66,6 +66,7 @@ async function main() {
 
   const next = { ...before, superadmin: !revoke };
   await auth.setCustomUserClaims(user.uid, next);
+  await auth.revokeRefreshTokens(user.uid);
 
   const after = (await auth.getUser(user.uid)).customClaims ?? {};
   console.log("\n--- After ---");
@@ -76,7 +77,7 @@ async function main() {
       : "\nDone: set superadmin=true."
   );
   console.log(
-    "They must sign out and sign back in for the session cookie to refresh."
+    "Their existing sessions were revoked; the new role applies when they sign back in."
   );
 }
 

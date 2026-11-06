@@ -180,6 +180,16 @@ export async function removeLeagueAdmin(leagueRef: string, userId: string): Prom
     .where(and(eq(leagueAdmins.leagueId, league.id), eq(leagueAdmins.userId, userId)));
 }
 
+export async function listLeagueAdminUserIds(leagueRef: string): Promise<string[]> {
+  const league = await resolveLeagueByRef(leagueRef);
+  if (!league) return [];
+  const rows = await db
+    .select({ userId: leagueAdmins.userId })
+    .from(leagueAdmins)
+    .where(eq(leagueAdmins.leagueId, league.id));
+  return rows.map((r) => r.userId);
+}
+
 export async function listLeagueRefsForAdminUser(userId: string): Promise<string[]> {
   const rows = await db
     .select({ slug: leagues.slug })
