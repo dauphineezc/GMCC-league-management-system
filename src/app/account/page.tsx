@@ -42,12 +42,15 @@ export default async function AccountSettingsPage() {
 
   const displayName = await resolveAccountDisplayName(user.id, user.email);
   const emailVerified = await hasVerifiedEmail(user.id);
+  const doc = await getUserDoc(user.id);
 
   const userData = {
     id: user.id,
     email: user.email,
     displayName: displayName || user.email || "",
     emailVerified,
+    phone: String(doc?.phone ?? ""),
+    dob: String(doc?.dob ?? ""),
   };
 
   return <AccountSettingsClient user={userData} />;

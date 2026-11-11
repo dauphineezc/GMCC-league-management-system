@@ -185,6 +185,30 @@ async function sendAnnouncement(formData: FormData): Promise<SendAnnouncementRes
     );
   }
 
+  // Reply-To → sending admin (keeps From as the org sender)
+  let replyTo: { Email: string; Name?: string } | undefined;
+  const adminEmail = user.email?.trim();
+  if (adminEmail?.includes("@")) {
+    let adminName: string | undefined;
+    try {
+      const fu = await adminAuth.getUser(user.id);
+      adminName = fu.displayName?.trim() || undefined;
+    } catch {
+      // ignore — email alone is enough for Reply-To
+    }
+    if (!adminName) {
+      const profile = await getUserDoc(user.id);
+      const rawName = profile?.displayName;
+      adminName =
+        typeof rawName === "string" ? rawName.trim() || undefined : undefined;
+    }
+    replyTo = { Email: adminEmail, ...(adminName ? { Name: adminName } : {}) };
+  } else {
+    console.warn(
+      "Sending admin has no email; Reply-To will fall back to From address."
+    );
+  }
+
   // Non-secret fingerprint to guarantee same creds across envs
   console.log(
     "MJ fp:",
@@ -193,6 +217,7 @@ async function sendAnnouncement(formData: FormData): Promise<SendAnnouncementRes
   console.log("Mailjet config:", {
     FROM_EMAIL,
     FROM_NAME,
+    REPLY_TO: replyTo ?? null,
     API_KEY: "***",
     API_SECRET: "***",
     MJ_BASE,
@@ -220,6 +245,7 @@ async function sendAnnouncement(formData: FormData): Promise<SendAnnouncementRes
     const payload = {
       Messages: batch.map((r, idx) => ({
         From: { Email: FROM_EMAIL, Name: FROM_NAME },
+        ...(replyTo ? { ReplyTo: replyTo } : {}),
         To: [{ Email: r.Email, Name: r.Name }],
         Subject: subject,
         TextPart: textPart,

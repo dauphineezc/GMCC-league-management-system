@@ -87,8 +87,8 @@ export default function Navbar({ user, hasAdminLeagues = false }: NavbarProps) {
                 </svg>
               </summary>
               <div className="account-menu">
-                <Link className="block px-3 py-2 hover:bg-gray-50" href="/account">Settings</Link>
-                <SignOutButton className="block w-full text-left px-3 py-2 hover:bg-gray-50" />
+                <Link href="/account">Settings</Link>
+                <SignOutButton />
               </div>
             </details>
           ) : (
@@ -111,7 +111,7 @@ export default function Navbar({ user, hasAdminLeagues = false }: NavbarProps) {
                 </svg>
               </summary>
               <div className="account-menu">
-                <EmbedSignInLink className="block px-3 py-2 hover:bg-gray-50">Sign in</EmbedSignInLink>
+                <EmbedSignInLink>Sign in</EmbedSignInLink>
               </div>
             </details>
           )}

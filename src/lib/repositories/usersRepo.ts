@@ -10,6 +10,8 @@ export async function getUserDoc(uid: string): Promise<Record<string, unknown> |
     id: u.id,
     email: u.email,
     displayName: u.displayName,
+    phone: u.phone,
+    dob: u.dob,
     isSuperadmin: u.isSuperadmin,
     createdAt: u.createdAt?.toISOString(),
   };
@@ -19,23 +21,37 @@ export async function upsertUserProfile(input: {
   id: string;
   email: string;
   displayName?: string | null;
+  phone?: string | null;
+  dob?: string | null;
   isSuperadmin?: boolean;
 }): Promise<void> {
+  const set: {
+    email: string;
+    displayName?: string | null;
+    phone?: string | null;
+    dob?: string | null;
+    isSuperadmin?: boolean;
+  } = {
+    email: input.email.toLowerCase(),
+  };
+  if (input.displayName !== undefined) set.displayName = input.displayName;
+  if (input.phone !== undefined) set.phone = input.phone;
+  if (input.dob !== undefined) set.dob = input.dob;
+  if (input.isSuperadmin !== undefined) set.isSuperadmin = input.isSuperadmin;
+
   await db
     .insert(users)
     .values({
       id: input.id,
       email: input.email.toLowerCase(),
       displayName: input.displayName ?? null,
+      phone: input.phone ?? null,
+      dob: input.dob ?? null,
       isSuperadmin: input.isSuperadmin ?? false,
     })
     .onConflictDoUpdate({
       target: users.id,
-      set: {
-        email: input.email.toLowerCase(),
-        displayName: input.displayName ?? null,
-        isSuperadmin: input.isSuperadmin ?? false,
-      },
+      set,
     });
 }
 

@@ -1203,14 +1203,55 @@ select.input {
 .contact-val{ font-weight: 700; color: var(--navy); }
 
 .player-popup__teams{ display: grid; gap: 8px; margin-top: 6px; }
-.player-popup__teamrow{
-  display: grid;
-  grid-template-columns: 1fr 1.2fr max-content;
-  column-gap: 12px; align-items: center;
-  background: var(--card);
-  border-radius: 10px; padding: 0 20px 5px;
+.player-popup__teams-title{
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
 }
-.teamrow-league, .teamrow-team{ font-weight: 800; color: var(--navy); }
+.player-popup__teams-list{
+  display: grid;
+  gap: 8px;
+}
+.player-popup__teams-list--scroll{
+  max-height: 21.5rem; /* ~5 team rows */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+.player-popup__teamrow{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,.015);
+}
+.teamrow-names{
+  min-width: 0;
+  flex: 1;
+}
+.teamrow-team{
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.teamrow-league{
+  font-size: .9rem;
+  font-weight: 400;
+  color: var(--navy);
+  line-height: 1.5;
+  padding-left: 12px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.teamrow-badge{
+  flex-shrink: 0;
+  align-self: center;
+}
 .teamrow-badge .badge{ font-size: .75rem; }
 
 
@@ -1677,13 +1718,20 @@ select.input {
 .account[open] .account-trigger{
   border-bottom-left-radius:0; border-bottom-right-radius:0;
 }
-.account-menu a{
+.account-menu a,
+.account-menu button{
   display:block; width:100%;
   padding:10px 12px; border-radius:8px;
   color:var(--navy); letter-spacing:.7px;
   font-size: clamp(15px, 1.4vw, 18px);
+  background:transparent; border:none;
+  text-align:left; cursor:pointer;
+  font-family:inherit;
 }
-.account-menu a:hover{ background:#f8fafc; text-decoration: underline; }
+.account-menu a:hover,
+.account-menu button:hover{
+  background:#f8fafc; text-decoration: underline;
+}
 
 /* --- make nav links and the green pill the same height --- */
 :root{

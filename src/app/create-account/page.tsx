@@ -1,7 +1,7 @@
 // /src/app/create-account/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { auth, googleProvider, appleProvider, microsoftProvider } from "@/lib/firebaseClient";
@@ -12,15 +12,25 @@ import {
   getAdditionalUserInfo,
 } from "firebase/auth";
 import { finalizeClientSession, isEmbedded, openAppInNewTab } from "@/lib/embedAuth";
+import { parseDob, parseEmail, parsePersonName, parsePhone } from "@/lib/profileValidation";
 import { safeNextPath } from "@/lib/safeNextPath";
 
 type Gender = "FEMALE" | "MALE" | "NONBINARY" | "PREFER_NOT_TO_SAY" | "OTHER";
+
+function todayYmd(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function CreateAccountContent() {
   const [firstName, setFirst] = useState("");
   const [lastName, setLast] = useState("");
   const [gender, setGender] = useState<Gender>("PREFER_NOT_TO_SAY");
   const [dob, setDob] = useState(""); // yyyy-mm-dd
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,17 +51,43 @@ function CreateAccountContent() {
     return `${path}${sep}next=${encodeURIComponent(dest)}`;
   }
 
-  const profilePayload = useMemo(() => ({
-    firstName: firstName.trim(),
-    lastName: lastName.trim(),
-    gender,
-    dob, // keep as yyyy-mm-dd; backend can normalize to ISO date if desired
-  }), [firstName, lastName, gender, dob]);
-
-  function validateProfile() {
-    if (!profilePayload.firstName || !profilePayload.lastName) return "Please enter your first and last name.";
-    if (!dob) return "Please enter your date of birth.";
+  /** Shared profile fields for email and OAuth signup. */
+  function validateProfile(): string | null {
+    const first = parsePersonName(firstName, "First name");
+    if (!first.ok) return first.error;
+    const last = parsePersonName(lastName, "Last name");
+    if (!last.ok) return last.error;
+    const dobParsed = parseDob(dob);
+    if (!dobParsed.ok) return dobParsed.error;
+    if (!dobParsed.value) return "Please enter your date of birth.";
+    const phoneParsed = parsePhone(phone);
+    if (!phoneParsed.ok) return phoneParsed.error;
     return null;
+  }
+
+  /** Extra checks only needed for email/password signup. */
+  function validateEmailSignup(): string | null {
+    const profileErr = validateProfile();
+    if (profileErr) return profileErr;
+    const emailParsed = parseEmail(email);
+    if (!emailParsed.ok) return emailParsed.error;
+    if (!pw) return "Please enter a password.";
+    if (pw.length < 6) return "Password must be at least 6 characters.";
+    return null;
+  }
+
+  function buildProfilePayload() {
+    const first = parsePersonName(firstName, "First name");
+    const last = parsePersonName(lastName, "Last name");
+    const dobParsed = parseDob(dob);
+    const phoneParsed = parsePhone(phone);
+    return {
+      firstName: first.ok ? first.value : firstName.trim(),
+      lastName: last.ok ? last.value : lastName.trim(),
+      gender,
+      dob: dobParsed.ok && dobParsed.value ? dobParsed.value : dob,
+      ...(phoneParsed.ok && phoneParsed.value ? { phone: phoneParsed.value } : {}),
+    };
   }
 
   async function postProfile() {
@@ -59,11 +95,11 @@ function CreateAccountContent() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(profilePayload),
+      body: JSON.stringify(buildProfilePayload()),
     });
     if (!r.ok) {
-      const t = await r.text().catch(() => "");
-      throw new Error(t || "Failed to save profile");
+      const data = await r.json().catch(() => null);
+      throw new Error(data?.error || "Failed to save profile");
     }
   }
 
@@ -74,11 +110,14 @@ function CreateAccountContent() {
   }
 
   async function createWithEmail() {
-    const v = validateProfile();
+    const v = validateEmailSignup();
     if (v) { setErr(v); return; }
+    const emailParsed = parseEmail(email);
+    if (!emailParsed.ok) { setErr(emailParsed.error); return; }
+
     setErr(null); setBusy(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), pw);
+      const cred = await createUserWithEmailAndPassword(auth, emailParsed.value, pw);
       // Best effort: players can still use the app; verification is required for admin roles.
       await sendEmailVerification(cred.user).catch(() => undefined);
       await complete();
@@ -157,11 +196,25 @@ function CreateAccountContent() {
         <div className="space-y-4" style={{ width: "100%" }}>
           <div className="auth-row">
             <label className="auth-label">First name</label>
-            <input className="auth-input" value={firstName} onChange={e => setFirst(e.target.value)} required />
+            <input
+              className="auth-input"
+              value={firstName}
+              onChange={e => setFirst(e.target.value)}
+              required
+              maxLength={40}
+              autoComplete="given-name"
+            />
           </div>
           <div className="auth-row">
             <label className="auth-label">Last name</label>
-            <input className="auth-input" value={lastName} onChange={e => setLast(e.target.value)} required />
+            <input
+              className="auth-input"
+              value={lastName}
+              onChange={e => setLast(e.target.value)}
+              required
+              maxLength={40}
+              autoComplete="family-name"
+            />
           </div>
           <div className="auth-row">
             <label className="auth-label">Gender</label>
@@ -175,7 +228,27 @@ function CreateAccountContent() {
           </div>
           <div className="auth-row">
             <label className="auth-label">Date of birth</label>
-            <input className="auth-input" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+            <input
+              className="auth-input"
+              type="date"
+              value={dob}
+              onChange={e => setDob(e.target.value)}
+              required
+              min="1900-01-01"
+              max={todayYmd()}
+            />
+          </div>
+          <div className="auth-row">
+            <label className="auth-label">Phone number <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
+            <input
+              className="auth-input"
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="e.g. (555) 123-4567"
+              autoComplete="tel"
+              maxLength={30}
+            />
           </div>
         </div>
 
@@ -185,11 +258,28 @@ function CreateAccountContent() {
           <h3 className="text-sm text-slate-600" style={{ fontSize: "20px", fontWeight: 600, marginBottom: "15px" }}>Create with email</h3>
           <div className="auth-row">
             <label className="auth-label">Email</label>
-            <input className="auth-input" value={email} onChange={e => setEmail(e.target.value)} type="email" inputMode="email" autoComplete="email" />
+            <input
+              className="auth-input"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              maxLength={254}
+            />
           </div>
           <div className="auth-row">
             <label className="auth-label">Password</label>
-            <input className="auth-input" value={pw} onChange={e => setPw(e.target.value)} type="password" autoComplete="new-password" />
+            <input
+              className="auth-input"
+              value={pw}
+              onChange={e => setPw(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={6}
+            />
           </div>
           <button className="brand-btn auth-primary" disabled={busy} onClick={() => void createWithEmail()} style={{ marginTop: "20px", marginBottom: "30px" }}>
             {busy ? "Creating…" : "Create account"}

@@ -55,6 +55,10 @@ export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   displayName: text("display_name"),
+  /** E.164 or free-form phone; optional until the user sets it in settings. */
+  phone: text("phone"),
+  /** Date of birth as yyyy-mm-dd. */
+  dob: text("dob"),
   isSuperadmin: boolean("is_superadmin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -1,6 +1,7 @@
 // /src/app/api/users/[uid]/name/route.ts
 import { NextResponse } from "next/server";
 import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { parsePersonName } from "@/lib/profileValidation";
 import { getUserDoc, upsertUserProfile } from "@/lib/repositories/usersRepo";
 
 export const dynamic = "force-dynamic";
@@ -21,16 +22,16 @@ export async function PUT(
     }
 
     const body = await req.json().catch(() => ({}));
-    const { firstName, lastName } = body;
-
-    if (!firstName?.trim() || !lastName?.trim()) {
-      return NextResponse.json(
-        { error: "First and last name are required" },
-        { status: 400 }
-      );
+    const first = parsePersonName(body.firstName, "First name");
+    if (!first.ok) {
+      return NextResponse.json({ error: first.error }, { status: 400 });
+    }
+    const last = parsePersonName(body.lastName, "Last name");
+    if (!last.ok) {
+      return NextResponse.json({ error: last.error }, { status: 400 });
     }
 
-    const newDisplayName = `${firstName.trim()} ${lastName.trim()}`;
+    const newDisplayName = `${first.value} ${last.value}`;
     const existing = await getUserDoc(uid);
     const email = (existing?.email as string | undefined) ?? me.email;
 

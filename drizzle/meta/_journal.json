@@ -71,6 +71,13 @@
       "when": 1793997701123,
       "tag": "0009_join_code_failures",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794239409343,
+      "tag": "0010_user_phone_dob",
+      "breakpoints": true
     }
   ]
 }

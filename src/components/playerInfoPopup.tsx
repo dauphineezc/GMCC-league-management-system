@@ -44,28 +44,53 @@ export default function PlayerInfoPopup(props: Props) {
 
   const showPaidBadge = showPaid !== false;
 
-  // --- email fetch state (unchanged logic) ---
+  // --- contact fetch (email / phone / dob) ---
   const [resolvedEmail, setResolvedEmail] = useState<string | null>(null);
+  const [resolvedPhone, setResolvedPhone] = useState<string | null>(null);
+  const [resolvedDob, setResolvedDob] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
   const uid = (player as any)?.userId ?? (player as any)?.id ?? null;
 
   useEffect(() => {
     let abort = false;
     setResolvedEmail(null);
+    setResolvedPhone(null);
+    setResolvedDob(null);
     if (!open || !uid) return;
+
+    const leagueQs = contextLeagueId
+      ? `?leagueId=${encodeURIComponent(contextLeagueId)}`
+      : "";
+
     setEmailLoading(true);
+    setContactLoading(true);
 
-    const url = `/api/users/${encodeURIComponent(uid)}/email` +
-      (contextLeagueId ? `?leagueId=${encodeURIComponent(contextLeagueId)}` : "");
+    fetch(`/api/users/${encodeURIComponent(uid)}/email${leagueQs}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!abort) setResolvedEmail(j?.email ?? null);
+      })
+      .finally(() => {
+        if (!abort) setEmailLoading(false);
+      });
 
-    fetch(url)
-      .then(r => r.ok ? r.json() : null)
-      .then(j => { if (!abort) setResolvedEmail(j?.email ?? null); })
-      .finally(() => { if (!abort) setEmailLoading(false); });
+    fetch(`/api/users/${encodeURIComponent(uid)}/contact${leagueQs}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!abort) {
+          setResolvedPhone(typeof j?.phone === "string" ? j.phone : null);
+          setResolvedDob(typeof j?.dob === "string" ? j.dob : null);
+        }
+      })
+      .finally(() => {
+        if (!abort) setContactLoading(false);
+      });
 
-    return () => { abort = true; };
+    return () => {
+      abort = true;
+    };
   }, [open, uid, contextLeagueId]);
-
   const teamsOrdered = useMemo(() => {
     const teams = player?.teams ?? [];
     if (!contextTeamId && !contextLeagueId) return teams;
@@ -80,6 +105,26 @@ export default function PlayerInfoPopup(props: Props) {
     resolvedEmail ??
     player.contact?.email ??
     (emailLoading ? "" : FALLBACK_EMAIL);
+
+  const phoneToShow =
+    resolvedPhone ??
+    player.contact?.phone ??
+    "";
+  const dobRaw =
+    resolvedDob ??
+    player.contact?.dob ??
+    "";
+  const dobToShow = (() => {
+    if (contactLoading && resolvedDob === null) return "";
+    if (!dobRaw) return "—";
+    const d = new Date(`${dobRaw}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return dobRaw;
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  })();
 
   const overlay = (
     <div
@@ -124,13 +169,21 @@ export default function PlayerInfoPopup(props: Props) {
             }}
           >
             <div className="contact-label">DOB</div>
-            <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.dob || "—"}</div>
+            <div className="contact-val" style={{ minHeight: "1.25rem" }}>
+              {contactLoading && resolvedDob === null
+                ? <span style={{ display: "inline-block", width: "12ch" }}>&nbsp;</span>
+                : dobToShow}
+            </div>
 
             {/* <div className="contact-label">Emergency Contact</div>
             <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.emergencyName || "—"}</div> */}
 
             <div className="contact-label">Phone</div>
-            <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.phone || "—"}</div>
+            <div className="contact-val" style={{ minHeight: "1.25rem" }}>
+              {contactLoading && resolvedPhone === null
+                ? <span style={{ display: "inline-block", width: "12ch" }}>&nbsp;</span>
+                : (phoneToShow || "—")}
+            </div>
 
             {/* <div className="contact-label">Emergency Phone</div>
             <div className="contact-val" style={{ minHeight: "1.25rem" }}>{player.contact.emergencyPhone || "—"}</div> */}
@@ -152,8 +205,19 @@ export default function PlayerInfoPopup(props: Props) {
             {teamsOrdered.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>No teams found.</p>
             ) : (
-              <div className="space-y-2">
+              <div
+                className={
+                  teamsOrdered.length > 5
+                    ? "player-popup__teams-list player-popup__teams-list--scroll"
+                    : "player-popup__teams-list"
+                }
+              >
                 {teamsOrdered.map((t, idx) => {
+                  const singleCol = (columns ?? 2) === 1;
+                  const primaryName = singleCol
+                    ? (t.leagueName ?? t.teamName)
+                    : (t.teamName ?? t.leagueName);
+                  const leagueName = t.leagueName ?? "";
                   const isContext =
                     (!!contextTeamId && t.teamId === contextTeamId) ||
                     (!!contextLeagueId && t.leagueId === contextLeagueId);
@@ -163,50 +227,28 @@ export default function PlayerInfoPopup(props: Props) {
                   return (
                     <div
                       key={`${t.teamId ?? t.leagueId ?? idx}`}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: (columns ?? 2) === 1 ? "1fr" : "1fr 1fr",
-                        gap: 12,
-                        alignItems: "center",
-                      }}
+                      className="player-popup__teamrow"
                     >
-                      <div className="mini-card" style={{ textAlign: "left" }}>
-                        <div
-                          style={{
-                            fontWeight: 700, textTransform: "uppercase", letterSpacing: ".02em",
-                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                          }}
-                          title={(columns ?? 2) === 1 ? (t.leagueName ?? t.teamName) : (t.teamName ?? t.leagueName)}
-                        >
-                          {(columns ?? 2) === 1 ? (t.leagueName ?? t.teamName) : (t.teamName ?? t.leagueName)}
+                      <div className="teamrow-names">
+                        <div className="teamrow-team" title={primaryName ?? ""}>
+                          {primaryName}
                         </div>
+                        {!singleCol && leagueName && (
+                          <div className="teamrow-league" title={leagueName}>
+                            {leagueName}
+                          </div>
+                        )}
                       </div>
 
-                      {(columns ?? 2) !== 1 && (
-                        <div
-                          className="mini-card"
-                          style={{
-                            display: "flex", alignItems: "center",
-                            justifyContent: "space-between", gap: 10, textAlign: "left",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontWeight: 700, textTransform: "uppercase", letterSpacing: ".02em",
-                              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                            }}
-                            title={t.leagueName ?? ""}
+                      {!singleCol && showPaidBadge && (
+                        <div className="teamrow-badge">
+                          <span
+                            className={`badge ${paid ? "badge--ok" : "badge--pending"}`}
+                            style={{ whiteSpace: "nowrap" }}
+                            title={paid ? "PAID" : "UNPAID"}
                           >
-                            {t.leagueName ?? ""}
-                          </div>
-
-                          {showPaidBadge && (
-                            <span className={`badge ${paid ? "badge--ok" : "badge--pending"}`}
-                              style={{ whiteSpace: "nowrap" }}
-                              title={paid ? "PAID" : "UNPAID"}>
-                              {paid ? "PAID" : "UNPAID"}
-                            </span>
-                          )}
+                            {paid ? "PAID" : "UNPAID"}
+                          </span>
                         </div>
                       )}
                     </div>

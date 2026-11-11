@@ -1,6 +1,7 @@
 // /src/app/api/users/profile/route.ts
 import { NextResponse } from "next/server";
 import { assertAuthenticated, isAuthFailure } from "@/lib/authGuards";
+import { parseDob, parsePersonName, parsePhone } from "@/lib/profileValidation";
 import { upsertUserProfile } from "@/lib/repositories/usersRepo";
 
 export const runtime = "nodejs";
@@ -13,9 +14,29 @@ export async function POST(req: Request) {
     const me = auth.user;
 
     const body = await req.json().catch(() => ({}));
-    const { firstName, lastName } = body || {};
-    if (!firstName || !lastName) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const first = parsePersonName(body?.firstName, "First name");
+    if (!first.ok) {
+      return NextResponse.json({ error: first.error }, { status: 400 });
+    }
+    const last = parsePersonName(body?.lastName, "Last name");
+    if (!last.ok) {
+      return NextResponse.json({ error: last.error }, { status: 400 });
+    }
+
+    const dobParsed = parseDob(body?.dob);
+    if (!dobParsed.ok) {
+      return NextResponse.json({ error: dobParsed.error }, { status: 400 });
+    }
+    if (!dobParsed.value) {
+      return NextResponse.json(
+        { error: "Date of birth is required" },
+        { status: 400 }
+      );
+    }
+
+    const phoneParsed = parsePhone(body?.phone);
+    if (!phoneParsed.ok) {
+      return NextResponse.json({ error: phoneParsed.error }, { status: 400 });
     }
 
     if (!me.email) {
@@ -25,7 +46,9 @@ export async function POST(req: Request) {
     await upsertUserProfile({
       id: me.id,
       email: me.email,
-      displayName: `${firstName} ${lastName}`.trim(),
+      displayName: `${first.value} ${last.value}`,
+      dob: dobParsed.value,
+      ...(phoneParsed.value ? { phone: phoneParsed.value } : {}),
     });
 
     return NextResponse.json({ ok: true });
